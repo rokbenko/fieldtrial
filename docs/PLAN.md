@@ -17,7 +17,7 @@ You are the lead engineer building **fieldtrial**, an open-source Python framewo
    - Write tests first for anything statistical.
    - Run lint, type checks and tests before every commit.
    - Use Conventional Commits.
-   - Do not push; I will create the GitHub remote.
+   - Push only your working branch on `rokbenko/fieldtrial`. Opening PRs, pushing tags and pushing other branches need my OK.
 5. **Stop at the end of each milestone.** Summarize what you built, give me the exact commands to try it, list open questions, and say what comes next. Do not start the next milestone without my OK.
 6. **Verify third-party APIs.** Everything in §13 about LeRobot and openpi was checked against LeRobot 0.6.1 and openpi-client 0.1.2 on 2026-10-01. Re-check against the installed source before depending on it. Never write an integration from memory.
 7. **Keep scope tight.** Anything not in the current milestone goes into `docs/ROADMAP.md` instead of the code.
@@ -60,12 +60,12 @@ It complements LeRobot and openpi and never forks them.
 
 ## 2. Identity
 
-- **Name:** `fieldtrial`. It is the PyPI name, the import name and the CLI command, and it was free on PyPI as of 2026-10-01.
+- **Name:** `fieldtrial`. It is the PyPI name, the import name and the CLI command. It was free on PyPI as of 2026-10-01 and is reserved with a placeholder release, `0.1.0.dev0`.
 - **Story (README footnote):** named after agricultural field trials. At Rothamsted in the 1920s, R. A. Fisher developed randomized block designs for field trials, and those are the designs fieldtrial uses to compare robot policies.
 - **Tagline:** "Find out whether your robot policy actually got better."
 - **License:** Apache-2.0.
-  - For author and copyright, use `git config user.name` / `user.email`; ask me if they are unset.
-  - Don't invent URLs. Use `https://github.com/<OWNER>/fieldtrial` until I give you the owner.
+  - Author and copyright holder: Rok Benko. Project metadata carries no email address.
+  - Don't invent URLs. The repository is `https://github.com/rokbenko/fieldtrial`.
 - **Telemetry:** none, ever.
 
 ---
@@ -199,7 +199,9 @@ The calculator commands also work on their own, with no study at all: `fieldtria
 - matplotlib
 - qrcode
 
-**Extras:**
+Each core dependency is added to `pyproject.toml` in the milestone that first imports it.
+
+**Extras** (each is declared in the milestone whose code first uses it, so `openpi`, `capture`, `lerobot` and `rewards` arrive in v0.2 or later):
 
 | Extra | Contents |
 |---|---|
@@ -214,7 +216,7 @@ The calculator commands also work on their own, with no study at all: `fieldtria
 
 **Quality and docs:**
 - **Lint and format:** ruff.
-- **Types:** mypy, strict for `stats` and `design`.
+- **Types:** mypy in strict mode for the whole package. This is stricter than strict-for-`stats`-and-`design`, but mypy can't enable `strict` per module.
 - **Docs:** MkDocs Material with mkdocstrings, deployed to GitHub Pages.
 
 ---
@@ -412,7 +414,7 @@ analysis:
   - pooled-z (default)
   - Fleiss continuity-corrected
   - arcsine (Cohen's h)
-- `power(...)`: closed forms, plus seeded exact simulation for Boschloo and McNemar.
+- `power(...)`: closed forms, plus exact power for Boschloo and McNemar. It is computed by enumerating every possible outcome, so it has no Monte Carlo error. Seeded simulation remains as a cross-check.
 - `mde(p_baseline, n, *, alpha, power, direction)`: the minimum detectable effect.
 
 **Bayesian (descriptive only, never the primary test):**
@@ -837,7 +839,7 @@ fieldtrial doctor                  # environment and optional-dependency checks
 ### M1: Statistics core and calculator CLI (release 0.1.0a1)
 
 **Build:**
-- the §12 modules: proportions, compare, paired, multiplicity, power/MDE (including exact simulation), bayes
+- the §12 modules: proportions, compare, paired, multiplicity, power/MDE (including exact power), bayes
 - the calculator commands from §16
 - a docs page per method
 
@@ -849,7 +851,7 @@ Ordinal, timing, stratified and drift analyses come in M2 with the analysis engi
 - the acceptance commands print the expected numbers
 - `uv build` produces a wheel
 
-I publish 0.1.0a1, which also reserves the name on PyPI.
+I publish 0.1.0a1. The `0.1.0.dev0` placeholder has already reserved the name.
 
 ### M2: Study design, storage and analysis (no UI yet)
 
@@ -1015,6 +1017,12 @@ initialization,paligemma_only,0,40
 | 2026-10-01 | Primary tests: Boschloo (independent arms), exact McNemar (paired); Wilson intervals; Holm for multiple comparisons; Bayesian results are descriptive only. |
 | 2026-10-01 | Manual and sim runners in v0.1. Command runner, openpi router and LeRobot dataset linking in v0.2. In-process LeRobot runner and reward-model pre-labeling in v0.3. |
 | 2026-10-01 | LeRobot rollout strategies can't be registered externally (hard-coded dispatch in 0.6.1), so the LeRobot runner will use `build_rollout_context` and its own `RolloutStrategy` subclass. |
+| 2026-10-01 | The repository is `rokbenko/fieldtrial`, with `main` as the default branch. Claude Code works on a `claude/` branch and pushes it, because its cloud sessions are temporary. PRs, tags and other branches need the maintainer's OK. This replaces "Do not push" in §0. |
+| 2026-10-01 | Author and copyright holder: Rok Benko. Project metadata carries no email. Security reports go through GitHub's private vulnerability reporting. |
+| 2026-10-01 | The PyPI name is reserved now with a placeholder, `0.1.0.dev0`, that contains no code. As a pre-release, pip and uv never pick it over 0.1.0a1 or later. The maintainer uploads it, because the Claude Code container's network policy blocks upload.pypi.org. |
+| 2026-10-01 | Integration extras (`openpi`, `capture`, `lerobot`, `rewards`) are declared in the milestone whose code uses them, and core dependencies are added in the milestone that first imports them. Declaring `lerobot` early would pull torch into `uv sync --all-extras` and pin the dev lockfile to lerobot's `numpy<2.3`. |
+| 2026-10-01 | Exact power for Boschloo and McNemar comes from enumerating the outcome space rather than from simulation; seeded simulation remains as a cross-check. |
+| 2026-10-01 | mypy runs in strict mode for the whole package, because mypy can't enable `strict` per module. |
 
 ---
 
