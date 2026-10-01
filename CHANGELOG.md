@@ -8,7 +8,23 @@ minor releases may contain breaking changes.
 
 ## [Unreleased]
 
+Planned as the first alpha, 0.1.0a1: the statistics core and calculator commands.
+
 ### Added
 
-- Project skeleton: packaging, the `fieldtrial --version` command, CI, and the
-  documentation site skeleton.
+- `fieldtrial.stats`, the statistics core (numpy and scipy only):
+  - one-arm intervals: Wilson (default), Clopper–Pearson, Jeffreys, Agresti–Coull, and an
+    exact binomial test against a threshold
+  - two independent arms: Newcombe difference CI, Boschloo exact test (primary), Fisher's
+    exact test and the conditional odds ratio
+  - paired designs: exact McNemar, Tango score CI, Cochran's Q with pairwise McNemar
+  - multiplicity adjustments: Holm, Bonferroni, Benjamini–Hochberg
+  - planning: sample size, power and minimum detectable effect (pooled-z, Fleiss
+    continuity-corrected, arcsine; unequal allocation), exact power for Boschloo and
+    McNemar, and a seeded simulation cross-check
+  - Bayesian summaries (descriptive only): P(p_B > p_A) and credible intervals
+- Calculator commands `fieldtrial ci`, `compare`, `paired`, `power`, `mde` and `adjust`,
+  each with `--json` output.
+- Documentation: a statistics reference page per method, a command-line page and the API
+  reference.
+- Project skeleton: packaging, `fieldtrial --version`, CI and the documentation site.

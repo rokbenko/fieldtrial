@@ -1025,6 +1025,8 @@ initialization,paligemma_only,0,40
 | 2026-10-01 | mypy runs in strict mode for the whole package, because mypy can't enable `strict` per module. |
 | 2026-10-01 | The PyPI name is reserved: `0.1.0.dev0` was published on 2026-10-01. |
 | 2026-10-01 | Corrected the §12 Boschloo golden values and the §1 and §15 examples. The original values came from a transposed table (arms as rows), but `scipy.stats.boschloo_exact` treats each column as one arm. With arms as columns: 0.00228 (was 0.00201), 0.05574 (was 0.05278) and 0.00196 (was 0.00179). No conclusion changes. Fisher's test is unaffected because it is symmetric under transposition. |
+| 2026-10-01 | Exact Boschloo power takes the nuisance supremum on a fixed 4001-point grid, so the p-values are exactly monotone and within about 1e-7 of scipy. Tango's interval is validated against an independent numeric-MLE implementation; the R (`PropCIs::scoreci.mp`) reference values are still to come. |
+| 2026-10-01 | mypy has no `python_version` pin and type-checks on each CI interpreter, because scipy-stubs for scipy 1.18 use Python 3.12 syntax. Ruff's `target-version = "py311"` keeps the source 3.11-compatible. |
 
 ---
 

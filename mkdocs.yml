@@ -51,6 +51,15 @@ not_in_nav: |
 
 nav:
   - Home: index.md
-  - Roadmap: ROADMAP.md
+  - Command line: cli.md
+  - Statistics:
+      - Overview: stats/index.md
+      - One arm: stats/intervals.md
+      - Two independent arms: stats/two-arms.md
+      - Paired designs: stats/paired.md
+      - Multiplicity: stats/multiplicity.md
+      - Planning: stats/planning.md
+      - Bayesian summaries: stats/bayes.md
   - Reference:
       - Python API: reference/api.md
+  - Roadmap: ROADMAP.md

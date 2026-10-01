@@ -9,8 +9,8 @@ for the current milestone.
 | Milestone | Scope | Status |
 |---|---|---|
 | M0 | Bootstrap: packaging, CI, docs skeleton, `fieldtrial --version` | done |
-| M1 | Statistics core and calculator CLI (release 0.1.0a1) | next |
-| M2 | Study design, storage and analysis (no UI) | planned |
+| M1 | Statistics core and calculator CLI (release 0.1.0a1) | done, awaiting release |
+| M2 | Study design, storage and analysis (no UI) | next |
 | M3 | Operator console, REST API and Python client | planned |
 | M4 | Reports, docs and the Dream Machines re-analysis (release 0.1.0) | planned |
 
@@ -42,6 +42,13 @@ for the current milestone.
 
 ## Ideas, not scheduled
 
+- Render formulas in the API reference properly. Docstrings use Sphinx `:math:` roles,
+  which mkdocstrings shows as plain text; the statistics pages are written in plain
+  Unicode.
+- Make `import fieldtrial.stats.power as m` return the module: the `power` function,
+  exported from `fieldtrial.stats`, shadows the submodule attribute. `from
+  fieldtrial.stats.power import ...` works.
+- Import scipy lazily in the CLI, so that `fieldtrial --version` starts faster.
 - Move the dev tooling from the `dev` extra to a PEP 735 dependency group, so that
   `uv run pytest` works in a fresh clone without `--all-extras`.
 - Revisit the docs toolchain. The Material for MkDocs team warns that MkDocs 2.0 removes

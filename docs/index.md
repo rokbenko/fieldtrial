@@ -6,9 +6,9 @@ fieldtrial is an open-source Python framework for statistically rigorous, real-w
 evaluation of robot policies. LeRobot trains the policy; fieldtrial tells you whether it
 actually got better.
 
-!!! warning "Pre-alpha"
-    The project is being bootstrapped and nothing is usable yet. The statistics calculators
-    arrive in 0.1.0a1. Studies, the operator console and reports follow in 0.1.0. See the
+!!! warning "Alpha"
+    The [statistics core](stats/index.md) and the [calculator commands](cli.md) work.
+    Studies, the operator console and reports follow in 0.1.0. See the
     [roadmap](ROADMAP.md).
 
 ## What it does
