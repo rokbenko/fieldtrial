@@ -186,3 +186,32 @@ class MinimumDetectableEffect:
     alpha: float
     power: float
     method: str
+
+
+@dataclass(frozen=True, slots=True)
+class PairwiseMcNemar:
+    """One pairwise exact McNemar comparison inside a multi-arm paired design.
+
+    ``arm_a`` and ``arm_b`` are column indices of the outcome matrix; ``b`` counts blocks
+    where only ``arm_a`` succeeded and ``c`` blocks where only ``arm_b`` succeeded.
+    """
+
+    arm_a: int
+    arm_b: int
+    b: int
+    c: int
+    test: TestResult
+    adjusted_pvalue: float
+    reject: bool
+
+
+@dataclass(frozen=True, slots=True)
+class CochranQResult:
+    """Cochran's Q omnibus test plus pairwise McNemar comparisons with a multiplicity adjustment."""
+
+    statistic: float
+    df: int
+    pvalue: float
+    comparisons: tuple[PairwiseMcNemar, ...]
+    adjustment: str
+    alpha: float

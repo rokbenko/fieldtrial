@@ -15,6 +15,7 @@ from fieldtrial.stats._types import (
 )
 from fieldtrial.stats.compare import INDEPENDENT_TESTS, compare_independent
 from fieldtrial.stats.multiplicity import ADJUST_METHODS, adjust_pvalues
+from fieldtrial.stats.paired import cochran_q, compare_paired, mcnemar_exact, tango_interval
 from fieldtrial.stats.proportions import INTERVAL_METHODS, proportion_ci, test_vs_threshold
 
 __all__ = [
@@ -29,7 +30,11 @@ __all__ = [
     "ProportionEstimate",
     "TestResult",
     "adjust_pvalues",
+    "cochran_q",
     "compare_independent",
+    "compare_paired",
+    "mcnemar_exact",
     "proportion_ci",
+    "tango_interval",
     "test_vs_threshold",
 ]
