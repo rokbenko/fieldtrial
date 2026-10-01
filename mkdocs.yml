@@ -1,0 +1,65 @@
+site_name: fieldtrial
+site_description: Find out whether your robot policy actually got better.
+site_author: Rok Benko
+repo_url: https://github.com/rokbenko/fieldtrial
+repo_name: rokbenko/fieldtrial
+edit_uri: edit/main/docs/
+copyright: Copyright &copy; 2026 Rok Benko. Apache-2.0.
+
+theme:
+  name: material
+  font: false  # system fonts: no requests to third-party font servers
+  features:
+    - content.code.copy
+    - navigation.sections
+    - navigation.top
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+
+plugins:
+  - search
+  - mkdocstrings:
+      handlers:
+        python:
+          paths: [src]
+          options:
+            docstring_style: numpy
+            show_root_heading: true
+            show_source: false
+
+markdown_extensions:
+  - admonition
+  - tables
+  - toc:
+      permalink: true
+  - pymdownx.highlight
+  - pymdownx.inlinehilite
+  - pymdownx.superfences
+
+# The kickoff plan is published but kept out of the navigation.
+not_in_nav: |
+  /PLAN.md
+
+nav:
+  - Home: index.md
+  - Command line: cli.md
+  - Statistics:
+      - Overview: stats/index.md
+      - One arm: stats/intervals.md
+      - Two independent arms: stats/two-arms.md
+      - Paired designs: stats/paired.md
+      - Multiplicity: stats/multiplicity.md
+      - Planning: stats/planning.md
+      - Bayesian summaries: stats/bayes.md
+  - Reference:
+      - Python API: reference/api.md
+  - Roadmap: ROADMAP.md

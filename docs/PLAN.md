@@ -17,7 +17,7 @@ You are the lead engineer building **fieldtrial**, an open-source Python framewo
    - Write tests first for anything statistical.
    - Run lint, type checks and tests before every commit.
    - Use Conventional Commits.
-   - Do not push; I will create the GitHub remote.
+   - Push only your working branch on `rokbenko/fieldtrial`. Opening PRs, pushing tags and pushing other branches need my OK.
 5. **Stop at the end of each milestone.** Summarize what you built, give me the exact commands to try it, list open questions, and say what comes next. Do not start the next milestone without my OK.
 6. **Verify third-party APIs.** Everything in §13 about LeRobot and openpi was checked against LeRobot 0.6.1 and openpi-client 0.1.2 on 2026-10-01. Re-check against the installed source before depending on it. Never write an integration from memory.
 7. **Keep scope tight.** Anything not in the current milestone goes into `docs/ROADMAP.md` instead of the code.
@@ -37,7 +37,7 @@ Dream Machines' π0.5 fine-tuning study (https://dream-machines.eu/blog/pi05-fin
 - A hardware confound (gripper plasticity) forced them to rerun every evaluation.
 - They skipped an obvious follow-up experiment because 40 rollouts could not resolve it.
 
-Re-analyzing their published counts makes the point. Their headline result, that one clean hour lifted success from 76% to 90% (36/40 vs 91/120), has a 95% CI for the difference of −0.5 to +24.5 pp (Boschloo p ≈ 0.053). That is suggestive, not conclusive.
+Re-analyzing their published counts makes the point. Their headline result, that one clean hour lifted success from 76% to 90% (36/40 vs 91/120), has a 95% CI for the difference of −0.5 to +24.5 pp (Boschloo p ≈ 0.056). That is suggestive, not conclusive.
 
 They built rubrics, progress stages, confidence intervals and checkpoint ladders by hand. Every team that deploys a policy rebuilds the same tools. fieldtrial packages them:
 
@@ -60,12 +60,12 @@ It complements LeRobot and openpi and never forks them.
 
 ## 2. Identity
 
-- **Name:** `fieldtrial`. It is the PyPI name, the import name and the CLI command, and it was free on PyPI as of 2026-10-01.
+- **Name:** `fieldtrial`. It is the PyPI name, the import name and the CLI command. It was free on PyPI as of 2026-10-01 and is reserved with a placeholder release, `0.1.0.dev0`.
 - **Story (README footnote):** named after agricultural field trials. At Rothamsted in the 1920s, R. A. Fisher developed randomized block designs for field trials, and those are the designs fieldtrial uses to compare robot policies.
 - **Tagline:** "Find out whether your robot policy actually got better."
 - **License:** Apache-2.0.
-  - For author and copyright, use `git config user.name` / `user.email`; ask me if they are unset.
-  - Don't invent URLs. Use `https://github.com/<OWNER>/fieldtrial` until I give you the owner.
+  - Author and copyright holder: Rok Benko. Project metadata carries no email address.
+  - Don't invent URLs. The repository is `https://github.com/rokbenko/fieldtrial`.
 - **Telemetry:** none, ever.
 
 ---
@@ -199,7 +199,9 @@ The calculator commands also work on their own, with no study at all: `fieldtria
 - matplotlib
 - qrcode
 
-**Extras:**
+Each core dependency is added to `pyproject.toml` in the milestone that first imports it.
+
+**Extras** (each is declared in the milestone whose code first uses it, so `openpi`, `capture`, `lerobot` and `rewards` arrive in v0.2 or later):
 
 | Extra | Contents |
 |---|---|
@@ -214,7 +216,7 @@ The calculator commands also work on their own, with no study at all: `fieldtria
 
 **Quality and docs:**
 - **Lint and format:** ruff.
-- **Types:** mypy, strict for `stats` and `design`.
+- **Types:** mypy in strict mode for the whole package. This is stricter than strict-for-`stats`-and-`design`, but mypy can't enable `strict` per module.
 - **Docs:** MkDocs Material with mkdocstrings, deployed to GitHub Pages.
 
 ---
@@ -412,7 +414,7 @@ analysis:
   - pooled-z (default)
   - Fleiss continuity-corrected
   - arcsine (Cohen's h)
-- `power(...)`: closed forms, plus seeded exact simulation for Boschloo and McNemar.
+- `power(...)`: closed forms, plus exact power for Boschloo and McNemar. It is computed by enumerating every possible outcome, so it has no Monte Carlo error. Seeded simulation remains as a cross-check.
 - `mde(p_baseline, n, *, alpha, power, direction)`: the minimum detectable effect.
 
 **Bayesian (descriptive only, never the primary test):**
@@ -454,11 +456,11 @@ Computed with scipy 1.17.1 and statsmodels 0.15.0 on 2026-10-01. Absolute tolera
 
 | Comparison | Difference | Newcombe 95% | Fisher p | Boschloo p |
 |---|---|---|---|---|
-| 50/80 vs 13/40 | +0.3000 | [+0.1104, +0.4582] | 0.00337 | 0.00201 |
-| 36/40 vs 91/120 | +0.1417 | [−0.0054, +0.2450] | 0.07060 | 0.05278 |
-| 74/80 vs 91/120 | +0.1667 | [+0.0625, +0.2596] | 0.00223 | 0.00179 |
+| 50/80 vs 13/40 | +0.3000 | [+0.1104, +0.4582] | 0.00337 | 0.00228 |
+| 36/40 vs 91/120 | +0.1417 | [−0.0054, +0.2450] | 0.07060 | 0.05574 |
+| 74/80 vs 91/120 | +0.1667 | [+0.0625, +0.2596] | 0.00223 | 0.00196 |
 
-The Dream Machines post itself reports Fisher p = 0.0034 for the first row, which makes a good sanity test. Boschloo values are stable across `scipy` grid sizes 32, 64 and 128.
+The Dream Machines post itself reports Fisher p = 0.0034 for the first row, which makes a good sanity test. Boschloo values are stable across `scipy` grid sizes 32, 64 and 128. `scipy.stats.boschloo_exact` treats each column as one arm, so the table is `[[k1, k2], [n1 - k1, n2 - k2]]`.
 
 **Exact McNemar test (two-sided)**
 
@@ -666,11 +668,11 @@ All report text comes from `analysis.wording`, one tested template per situation
 
 **Significant result:**
 
-> "q50 succeeded in 92.5% of trials (74/80; 95% CI 84.6–96.5%) vs 75.8% (91/120) for baseline: +16.7 pp (95% CI +6.2 to +26.0; Boschloo p = 0.0018)."
+> "q50 succeeded in 92.5% of trials (74/80; 95% CI 84.6–96.5%) vs 75.8% (91/120) for baseline: +16.7 pp (95% CI +6.2 to +26.0; Boschloo p = 0.0020)."
 
 **Not significant:**
 
-> "No significant difference detected: +14.2 pp (95% CI −0.5 to +24.5; p = 0.053). With 40 and 120 trials, this study had 80% power only for differences of at least X pp."
+> "No significant difference detected: +14.2 pp (95% CI −0.5 to +24.5; p = 0.056). With 40 and 120 trials, this study had 80% power only for differences of at least X pp."
 
 Compute X with `mde`.
 
@@ -837,7 +839,7 @@ fieldtrial doctor                  # environment and optional-dependency checks
 ### M1: Statistics core and calculator CLI (release 0.1.0a1)
 
 **Build:**
-- the §12 modules: proportions, compare, paired, multiplicity, power/MDE (including exact simulation), bayes
+- the §12 modules: proportions, compare, paired, multiplicity, power/MDE (including exact power), bayes
 - the calculator commands from §16
 - a docs page per method
 
@@ -849,7 +851,7 @@ Ordinal, timing, stratified and drift analyses come in M2 with the analysis engi
 - the acceptance commands print the expected numbers
 - `uv build` produces a wheel
 
-I publish 0.1.0a1, which also reserves the name on PyPI.
+I publish 0.1.0a1. The `0.1.0.dev0` placeholder has already reserved the name.
 
 ### M2: Study design, storage and analysis (no UI yet)
 
@@ -1015,6 +1017,16 @@ initialization,paligemma_only,0,40
 | 2026-10-01 | Primary tests: Boschloo (independent arms), exact McNemar (paired); Wilson intervals; Holm for multiple comparisons; Bayesian results are descriptive only. |
 | 2026-10-01 | Manual and sim runners in v0.1. Command runner, openpi router and LeRobot dataset linking in v0.2. In-process LeRobot runner and reward-model pre-labeling in v0.3. |
 | 2026-10-01 | LeRobot rollout strategies can't be registered externally (hard-coded dispatch in 0.6.1), so the LeRobot runner will use `build_rollout_context` and its own `RolloutStrategy` subclass. |
+| 2026-10-01 | The repository is `rokbenko/fieldtrial`, with `main` as the default branch. Claude Code works on a `claude/` branch and pushes it, because its cloud sessions are temporary. PRs, tags and other branches need the maintainer's OK. This replaces "Do not push" in §0. |
+| 2026-10-01 | Author and copyright holder: Rok Benko. Project metadata carries no email. Security reports go through GitHub's private vulnerability reporting. |
+| 2026-10-01 | The PyPI name is reserved now with a placeholder, `0.1.0.dev0`, that contains no code. As a pre-release, pip and uv never pick it over 0.1.0a1 or later. The maintainer uploads it, because the Claude Code container's network policy blocks upload.pypi.org. |
+| 2026-10-01 | Integration extras (`openpi`, `capture`, `lerobot`, `rewards`) are declared in the milestone whose code uses them, and core dependencies are added in the milestone that first imports them. Declaring `lerobot` early would pull torch into `uv sync --all-extras` and pin the dev lockfile to lerobot's `numpy<2.3`. |
+| 2026-10-01 | Exact power for Boschloo and McNemar comes from enumerating the outcome space rather than from simulation; seeded simulation remains as a cross-check. |
+| 2026-10-01 | mypy runs in strict mode for the whole package, because mypy can't enable `strict` per module. |
+| 2026-10-01 | The PyPI name is reserved: `0.1.0.dev0` was published on 2026-10-01. |
+| 2026-10-01 | Corrected the §12 Boschloo golden values and the §1 and §15 examples. The original values came from a transposed table (arms as rows), but `scipy.stats.boschloo_exact` treats each column as one arm. With arms as columns: 0.00228 (was 0.00201), 0.05574 (was 0.05278) and 0.00196 (was 0.00179). No conclusion changes. Fisher's test is unaffected because it is symmetric under transposition. |
+| 2026-10-01 | Exact Boschloo power takes the nuisance supremum on a fixed 4001-point grid, so the p-values are exactly monotone and within about 1e-7 of scipy. Tango's interval is validated against an independent numeric-MLE implementation; the R (`PropCIs::scoreci.mp`) reference values are still to come. |
+| 2026-10-01 | mypy has no `python_version` pin and type-checks on each CI interpreter, because scipy-stubs for scipy 1.18 use Python 3.12 syntax. Ruff's `target-version = "py311"` keeps the source 3.11-compatible. |
 
 ---
 

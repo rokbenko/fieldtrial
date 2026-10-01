@@ -1,0 +1,26 @@
+name: Statistics question
+description: A question about a method, a result, or which analysis fits your study.
+labels: [statistics]
+body:
+  - type: textarea
+    id: question
+    attributes:
+      label: Your question
+    validations:
+      required: true
+  - type: textarea
+    id: design
+    attributes:
+      label: Your study
+      description: Arms, number of trials per arm, conditions, and whether trials are paired.
+  - type: textarea
+    id: numbers
+    attributes:
+      label: Commands and output
+      description: For example `fieldtrial compare 74/80 91/120 --json`.
+      render: shell
+  - type: textarea
+    id: reference
+    attributes:
+      label: Reference values
+      description: If you think a number is wrong, the value you expected and where it comes from (R, statsmodels, a paper).

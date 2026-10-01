@@ -1,0 +1,44 @@
+# Install once with `uv run pre-commit install`.
+# ruff, mypy and import-linter run from the project environment, so their versions come from
+# uv.lock and match CI.
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+      - id: check-yaml
+      - id: check-toml
+      - id: check-merge-conflict
+      - id: check-added-large-files
+
+  - repo: local
+    hooks:
+      - id: ruff-check
+        name: ruff check
+        entry: uv run --frozen ruff check --fix
+        language: system
+        types_or: [python, pyi]
+      - id: ruff-format
+        name: ruff format
+        entry: uv run --frozen ruff format
+        language: system
+        types_or: [python, pyi]
+      - id: mypy
+        name: mypy
+        entry: uv run --frozen mypy src
+        language: system
+        types_or: [python, pyi, toml]
+        pass_filenames: false
+      - id: lint-imports
+        name: import contracts
+        entry: uv run --frozen lint-imports
+        language: system
+        types_or: [python, toml]
+        pass_filenames: false
+      - id: uv-lock-check
+        name: uv.lock is up to date
+        entry: uv lock --check
+        language: system
+        files: ^(pyproject\.toml|uv\.lock)$
+        pass_filenames: false

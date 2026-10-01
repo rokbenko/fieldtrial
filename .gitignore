@@ -10,6 +10,7 @@ __pycache__/
 
 # Virtual environments (uv)
 .venv/
+venv/
 
 # Build artifacts (uv build / hatchling)
 build/
@@ -22,6 +23,7 @@ dist/
 .hypothesis/
 .mypy_cache/
 .ruff_cache/
+.import_linter_cache/
 .coverage
 .coverage.*
 htmlcov/
@@ -30,6 +32,8 @@ coverage.xml
 # Docs build (mkdocs)
 /site/
 
-# OS clutter
+# Editors and OS clutter
+.idea/
+.vscode/
 .DS_Store
 Thumbs.db
