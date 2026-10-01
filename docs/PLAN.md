@@ -37,7 +37,7 @@ Dream Machines' π0.5 fine-tuning study (https://dream-machines.eu/blog/pi05-fin
 - A hardware confound (gripper plasticity) forced them to rerun every evaluation.
 - They skipped an obvious follow-up experiment because 40 rollouts could not resolve it.
 
-Re-analyzing their published counts makes the point. Their headline result, that one clean hour lifted success from 76% to 90% (36/40 vs 91/120), has a 95% CI for the difference of −0.5 to +24.5 pp (Boschloo p ≈ 0.053). That is suggestive, not conclusive.
+Re-analyzing their published counts makes the point. Their headline result, that one clean hour lifted success from 76% to 90% (36/40 vs 91/120), has a 95% CI for the difference of −0.5 to +24.5 pp (Boschloo p ≈ 0.056). That is suggestive, not conclusive.
 
 They built rubrics, progress stages, confidence intervals and checkpoint ladders by hand. Every team that deploys a policy rebuilds the same tools. fieldtrial packages them:
 
@@ -456,11 +456,11 @@ Computed with scipy 1.17.1 and statsmodels 0.15.0 on 2026-10-01. Absolute tolera
 
 | Comparison | Difference | Newcombe 95% | Fisher p | Boschloo p |
 |---|---|---|---|---|
-| 50/80 vs 13/40 | +0.3000 | [+0.1104, +0.4582] | 0.00337 | 0.00201 |
-| 36/40 vs 91/120 | +0.1417 | [−0.0054, +0.2450] | 0.07060 | 0.05278 |
-| 74/80 vs 91/120 | +0.1667 | [+0.0625, +0.2596] | 0.00223 | 0.00179 |
+| 50/80 vs 13/40 | +0.3000 | [+0.1104, +0.4582] | 0.00337 | 0.00228 |
+| 36/40 vs 91/120 | +0.1417 | [−0.0054, +0.2450] | 0.07060 | 0.05574 |
+| 74/80 vs 91/120 | +0.1667 | [+0.0625, +0.2596] | 0.00223 | 0.00196 |
 
-The Dream Machines post itself reports Fisher p = 0.0034 for the first row, which makes a good sanity test. Boschloo values are stable across `scipy` grid sizes 32, 64 and 128.
+The Dream Machines post itself reports Fisher p = 0.0034 for the first row, which makes a good sanity test. Boschloo values are stable across `scipy` grid sizes 32, 64 and 128. `scipy.stats.boschloo_exact` treats each column as one arm, so the table is `[[k1, k2], [n1 - k1, n2 - k2]]`.
 
 **Exact McNemar test (two-sided)**
 
@@ -668,11 +668,11 @@ All report text comes from `analysis.wording`, one tested template per situation
 
 **Significant result:**
 
-> "q50 succeeded in 92.5% of trials (74/80; 95% CI 84.6–96.5%) vs 75.8% (91/120) for baseline: +16.7 pp (95% CI +6.2 to +26.0; Boschloo p = 0.0018)."
+> "q50 succeeded in 92.5% of trials (74/80; 95% CI 84.6–96.5%) vs 75.8% (91/120) for baseline: +16.7 pp (95% CI +6.2 to +26.0; Boschloo p = 0.0020)."
 
 **Not significant:**
 
-> "No significant difference detected: +14.2 pp (95% CI −0.5 to +24.5; p = 0.053). With 40 and 120 trials, this study had 80% power only for differences of at least X pp."
+> "No significant difference detected: +14.2 pp (95% CI −0.5 to +24.5; p = 0.056). With 40 and 120 trials, this study had 80% power only for differences of at least X pp."
 
 Compute X with `mde`.
 
@@ -1023,6 +1023,8 @@ initialization,paligemma_only,0,40
 | 2026-10-01 | Integration extras (`openpi`, `capture`, `lerobot`, `rewards`) are declared in the milestone whose code uses them, and core dependencies are added in the milestone that first imports them. Declaring `lerobot` early would pull torch into `uv sync --all-extras` and pin the dev lockfile to lerobot's `numpy<2.3`. |
 | 2026-10-01 | Exact power for Boschloo and McNemar comes from enumerating the outcome space rather than from simulation; seeded simulation remains as a cross-check. |
 | 2026-10-01 | mypy runs in strict mode for the whole package, because mypy can't enable `strict` per module. |
+| 2026-10-01 | The PyPI name is reserved: `0.1.0.dev0` was published on 2026-10-01. |
+| 2026-10-01 | Corrected the §12 Boschloo golden values and the §1 and §15 examples. The original values came from a transposed table (arms as rows), but `scipy.stats.boschloo_exact` treats each column as one arm. With arms as columns: 0.00228 (was 0.00201), 0.05574 (was 0.05278) and 0.00196 (was 0.00179). No conclusion changes. Fisher's test is unaffected because it is symmetric under transposition. |
 
 ---
 

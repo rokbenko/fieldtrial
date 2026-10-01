@@ -1,29 +1,39 @@
-# Python
+# Secrets: tokens and credentials stay local
+.env
+.env.*
+!.env.example
+.pypirc
+
+# Python bytecode
 __pycache__/
 *.py[cod]
-*.egg-info/
-build/
-dist/
 
-# Environments
+# Virtual environments (uv)
 .venv/
 venv/
 
-# Tool caches and reports
+# Build artifacts (uv build / hatchling)
+build/
+dist/
+*.egg-info/
+*.whl
+
+# Test, lint and type-check caches
 .pytest_cache/
+.hypothesis/
 .mypy_cache/
 .ruff_cache/
-.hypothesis/
 .import_linter_cache/
 .coverage
 .coverage.*
-coverage.xml
 htmlcov/
+coverage.xml
 
-# Docs build
-site/
+# Docs build (mkdocs)
+/site/
 
-# Editors and OS
+# Editors and OS clutter
 .idea/
 .vscode/
 .DS_Store
+Thumbs.db
