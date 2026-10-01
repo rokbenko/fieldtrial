@@ -155,3 +155,12 @@ def test_interval_widens_with_level(kn: tuple[int, int], method: str, l1: float,
     wide = proportion_ci(k, n, level=hi_level, method=method).interval
     assert wide.low <= narrow.low + 1e-12
     assert wide.high >= narrow.high - 1e-12
+
+
+def test_result_helpers() -> None:
+    interval = proportion_ci(36, 40).interval
+    assert interval.contains(0.9)
+    assert not interval.contains(0.5)
+    result = threshold_test(39, 40, 0.8, alternative="greater")
+    assert result.rejects(0.05)
+    assert not result.rejects(1e-9)

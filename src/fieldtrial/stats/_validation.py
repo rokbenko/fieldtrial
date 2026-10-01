@@ -34,14 +34,6 @@ def check_open_unit(name: str, value: float) -> float:
     return v
 
 
-def check_closed_unit(name: str, value: float) -> float:
-    """Return ``value`` as a float, or raise unless ``0 <= value <= 1``."""
-    v = float(value)
-    if not (math.isfinite(v) and 0.0 <= v <= 1.0):
-        raise ValueError(f"{name} must be between 0 and 1, got {value!r}")
-    return v
-
-
 def check_alternative(alternative: str) -> Alternative:
     """Return ``alternative`` if it is one of the supported alternatives."""
     if alternative not in ALTERNATIVES:

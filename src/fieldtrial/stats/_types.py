@@ -157,7 +157,10 @@ class SampleSize:
 
 @dataclass(frozen=True, slots=True)
 class PowerResult:
-    """Power of a planned comparison."""
+    """Power of a planned comparison of two independent arms.
+
+    ``standard_error`` is set only for simulated power (the Monte Carlo standard error).
+    """
 
     p1: float
     p2: float
@@ -166,6 +169,23 @@ class PowerResult:
     alpha: float
     power: float
     method: str
+    alternative: Alternative
+    standard_error: float | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class PairedPowerResult:
+    """Power of an exact McNemar test with ``n`` pairs.
+
+    ``p10`` is the probability that only arm 1 succeeds in a block, ``p01`` that only arm 2
+    does.
+    """
+
+    p10: float
+    p01: float
+    n: int
+    alpha: float
+    power: float
     alternative: Alternative
 
 
