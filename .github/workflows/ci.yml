@@ -67,5 +67,4 @@ jobs:
       - name: Install
         run: uv sync --locked --all-extras
       - name: Slow tests
-        # Exit code 5 means "no tests collected": there are no slow tests until M1.
-        run: uv run pytest -m slow || test $? -eq 5
+        run: uv run pytest -m slow
