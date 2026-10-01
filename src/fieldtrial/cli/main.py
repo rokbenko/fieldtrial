@@ -5,6 +5,7 @@ from typing import Annotated
 import typer
 
 from fieldtrial import __version__
+from fieldtrial.cli import calc
 
 app = typer.Typer(
     name="fieldtrial",
@@ -34,3 +35,6 @@ def main(
     ] = False,
 ) -> None:
     """Find out whether your robot policy actually got better."""
+
+
+calc.register(app)

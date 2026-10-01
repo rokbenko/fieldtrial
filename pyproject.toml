@@ -132,8 +132,8 @@ ignore = [
     "D107",  # __init__ is documented on the class
 ]
 
-# Typographic dashes and signs in names and formulas (Clopper–Pearson, −0.5, n × m).
-allowed-confusables = ["–", "−", "×"]
+# Typographic dashes, signs and α in names, formulas and CLI output.
+allowed-confusables = ["–", "−", "×", "α"]
 
 [tool.ruff.lint.pydocstyle]
 convention = "numpy"
