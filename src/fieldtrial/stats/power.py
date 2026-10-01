@@ -480,7 +480,7 @@ def simulate_power(
     for a, b in zip(x1.tolist(), x2.tolist(), strict=True):
         key = (a, b)
         if key not in pvalue_of:
-            table = [[a, b], [n1 - a, n2 - b]]
+            table = np.array([[a, b], [n1 - a, n2 - b]], dtype=np.int64)
             if test == "boschloo":
                 p = stats.boschloo_exact(table, alternative=alternative).pvalue
             else:
