@@ -38,6 +38,9 @@ classifiers = [
 ]
 # Each core dependency is added in the milestone that first imports it (docs/PLAN.md, Appendix B).
 dependencies = [
+    "numpy>=1.26",
+    "rich>=13.8",
+    "scipy>=1.13",
     "typer>=0.15",
 ]
 
@@ -58,6 +61,7 @@ dev = [
     "pre-commit>=4.0",
     "httpx>=0.28",
     "import-linter>=2.1",
+    "scipy-stubs>=1.15",
 ]
 
 [project.scripts]
@@ -128,6 +132,9 @@ ignore = [
     "D107",  # __init__ is documented on the class
 ]
 
+# Typographic dashes and signs in names and formulas (Clopper–Pearson, −0.5, n × m).
+allowed-confusables = ["–", "−", "×"]
+
 [tool.ruff.lint.pydocstyle]
 convention = "numpy"
 
@@ -140,11 +147,14 @@ ban-relative-imports = "all"
 
 [tool.ruff.lint.per-file-ignores]
 "tests/**" = ["D", "TID251"]
+# `test_vs_threshold` is a library function named in docs/PLAN.md, not a pytest test.
+"src/fieldtrial/stats/proportions.py" = ["PT028"]
 
 # --- types -----------------------------------------------------------------
 
 [tool.mypy]
-python_version = "3.11"
+# No python_version pin: CI type-checks on each supported interpreter, and ruff's
+# target-version keeps the syntax 3.11-compatible.
 mypy_path = "src"
 # Strict everywhere: mypy can't enable `strict` per module (docs/PLAN.md, Appendix B).
 strict = true
