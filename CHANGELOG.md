@@ -8,7 +8,9 @@ minor releases may contain breaking changes.
 
 ## [Unreleased]
 
-Planned as the first alpha, 0.1.0a1: the statistics core and calculator commands.
+## [0.1.0a1] - 2026-10-01
+
+First alpha: the statistics core and the calculator commands.
 
 ### Added
 
@@ -28,3 +30,6 @@ Planned as the first alpha, 0.1.0a1: the statistics core and calculator commands
 - Documentation: a statistics reference page per method, a command-line page and the API
   reference.
 - Project skeleton: packaging, `fieldtrial --version`, CI and the documentation site.
+
+[Unreleased]: https://github.com/rokbenko/fieldtrial/compare/v0.1.0a1...HEAD
+[0.1.0a1]: https://github.com/rokbenko/fieldtrial/releases/tag/v0.1.0a1
