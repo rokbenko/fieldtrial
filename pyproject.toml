@@ -1,0 +1,240 @@
+[build-system]
+requires = ["hatchling>=1.27", "hatch-vcs>=0.5"]
+build-backend = "hatchling.build"
+
+[project]
+name = "fieldtrial"
+dynamic = ["version"]
+description = "Find out whether your robot policy actually got better: statistically rigorous real-world evaluation of robot policies."
+readme = "README.md"
+requires-python = ">=3.11"
+license = "Apache-2.0"
+license-files = ["LICENSE"]
+authors = [{ name = "Rok Benko" }]
+keywords = [
+    "robotics",
+    "robot learning",
+    "policy evaluation",
+    "statistics",
+    "hypothesis testing",
+    "confidence intervals",
+    "vla",
+    "lerobot",
+]
+classifiers = [
+    "Development Status :: 2 - Pre-Alpha",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Scientific/Engineering",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Scientific/Engineering :: Mathematics",
+    "Typing :: Typed",
+]
+# Each core dependency is added in the milestone that first imports it (docs/PLAN.md, Appendix B).
+dependencies = [
+    "typer>=0.15",
+]
+
+[project.optional-dependencies]
+docs = [
+    "mkdocs>=1.6,<2",
+    "mkdocs-material>=9.6",
+    "mkdocstrings[python]>=0.29",
+]
+dev = [
+    "pytest>=8.3",
+    "pytest-cov>=6.0",
+    "hypothesis>=6.130",
+    # statsmodels is a test-only reference implementation; src/ never imports it.
+    "statsmodels>=0.14.4",
+    "ruff>=0.16",
+    "mypy>=2.0",
+    "pre-commit>=4.0",
+    "httpx>=0.28",
+    "import-linter>=2.1",
+]
+
+[project.scripts]
+fieldtrial = "fieldtrial.cli.main:app"
+
+[project.urls]
+Homepage = "https://github.com/rokbenko/fieldtrial"
+Repository = "https://github.com/rokbenko/fieldtrial"
+Issues = "https://github.com/rokbenko/fieldtrial/issues"
+Changelog = "https://github.com/rokbenko/fieldtrial/blob/main/CHANGELOG.md"
+
+# --- build -----------------------------------------------------------------
+
+[tool.hatch.version]
+source = "vcs"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/fieldtrial"]
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "/src",
+    "/tests",
+    "/README.md",
+    "/LICENSE",
+    "/CHANGELOG.md",
+]
+
+# --- uv --------------------------------------------------------------------
+
+[tool.uv]
+required-version = ">=0.12.21"
+# The version comes from git (hatch-vcs), so rebuild the project when the commit or tags change.
+cache-keys = [{ file = "pyproject.toml" }, { git = { commit = true, tags = true } }]
+
+# --- lint and format ---------------------------------------------------------
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+src = ["src", "tests"]
+# docs/PLAN.md is kept verbatim; don't reformat the code blocks inside it.
+extend-exclude = ["docs/PLAN.md"]
+
+[tool.ruff.lint]
+select = [
+    "E", "W",  # pycodestyle
+    "F",       # pyflakes
+    "I",       # isort
+    "N",       # pep8-naming
+    "D",       # pydocstyle
+    "UP",      # pyupgrade
+    "B",       # bugbear
+    "A",       # builtins
+    "C4",      # comprehensions
+    "SIM",     # simplify
+    "RET",     # return
+    "PIE",     # misc
+    "PT",      # pytest style
+    "PTH",     # pathlib
+    "TID",     # tidy imports
+    "NPY",     # numpy
+    "PERF",    # performance
+    "RUF",     # ruff-specific
+]
+ignore = [
+    "D105",  # magic methods need no docstring
+    "D107",  # __init__ is documented on the class
+]
+
+[tool.ruff.lint.pydocstyle]
+convention = "numpy"
+
+[tool.ruff.lint.flake8-tidy-imports]
+ban-relative-imports = "all"
+
+[tool.ruff.lint.flake8-tidy-imports.banned-api]
+"click".msg = "Typer vendors its own click; import from typer instead."
+"statsmodels".msg = "statsmodels is a test-only reference; src/ must not import it."
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["D", "TID251"]
+
+# --- types -----------------------------------------------------------------
+
+[tool.mypy]
+python_version = "3.11"
+mypy_path = "src"
+# Strict everywhere: mypy can't enable `strict` per module (docs/PLAN.md, Appendix B).
+strict = true
+warn_unreachable = true
+enable_error_code = ["ignore-without-code", "redundant-expr", "truthy-bool"]
+
+# --- tests -----------------------------------------------------------------
+
+[tool.pytest.ini_options]
+minversion = "8.3"
+testpaths = ["tests"]
+addopts = ["-ra", "--strict-markers", "--strict-config", "--import-mode=importlib"]
+markers = ["slow: long statistical property tests; CI runs them nightly"]
+xfail_strict = true
+filterwarnings = ["error"]
+
+[tool.coverage.run]
+branch = true
+source_pkgs = ["fieldtrial"]
+
+[tool.coverage.paths]
+source = ["src/fieldtrial", "*/site-packages/fieldtrial"]
+
+[tool.coverage.report]
+fail_under = 90
+show_missing = true
+skip_covered = true
+exclude_also = [
+    "if TYPE_CHECKING:",
+    "raise NotImplementedError",
+    "@overload",
+]
+
+# --- architecture ----------------------------------------------------------
+
+[tool.importlinter]
+root_package = "fieldtrial"
+include_external_packages = true
+
+[[tool.importlinter.contracts]]
+name = "fieldtrial.stats imports no other fieldtrial package"
+type = "forbidden"
+source_modules = ["fieldtrial.stats"]
+forbidden_modules = [
+    "fieldtrial.analysis",
+    "fieldtrial.api",
+    "fieldtrial.cli",
+    "fieldtrial.client",
+    "fieldtrial.design",
+    "fieldtrial.io",
+    "fieldtrial.report",
+    "fieldtrial.runners",
+    "fieldtrial.services",
+    "fieldtrial.store",
+    "fieldtrial.web",
+]
+
+[[tool.importlinter.contracts]]
+name = "fieldtrial.stats imports no third-party package except numpy and scipy"
+type = "forbidden"
+source_modules = ["fieldtrial.stats"]
+forbidden_modules = [
+    "alembic",
+    "fastapi",
+    "httpx",
+    "jinja2",
+    "matplotlib",
+    "pandas",
+    "pydantic",
+    "qrcode",
+    "rich",
+    "sqlalchemy",
+    "sse_starlette",
+    "typer",
+    "uvicorn",
+    "yaml",
+]
+
+[[tool.importlinter.contracts]]
+name = "fieldtrial never imports heavy or test-only packages"
+type = "forbidden"
+source_modules = ["fieldtrial"]
+forbidden_modules = [
+    "av",
+    "click",
+    "cv2",
+    "lerobot",
+    "openpi",
+    "openpi_client",
+    "statsmodels",
+    "torch",
+    "websockets",
+]
