@@ -1,3 +1,4 @@
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -8,6 +9,13 @@ import fieldtrial
 from fieldtrial.cli.main import app
 
 runner = CliRunner()
+
+# Typer renders help with Rich, which emits ANSI escape codes when it detects CI.
+_ANSI_ESCAPE = re.compile(r"\x1b\[[0-9;?]*[ -/]*[@-~]")
+
+
+def plain(text: str) -> str:
+    return _ANSI_ESCAPE.sub("", text)
 
 
 def test_version_comes_from_installed_metadata() -> None:
@@ -22,8 +30,9 @@ def test_version_flag_prints_the_version() -> None:
 
 def test_no_arguments_shows_help() -> None:
     result = runner.invoke(app, [])
-    assert "Usage" in result.output
-    assert "--version" in result.output
+    output = plain(result.output)
+    assert "Usage" in output
+    assert "--version" in output
 
 
 def test_unknown_command_is_a_usage_error() -> None:
