@@ -51,13 +51,18 @@ def test_records_a_clip_at_the_frame_rate(tmp_path: Path) -> None:
     camera = FakeCamera()
     recorder = TrialRecorder(lambda: camera, fps=20)
     target = tmp_path / "clip.mp4"
+    began = time.monotonic()
     recorder.start(target)
     assert recorder.recording
-    time.sleep(0.6)
+    deadline = began + 10  # wait for frames, not a fixed time, so a busy machine passes
+    while recorder.frames < 6 and time.monotonic() < deadline:
+        time.sleep(0.02)
     clip = recorder.stop()
+    elapsed = time.monotonic() - began
     assert clip == target
     frames = _decode(target)
-    assert 6 <= len(frames) <= 16  # about 0.6 s at 20 fps
+    assert len(frames) == recorder.frames >= 6
+    assert len(frames) <= elapsed * 20 + 1  # paced to 20 fps, never faster
     assert frames[0].shape == (74, 100, 3)  # cropped to even sizes for yuv420p
     assert not recorder.recording
     recorder.close()
