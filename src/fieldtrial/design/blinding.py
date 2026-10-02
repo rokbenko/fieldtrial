@@ -1,6 +1,6 @@
 """Blind codes: short, unambiguous labels that hide arm identities from the operator."""
 
-from fieldtrial.design._rng import STREAM_BLINDING, StableRng
+from fieldtrial.stats._rng import STREAM_BLINDING, StableRng
 
 # No letters or digits that are easy to confuse (B/8, G/6, I/1/L, O/0/Q, S/5, Z/2).
 _LETTERS = "ACDEFHJKMNPRTUVWXY"

@@ -9,8 +9,8 @@ from hypothesis import given, settings
 from hypothesis import strategies as st
 
 from fieldtrial.design import blind_codes, build_schedule, design_hash, parse_study
-from fieldtrial.design._rng import StableRng
 from fieldtrial.design.schedule import williams_sequences
+from fieldtrial.stats._rng import StableRng
 from fieldtrial.templates import TEMPLATES, template_text
 
 SNAPSHOT = json.loads((Path(__file__).parent / "snapshots" / "schedules.json").read_text())

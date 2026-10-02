@@ -18,7 +18,7 @@ Source of truth: docs/PLAN.md (read it when unsure). Roadmap: docs/ROADMAP.md.
 - CLI, web and API call `fieldtrial.services`; nothing else touches the DB.
 - Every write is one transaction plus one row in the `event` table.
 - Never import torch, lerobot or openpi at module import time. Lazy-import inside runners, behind extras.
-- All randomness comes from the study seed via `fieldtrial.design._rng.StableRng`: raw `PCG64(SeedSequence([seed, stream]))` output only, never `Generator` methods, whose streams can change between numpy versions.
+- All randomness comes from the study seed via `fieldtrial.stats._rng.StableRng`: raw `PCG64(SeedSequence([seed, stream]))` output only, never `Generator` methods, whose streams can change between numpy versions.
 
 ## Statistics rules
 - Any new or changed stats function needs:

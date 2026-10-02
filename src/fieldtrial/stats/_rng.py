@@ -9,6 +9,7 @@ reproducible from the study seed forever, so shuffling and sampling here use onl
 from collections.abc import MutableSequence
 from typing import TypeVar
 
+import numpy as np
 from numpy.random import PCG64, SeedSequence
 
 T = TypeVar("T")
@@ -17,6 +18,7 @@ T = TypeVar("T")
 STREAM_SCHEDULE = 1
 STREAM_BLINDING = 2
 STREAM_SIMULATION = 3
+STREAM_BOOTSTRAP = 4
 
 _TWO_64 = 2**64
 
@@ -52,3 +54,19 @@ class StableRng:
         for i in range(len(items) - 1, 0, -1):
             j = self.below(i + 1)
             items[i], items[j] = items[j], items[i]
+
+    def integers(self, n: int, size: int) -> np.ndarray:
+        """``size`` uniform integers in ``[0, n)``, vectorized rejection sampling."""
+        if n <= 0 or size < 0:
+            raise ValueError("n must be positive and size non-negative")
+        if n == 1:
+            return np.zeros(size, dtype=np.int64)
+        remainder = _TWO_64 % n
+        out = np.empty(0, dtype=np.uint64)
+        while out.size < size:
+            draws = np.asarray(self._bits.random_raw(size - out.size + 8), dtype=np.uint64)
+            if remainder:  # reject the top `remainder` values so every residue is equally likely
+                draws = draws[draws < np.uint64(_TWO_64 - remainder)]
+            out = np.concatenate([out, draws])
+        result: np.ndarray = (out[:size] % np.uint64(n)).astype(np.int64)
+        return result

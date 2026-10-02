@@ -8,8 +8,8 @@ every other arm equally often. Time-of-day and carryover effects then average ou
 
 from dataclasses import dataclass
 
-from fieldtrial.design._rng import STREAM_SCHEDULE, StableRng
 from fieldtrial.design.models import FactorValue, StudySpec
+from fieldtrial.stats._rng import STREAM_SCHEDULE, StableRng
 
 
 @dataclass(frozen=True, slots=True)

@@ -58,6 +58,10 @@ nav:
       - Two independent arms: stats/two-arms.md
       - Paired designs: stats/paired.md
       - Multiplicity: stats/multiplicity.md
+      - Progress stages: stats/stages.md
+      - Time to success: stats/timing.md
+      - Stratified (CMH): stats/stratified.md
+      - Drift checks: stats/drift.md
       - Planning: stats/planning.md
       - Bayesian summaries: stats/bayes.md
   - Reference:
