@@ -19,6 +19,7 @@ See [Running a study](studies.md) for the full workflow.
 | `fieldtrial import DIR results.csv [--map arm=policy,success=ok]` | Import trials from a CSV (all or nothing) |
 | `fieldtrial status DIR` | Progress; no per-arm results while blinded |
 | `fieldtrial unblind DIR [--yes]` | Reveal the blind codes (logged) |
+| `fieldtrial check-runners DIR [--api-key KEY]` | Check the study's runner: commands found, policy servers answering with identical metadata (blind codes only) |
 | `fieldtrial interim DIR` | Run the planned interim look that is due; prints only "continue" or "stop" |
 | `fieldtrial analyze DIR` | Run the pre-registered analysis |
 | `fieldtrial report DIR [--format md\|json] [--out PATH]` | Write `reports/report.md` or `results.json` |

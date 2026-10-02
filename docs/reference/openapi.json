@@ -728,7 +728,7 @@
       },
       "post": {
         "summary": "Start",
-        "description": "Start a trial for a pending slot.",
+        "description": "Start a trial for a pending slot (and its arm, when a runner runs the policy).",
         "operationId": "start_api_v1_studies__slug__trials_post",
         "parameters": [
           {

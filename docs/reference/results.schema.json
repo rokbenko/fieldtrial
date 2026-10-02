@@ -1016,6 +1016,86 @@
       "title": "RoundRow",
       "type": "object"
     },
+    "RunnerSummary": {
+      "additionalProperties": false,
+      "description": "What the runner measured for one arm (descriptive; not a test).\n\n``latency_ms_median`` is the median of the per-trial median request latencies and\n``latency_ms_p95`` the largest per-trial 95th percentile. ``abnormal_exits`` counts\ncommand-runner trials that ended with a non-zero exit code before the stop.",
+      "properties": {
+        "arm": {
+          "title": "Arm",
+          "type": "string"
+        },
+        "trials": {
+          "title": "Trials",
+          "type": "integer"
+        },
+        "requests": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Requests"
+        },
+        "errors": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Errors"
+        },
+        "latency_ms_median": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Latency Ms Median"
+        },
+        "latency_ms_p95": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Latency Ms P95"
+        },
+        "abnormal_exits": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Abnormal Exits"
+        }
+      },
+      "required": [
+        "arm",
+        "trials"
+      ],
+      "title": "RunnerSummary",
+      "type": "object"
+    },
     "SequentialSummary": {
       "additionalProperties": false,
       "description": "Group-sequential stopping: planned and performed looks.",
@@ -1610,6 +1690,13 @@
         }
       ],
       "default": null
+    },
+    "runner": {
+      "items": {
+        "$ref": "#/$defs/RunnerSummary"
+      },
+      "title": "Runner",
+      "type": "array"
     }
   },
   "required": [

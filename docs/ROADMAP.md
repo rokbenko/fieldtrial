@@ -19,7 +19,7 @@ for the current milestone.
 | Milestone | Scope | Status |
 |---|---|---|
 | M5 | Crossover rounds, checkpoint ladders (step association, plateau), group-sequential stopping | 0.2.0a1 |
-| M6 | Command-template runner and openpi router: real blinding (release 0.2.0a2) | planned |
+| M6 | Command-template runner and openpi router: real blinding (release 0.2.0a2) | done |
 | M7 | Evaluation-camera capture, rig drift check, LeRobot dataset links (release 0.2.0) | planned |
 
 Limits of M5, to revisit later:
@@ -29,6 +29,11 @@ Limits of M5, to revisit later:
 - Group-sequential stopping supports 2-arm randomized block designs with one replicate
   (the McNemar score statistic). CMH and multi-arm sequential designs, futility
   boundaries and stopping-adjusted point estimates are not supported yet.
+- The command runner does not stop a trial when its command ends by itself; the operator
+  presses Stop (the console shows "command ended"). An option to stop automatically could
+  follow.
+- The openpi router uses one connection per arm for each robot connection; servers that
+  allow only one client at a time need one router per robot.
 - The ladder's plateau compares each checkpoint with the final one; a margin relative to
   the best checkpoint would need a different procedure.
 

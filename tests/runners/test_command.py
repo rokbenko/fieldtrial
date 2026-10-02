@@ -24,23 +24,24 @@ PY = shlex.quote(sys.executable)
 # A fake rollout: records its argv and environment, then waits for a signal.
 ROLLOUT = """
 import json, os, signal, sys, time
+mode = sys.argv[1] if len(sys.argv) > 1 else "wait"
+def stop(*_):
+    print("got SIGINT", flush=True)
+    sys.exit(7)
+# Handlers first, so a stop that comes right after the record below is never missed.
+if mode == "ignore":
+    signal.signal(signal.SIGINT, signal.SIG_IGN)
+    signal.signal(signal.SIGTERM, signal.SIG_IGN)
+else:
+    signal.signal(signal.SIGINT, stop)
 out = os.environ["OUT"]
 with open(out, "a") as fh:
     fh.write(json.dumps({"argv": sys.argv[1:], "arm": os.environ["FIELDTRIAL_ARM"],
                          "trial": os.environ["FIELDTRIAL_TRIAL_ID"],
                          "seq": os.environ["FIELDTRIAL_SEQ"]}) + "\\n")
 print("rollout running", flush=True)
-mode = sys.argv[1] if len(sys.argv) > 1 else "wait"
 if mode == "exit0":
     sys.exit(0)
-if mode == "ignore":
-    signal.signal(signal.SIGINT, signal.SIG_IGN)
-    signal.signal(signal.SIGTERM, signal.SIG_IGN)
-def stop(*_):
-    print("got SIGINT", flush=True)
-    sys.exit(7)
-if mode != "ignore":
-    signal.signal(signal.SIGINT, stop)
 while True:
     time.sleep(0.05)
 """

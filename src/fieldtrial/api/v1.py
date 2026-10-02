@@ -63,6 +63,7 @@ from fieldtrial.services.trial import (
     start_trial,
     stop_trial,
 )
+from fieldtrial.web.runners import Runners
 
 ERRORS: dict[int | str, dict[str, Any]] = {
     400: {"model": ErrorOut},
@@ -307,34 +308,54 @@ def trial(slug: str, trial_id: str, reg: Registry) -> TrialOut:
     return trial_out(ctx, get_trial(ctx, trial_id), is_blinded(ctx))
 
 
+def _runners(request: Request) -> Runners:
+    found: Runners = request.app.state.runners
+    return found
+
+
 def _trial(ctx: StudyContext, trial_id: str) -> TrialOut:
     return trial_out(ctx, get_trial(ctx, trial_id), is_blinded(ctx))
 
 
 @router.post("/studies/{slug}/trials", response_model=TrialOut, status_code=201)
-def start(slug: str, body: StartIn, reg: Registry, key: IdempotencyKey = None) -> TrialOut:
-    """Start a trial for a pending slot."""
+def start(
+    request: Request, slug: str, body: StartIn, reg: Registry, key: IdempotencyKey = None
+) -> TrialOut:
+    """Start a trial for a pending slot (and its arm, when a runner runs the policy)."""
     ctx = reg.get(slug)
     view = start_trial(ctx, body.slot_id, body.session_id, idempotency_key=key)
+    _runners(request).started(slug, ctx, get_trial(ctx, view.trial_id))
     return _trial(ctx, view.trial_id)
 
 
 @router.post("/studies/{slug}/trials/{trial_id}/stop", response_model=TrialOut)
 def stop(
-    slug: str, trial_id: str, body: StopIn, reg: Registry, key: IdempotencyKey = None
+    request: Request,
+    slug: str,
+    trial_id: str,
+    body: StopIn,
+    reg: Registry,
+    key: IdempotencyKey = None,
 ) -> TrialOut:
     """Stop the clock; the duration ends here even if labelling takes longer."""
     ctx = reg.get(slug)
     stop_trial(ctx, trial_id, expected_version=body.expected_version, idempotency_key=key)
+    _runners(request).stopped(slug, ctx, trial_id)
     return _trial(ctx, trial_id)
 
 
 @router.post("/studies/{slug}/trials/{trial_id}/complete", response_model=TrialOut)
 def complete(
-    slug: str, trial_id: str, body: CompleteIn, reg: Registry, key: IdempotencyKey = None
+    request: Request,
+    slug: str,
+    trial_id: str,
+    body: CompleteIn,
+    reg: Registry,
+    key: IdempotencyKey = None,
 ) -> TrialOut:
     """Record the outcome of a running trial."""
     ctx = reg.get(slug)
+    _runners(request).stopped(slug, ctx, trial_id)
     complete_trial(
         ctx,
         trial_id,
@@ -351,7 +372,12 @@ def complete(
 
 @router.post("/studies/{slug}/trials/{trial_id}/invalidate", response_model=TrialOut)
 def invalidate(
-    slug: str, trial_id: str, body: InvalidateIn, reg: Registry, key: IdempotencyKey = None
+    request: Request,
+    slug: str,
+    trial_id: str,
+    body: InvalidateIn,
+    reg: Registry,
+    key: IdempotencyKey = None,
 ) -> TrialOut:
     """Void a trial and reschedule its slot."""
     ctx = reg.get(slug)
@@ -363,6 +389,7 @@ def invalidate(
         expected_version=body.expected_version,
         idempotency_key=key,
     )
+    _runners(request).cancelled(slug, ctx, trial_id)
     return _trial(ctx, trial_id)
 
 

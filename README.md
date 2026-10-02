@@ -97,9 +97,10 @@ say what the study could have detected.
 fieldtrial complements LeRobot and openpi and never forks them. It is not a training
 framework, a simulation benchmark, a robot driver, a labeling platform or a cloud
 service. In manual mode, fieldtrial schedules and records the trials and you run the
-robot however you like. Runners that launch LeRobot rollouts and route openpi traffic for
-real blinding are planned for v0.2; see the
-[roadmap](https://github.com/rokbenko/fieldtrial/blob/main/docs/ROADMAP.md).
+robot however you like. For real blinding, the `command` runner launches your rollout
+command (for example `lerobot-rollout`) for each arm, and the `openpi_router` runner
+routes an openpi client's traffic to each trial's policy server; see
+[Real blinding with runners](https://rokbenko.github.io/fieldtrial/guides/runners/).
 
 ## How to cite
 

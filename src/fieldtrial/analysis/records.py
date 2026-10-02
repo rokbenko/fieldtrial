@@ -34,6 +34,7 @@ class TrialRecord:
     failure_tags: tuple[str, ...] = ()
     notes: str | None = None
     invalid_reason: str | None = None
+    runner_metrics: dict[str, float] = field(default_factory=dict)
 
 
 @dataclass(frozen=True, slots=True)

@@ -65,6 +65,7 @@ nav:
       - Comparing two checkpoints: guides/comparing-checkpoints.md
       - Checkpoint ladders: guides/checkpoint-ladders.md
       - Serving-config sweeps: guides/serving-sweeps.md
+      - Real blinding with runners: guides/runners.md
       - Using fieldtrial with LeRobot: guides/lerobot.md
       - Using fieldtrial with openpi: guides/openpi.md
       - Custom runtimes via REST: guides/custom-runtimes.md

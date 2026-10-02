@@ -291,3 +291,25 @@ class OpenpiRouter:
         if self._thread is not None:
             self._thread.join(timeout=10)
         self._thread = None
+
+
+def probe(url: str, *, api_key: str | None = None, timeout: float = 5.0) -> bytes:
+    """Connect to a policy server like the openpi client does and return its metadata frame."""
+    ws = _websockets()
+    import websockets.sync.client
+
+    headers = {"Authorization": f"Api-Key {api_key}"} if api_key else None
+    try:
+        with websockets.sync.client.connect(
+            url,
+            compression=None,
+            max_size=None,
+            additional_headers=headers,
+            open_timeout=timeout,
+        ) as conn:
+            frame = conn.recv(timeout=timeout)
+    except (OSError, TimeoutError, ws.exceptions.WebSocketException) as exc:
+        raise RunnerError(f"cannot reach {url}: {exc}") from exc
+    if isinstance(frame, str):
+        raise RunnerError(f"{url} sent an error instead of metadata: {frame[:200]}")
+    return bytes(frame)

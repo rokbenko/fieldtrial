@@ -3,10 +3,15 @@
 LeRobot trains and runs the policy; fieldtrial decides what to run, in which order, and
 whether the result means anything. They meet in the arms of `study.yaml`.
 
-## Today: manual mode
+## Real blinding: the command runner
 
-fieldtrial does not control the robot in v0.1. The operator starts each rollout with
-LeRobot, and records the outcome in the console.
+The `command` runner starts `lerobot-rollout` for each trial with the arm's checkpoint
+and serving settings, so the operator only sees blind codes. See
+[Real blinding with runners](runners.md#the-command-runner).
+
+## Manual mode
+
+The operator starts each rollout with LeRobot and records the outcome in the console.
 
 1. **Describe each arm** with what LeRobot needs to run it. `policy` and `serving` are
    free-form and passed through unchanged; they also end up in the report's provenance.
@@ -47,7 +52,5 @@ Linking trials to dataset episodes automatically is planned for v0.2.
 
 ## Coming next
 
-- **v0.2:** a command runner that launches a command template per arm (with the blind
-  code in `FIELDTRIAL_ARM`), so the operator no longer chooses the command; links between
-  trials and LeRobot dataset episodes.
+- **v0.2:** links between trials and LeRobot dataset episodes.
 - **v0.3:** an in-process LeRobot runner built on `lerobot.rollout`.

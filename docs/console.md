@@ -50,6 +50,12 @@ end of its block.
 its label, and give your name and a reason. The event log keeps the old and new label.
 Corrections made after unblinding are listed as deviations in every report.
 
+**Switching runners** (`command`, `openpi_router`) start and stop the arm with **Start**
+and **Stop**, and their state appears above the trial ("Runner: …"). If a runner cannot
+start, the trial is marked invalid with the reason and rescheduled. With
+`success_exit_code`, a successful command preselects the success stage; you still confirm
+the label.
+
 **Crossover rounds** show "round r of R" instead of the block. The first trial of a round
 says to reset the whole scene and load the round's arm; the other trials say not to reset.
 
@@ -85,7 +91,7 @@ blind codes only, and the report page offers nothing but the logged **Unblind** 
 
 !!! warning "Manual mode only half-blinds"
     With the `manual` runner, the operator loads the checkpoint and can know which arm is
-    running. Real blinding needs a runner that switches arms itself (planned for v0.2).
+    running. For real blinding, use a [switching runner](guides/runners.md).
 
 ## Safety and privacy
 

@@ -798,6 +798,32 @@ def _detail(db: Session, ctx: StudyContext, trial: m.Trial, total: int) -> Trial
     )
 
 
+def record_runner_output(
+    ctx: StudyContext,
+    trial_id: str,
+    *,
+    metrics: dict[str, float],
+    log: str | None = None,
+    actor: str = "runner",
+) -> None:
+    """Store what a runner measured during a trial (exit code, request latency, log path).
+
+    Kept as a ``runner_output`` event, so it never changes the trial's label. While the
+    study is blinded the event names only the trial; the arm follows from its slot.
+    """
+    with ctx.db() as db, db.begin():
+        trial = db.get(m.Trial, trial_id)
+        if trial is None or trial.study_id != ctx.study_id:
+            raise ServiceError(f"no trial {trial_id}")
+        append_event(
+            db,
+            ctx.study_id,
+            "runner_output",
+            actor,
+            {"trial_id": trial_id, "metrics": dict(metrics), "log": log},
+        )
+
+
 def get_trial(ctx: StudyContext, trial_id: str) -> TrialDetail:
     """One trial with its slot."""
     with ctx.db() as db:
@@ -835,6 +861,10 @@ def collect_records(ctx: StudyContext) -> tuple[list[TrialRecord], StudyContextI
             .where(m.Trial.study_id == ctx.study_id, m.Trial.status != "running")
             .order_by(m.Trial.started_at, m.Trial.id)
         ).all()
+        outputs = {
+            str(e.payload.get("trial_id")): dict(e.payload.get("metrics") or {})
+            for e in list_events(db, ctx.study_id, "runner_output")
+        }
         records = [
             TrialRecord(
                 trial_id=t.id,
@@ -858,6 +888,7 @@ def collect_records(ctx: StudyContext) -> tuple[list[TrialRecord], StudyContextI
                 failure_tags=tuple(t.failure_tags or ()),
                 notes=t.notes,
                 invalid_reason=t.invalid_reason,
+                runner_metrics=outputs.get(t.id, {}),
             )
             for t, s, a, c, sess in rows
         ]

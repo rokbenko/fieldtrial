@@ -61,6 +61,7 @@ from fieldtrial.analysis.results import (
     PrimaryResult,
     Provenance,
     Results,
+    RunnerSummary,
     SequentialSummary,
     SessionRow,
     StageComparison,
@@ -756,6 +757,39 @@ def _primary_ladder(data: _Data, summary: list[str], extras: _Extras) -> Primary
     )
 
 
+def _runner(data: _Data) -> list[RunnerSummary]:
+    """Per-arm runner measurements, for trials whose runner reported any."""
+    out = []
+    for arm in data.arm_ids:
+        rows = [r.runner_metrics for r in data.records if r.arm == arm and r.runner_metrics]
+        if not rows:
+            continue
+        medians = [m["latency_ms_median"] for m in rows if "latency_ms_median" in m]
+        p95s = [m["latency_ms_p95"] for m in rows if "latency_ms_p95" in m]
+        has_requests = any("requests" in m for m in rows)
+        has_exit = any("exit_code" in m for m in rows)
+        out.append(
+            RunnerSummary(
+                arm=arm,
+                trials=len(rows),
+                requests=int(sum(m.get("requests", 0) for m in rows)) if has_requests else None,
+                errors=int(sum(m.get("errors", 0) for m in rows)) if has_requests else None,
+                latency_ms_median=float(np.median(medians)) if medians else None,
+                latency_ms_p95=max(p95s) if p95s else None,
+                abnormal_exits=(
+                    sum(
+                        1
+                        for m in rows
+                        if m.get("exited_before_stop") and m.get("exit_code", 0) != 0
+                    )
+                    if has_exit
+                    else None
+                ),
+            )
+        )
+    return out
+
+
 def _sensitivity(data: _Data, summary: list[str]) -> list[IndependentComparison]:
     primary = data.spec.analysis.primary
     if primary.comparison is None:
@@ -1135,4 +1169,5 @@ def analyze(
         ladder=extras.ladder,
         crossover=extras.crossover,
         sequential=extras.sequential,
+        runner=_runner(data),
     )

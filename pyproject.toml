@@ -345,3 +345,6 @@ forbidden_modules = [
     "torch",
     "websockets",
 ]
+# The openpi router is the one module that uses the openpi extra; it imports
+# websockets inside a function, only when a study asks for the router.
+ignore_imports = ["fieldtrial.runners.openpi_router -> websockets"]
