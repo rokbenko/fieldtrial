@@ -10,9 +10,9 @@ for the current milestone.
 |---|---|---|
 | M0 | Bootstrap: packaging, CI, docs skeleton, `fieldtrial --version` | done |
 | M1 | Statistics core and calculator CLI (release 0.1.0a1) | released 2026-10-02 |
-| M2 | Study design, storage and analysis (no UI) | done, in 0.1.0rc1 |
-| M3 | Operator console, REST API and Python client | done, in 0.1.0rc1 |
-| M4 | Reports, docs and the Dream Machines re-analysis (release 0.1.0) | release candidate |
+| M2 | Study design, storage and analysis (no UI) | released in 0.1.0 |
+| M3 | Operator console, REST API and Python client | released in 0.1.0 |
+| M4 | Reports, docs and the Dream Machines re-analysis (release 0.1.0) | released 2026-10-02 |
 
 ## v0.2
 
@@ -60,5 +60,9 @@ for the current milestone.
   them when it returns (idempotency keys already make the resend safe).
 - Move to `httpx2` for Starlette's TestClient once it is vetted; the tests silence
   Starlette's deprecation warning about `httpx` until then.
+- Ship `examples/` in the sdist (or skip `tests/test_examples.py` without it), so the
+  whole test suite runs from the sdist alone.
+- Test the console on Windows and on real phones (`docs/guides/console-checklist.md`);
+  0.1.0 was verified on Linux and in Chromium at phone size.
 - Revisit the docs toolchain. The Material for MkDocs team warns that MkDocs 2.0 removes
   the plugin system, so `docs` pins `mkdocs<2` for now.

@@ -8,11 +8,10 @@ minor releases may contain breaking changes.
 
 ## [Unreleased]
 
-## [0.1.0rc1] - 2026-10-02
+## [0.1.0] - 2026-10-02
 
-Release candidate for 0.1.0. Studies: design, lock, fill and analyze end to end, run them
-from a phone-friendly operator console or your own runtime, and share a self-contained
-report.
+First release. Studies: design, lock, fill and analyze end to end, run them from a
+phone-friendly operator console or your own runtime, and share a self-contained report.
 
 ### Added
 
@@ -53,6 +52,11 @@ report.
   serving sweeps, LeRobot, openpi, custom runtimes), and screenshots.
 - `CITATION.cff`.
 
+## [0.1.0rc1] - 2026-10-02
+
+Release candidate of 0.1.0, published to PyPI for testing. Its changes are listed under
+0.1.0; the release is identical apart from this changelog.
+
 ## [0.1.0a1] - 2026-10-01
 
 First alpha: the statistics core and the calculator commands.
@@ -76,6 +80,7 @@ First alpha: the statistics core and the calculator commands.
   reference.
 - Project skeleton: packaging, `fieldtrial --version`, CI and the documentation site.
 
-[Unreleased]: https://github.com/rokbenko/fieldtrial/compare/v0.1.0rc1...HEAD
+[Unreleased]: https://github.com/rokbenko/fieldtrial/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/rokbenko/fieldtrial/compare/v0.1.0a1...v0.1.0
 [0.1.0rc1]: https://github.com/rokbenko/fieldtrial/compare/v0.1.0a1...v0.1.0rc1
 [0.1.0a1]: https://github.com/rokbenko/fieldtrial/releases/tag/v0.1.0a1
