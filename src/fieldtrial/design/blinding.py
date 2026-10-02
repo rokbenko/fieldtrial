@@ -13,9 +13,14 @@ def blind_codes(arm_ids: list[str], seed: int) -> dict[str, str]:
     The same arms and seed always give the same codes. Codes reveal nothing about the order
     in which the arms are listed.
     """
-    pool = [letter + digit for letter in _LETTERS for digit in _DIGITS]
+    pool = code_pool(seed)
     if len(arm_ids) > len(pool):
         raise ValueError(f"at most {len(pool)} arms can be blinded")
-    rng = StableRng(seed, STREAM_BLINDING)
-    rng.shuffle(pool)
     return dict(zip(arm_ids, pool, strict=False))
+
+
+def code_pool(seed: int) -> list[str]:
+    """All possible codes in the seed's order. Arms added by an amendment take the next free one."""
+    pool = [letter + digit for letter in _LETTERS for digit in _DIGITS]
+    StableRng(seed, STREAM_BLINDING).shuffle(pool)
+    return pool

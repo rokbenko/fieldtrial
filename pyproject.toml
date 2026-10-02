@@ -155,6 +155,8 @@ ban-relative-imports = "all"
 "tests/**" = ["D", "TID251"]
 # `test_vs_threshold` is a library function named in docs/PLAN.md, not a pytest test.
 "src/fieldtrial/stats/proportions.py" = ["PT028"]
+# Alembic migrations are generated code.
+"src/fieldtrial/store/migrations/**" = ["D", "E501"]
 
 # --- types -----------------------------------------------------------------
 
@@ -180,6 +182,7 @@ filterwarnings = ["error"]
 [tool.coverage.run]
 branch = true
 source_pkgs = ["fieldtrial"]
+omit = ["*/fieldtrial/store/migrations/*"]  # run by alembic from file, which coverage cannot trace
 
 [tool.coverage.paths]
 source = ["src/fieldtrial", "*/site-packages/fieldtrial"]
@@ -256,6 +259,30 @@ forbidden_modules = [
     "fieldtrial.web",
     "sqlalchemy",
 ]
+
+[[tool.importlinter.contracts]]
+name = "only fieldtrial.services touches the database"
+type = "forbidden"
+source_modules = [
+    "fieldtrial.analysis",
+    "fieldtrial.cli",
+    "fieldtrial.design",
+    "fieldtrial.io",
+    "fieldtrial.runners",
+    "fieldtrial.stats",
+    "fieldtrial.templates",
+]
+forbidden_modules = ["fieldtrial.store", "sqlalchemy", "alembic"]
+
+[[tool.importlinter.contracts]]
+name = "analysis, io, report and runners do not call services"
+type = "forbidden"
+source_modules = [
+    "fieldtrial.analysis",
+    "fieldtrial.io",
+    "fieldtrial.runners",
+]
+forbidden_modules = ["fieldtrial.cli", "fieldtrial.services"]
 
 [[tool.importlinter.contracts]]
 name = "fieldtrial never imports heavy or test-only packages"
