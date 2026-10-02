@@ -9,7 +9,7 @@ for the current milestone.
 | Milestone | Scope | Status |
 |---|---|---|
 | M0 | Bootstrap: packaging, CI, docs skeleton, `fieldtrial --version` | done |
-| M1 | Statistics core and calculator CLI (release 0.1.0a1) | done, awaiting release |
+| M1 | Statistics core and calculator CLI (release 0.1.0a1) | released 2026-10-02 |
 | M2 | Study design, storage and analysis (no UI) | next |
 | M3 | Operator console, REST API and Python client | planned |
 | M4 | Reports, docs and the Dream Machines re-analysis (release 0.1.0) | planned |
