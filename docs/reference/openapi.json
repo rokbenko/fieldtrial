@@ -1,0 +1,2323 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "fieldtrial",
+    "summary": "Run robot-policy evaluation studies: schedule, record, analyze.",
+    "version": "1"
+  },
+  "paths": {
+    "/api/v1/studies": {
+      "get": {
+        "summary": "Studies",
+        "description": "Studies in the served folder.",
+        "operationId": "studies_api_v1_studies_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/StudyOut"
+                  },
+                  "type": "array",
+                  "title": "Response Studies Api V1 Studies Get"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/studies/{slug}": {
+      "get": {
+        "summary": "Status",
+        "description": "Progress of a study. No per-arm results while blinded.",
+        "operationId": "status_api_v1_studies__slug__get",
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Slug"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StatusOut"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/studies/{slug}/next": {
+      "get": {
+        "summary": "Next Trial",
+        "description": "The next slot to run, or null when every slot is done or running.",
+        "operationId": "next_trial_api_v1_studies__slug__next_get",
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Slug"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/SlotOut"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "title": "Response Next Trial Api V1 Studies  Slug  Next Get"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/studies/{slug}/sessions": {
+      "post": {
+        "summary": "Create Session",
+        "description": "Start a session and return its console state.",
+        "operationId": "create_session_api_v1_studies__slug__sessions_post",
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Slug"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 64
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Idempotency-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SessionIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConsoleOut"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/studies/{slug}/sessions/{session_id}": {
+      "get": {
+        "summary": "Session",
+        "description": "A session's running trial, next slot and progress.",
+        "operationId": "session_api_v1_studies__slug__sessions__session_id__get",
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Slug"
+            }
+          },
+          {
+            "name": "session_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Session Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConsoleOut"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/studies/{slug}/sessions/{session_id}/end": {
+      "post": {
+        "summary": "Finish Session",
+        "description": "End a session (a running trial must be finished first).",
+        "operationId": "finish_session_api_v1_studies__slug__sessions__session_id__end_post",
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Slug"
+            }
+          },
+          {
+            "name": "session_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Session Id"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 64
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Idempotency-Key"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionOut"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/studies/{slug}/trials": {
+      "get": {
+        "summary": "Trials",
+        "description": "Trials, newest first.",
+        "operationId": "trials_api_v1_studies__slug__trials_get",
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Slug"
+            }
+          },
+          {
+            "name": "session_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Session Id"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 10000,
+              "minimum": 1,
+              "default": 200,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TrialOut"
+                  },
+                  "title": "Response Trials Api V1 Studies  Slug  Trials Get"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Start",
+        "description": "Start a trial for a pending slot.",
+        "operationId": "start_api_v1_studies__slug__trials_post",
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Slug"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 64
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Idempotency-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StartIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrialOut"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/studies/{slug}/trials/{trial_id}": {
+      "get": {
+        "summary": "Trial",
+        "description": "One trial.",
+        "operationId": "trial_api_v1_studies__slug__trials__trial_id__get",
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Slug"
+            }
+          },
+          {
+            "name": "trial_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Trial Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrialOut"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "summary": "Edit",
+        "description": "Correct a completed trial's label (logged with old and new values).",
+        "operationId": "edit_api_v1_studies__slug__trials__trial_id__patch",
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Slug"
+            }
+          },
+          {
+            "name": "trial_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Trial Id"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 64
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Idempotency-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EditIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrialOut"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/studies/{slug}/trials/{trial_id}/complete": {
+      "post": {
+        "summary": "Complete",
+        "description": "Record the outcome of a running trial.",
+        "operationId": "complete_api_v1_studies__slug__trials__trial_id__complete_post",
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Slug"
+            }
+          },
+          {
+            "name": "trial_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Trial Id"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 64
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Idempotency-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CompleteIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrialOut"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/studies/{slug}/trials/{trial_id}/invalidate": {
+      "post": {
+        "summary": "Invalidate",
+        "description": "Void a trial and reschedule its slot.",
+        "operationId": "invalidate_api_v1_studies__slug__trials__trial_id__invalidate_post",
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Slug"
+            }
+          },
+          {
+            "name": "trial_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Trial Id"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 64
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Idempotency-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InvalidateIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrialOut"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/studies/{slug}/trials/{trial_id}/undo": {
+      "post": {
+        "summary": "Undo",
+        "description": "Undo the outcome of a session's latest trial, within 10 s; it is running again.",
+        "operationId": "undo_api_v1_studies__slug__trials__trial_id__undo_post",
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Slug"
+            }
+          },
+          {
+            "name": "trial_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Trial Id"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 64
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Idempotency-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UndoIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrialOut"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/studies/{slug}/trials/{trial_id}/media": {
+      "post": {
+        "summary": "Media",
+        "description": "Attach a clip or photo to a trial; it is stored under the study's media/ folder.",
+        "operationId": "media_api_v1_studies__slug__trials__trial_id__media_post",
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Slug"
+            }
+          },
+          {
+            "name": "trial_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Trial Id"
+            }
+          },
+          {
+            "name": "actor",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "api",
+              "title": "Actor"
+            }
+          },
+          {
+            "name": "Idempotency-Key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 64
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Idempotency-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_media_api_v1_studies__slug__trials__trial_id__media_post"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MediaOut"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/studies/{slug}/events": {
+      "get": {
+        "summary": "Events",
+        "description": "Server-Sent Events: one ``changed`` event per new event-log row.\n\nStarts after ``Last-Event-ID`` (or ``after``), or at the newest event. With\n``once=true`` the stream sends what is new and closes, which suits simple polling.",
+        "operationId": "events_api_v1_studies__slug__events_get",
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Slug"
+            }
+          },
+          {
+            "name": "after",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "After"
+            }
+          },
+          {
+            "name": "once",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "default": false,
+              "title": "Once"
+            }
+          },
+          {
+            "name": "Last-Event-ID",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Last-Event-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "text/event-stream": {}
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Body_media_api_v1_studies__slug__trials__trial_id__media_post": {
+        "properties": {
+          "file": {
+            "type": "string",
+            "contentMediaType": "application/octet-stream",
+            "title": "File"
+          }
+        },
+        "type": "object",
+        "required": [
+          "file"
+        ],
+        "title": "Body_media_api_v1_studies__slug__trials__trial_id__media_post"
+      },
+      "CompleteIn": {
+        "properties": {
+          "stage": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Stage"
+          },
+          "termination": {
+            "type": "string",
+            "enum": [
+              "success",
+              "timeout",
+              "stuck",
+              "operator_stop",
+              "robot_fault",
+              "safety_stop",
+              "other"
+            ],
+            "title": "Termination"
+          },
+          "failure_tags": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Failure Tags"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          },
+          "duration_s": {
+            "anyOf": [
+              {
+                "type": "number",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Duration S"
+          },
+          "expected_version": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expected Version"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "stage",
+          "termination"
+        ],
+        "title": "CompleteIn",
+        "description": "The outcome of a running trial.\n\n``stage`` is the furthest stage reached: a stage id, or ``None`` for no stage. Success\nfollows from reaching the study's success stage."
+      },
+      "ConsoleOut": {
+        "properties": {
+          "session": {
+            "$ref": "#/components/schemas/SessionOut"
+          },
+          "running": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TrialOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "up_next": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SlotOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "undoable": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TrialOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "done": {
+            "type": "integer",
+            "title": "Done"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          }
+        },
+        "type": "object",
+        "required": [
+          "session",
+          "running",
+          "up_next",
+          "undoable",
+          "done",
+          "total"
+        ],
+        "title": "ConsoleOut",
+        "description": "What a runtime or console needs for one session: the running trial or the next slot."
+      },
+      "EditIn": {
+        "properties": {
+          "actor": {
+            "type": "string",
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Actor"
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Reason"
+          },
+          "stage": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Stage"
+          },
+          "clear_stage": {
+            "type": "boolean",
+            "title": "Clear Stage",
+            "default": false
+          },
+          "termination": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "success",
+                  "timeout",
+                  "stuck",
+                  "operator_stop",
+                  "robot_fault",
+                  "safety_stop",
+                  "other"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Termination"
+          },
+          "failure_tags": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Failure Tags"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          },
+          "expected_version": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expected Version"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "actor",
+          "reason"
+        ],
+        "title": "EditIn",
+        "description": "Correct a completed trial's label. ``reason`` and ``actor`` are logged."
+      },
+      "ErrorOut": {
+        "properties": {
+          "detail": {
+            "type": "string",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "required": [
+          "detail"
+        ],
+        "title": "ErrorOut",
+        "description": "An error. ``detail`` explains it."
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "InvalidateIn": {
+        "properties": {
+          "reason": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Reason"
+          },
+          "reschedule": {
+            "type": "string",
+            "enum": [
+              "block",
+              "end"
+            ],
+            "title": "Reschedule",
+            "default": "block"
+          },
+          "expected_version": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expected Version"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "reason"
+        ],
+        "title": "InvalidateIn",
+        "description": "Void a trial (robot fault, setup error) and reschedule it."
+      },
+      "MediaOut": {
+        "properties": {
+          "path": {
+            "type": "string",
+            "title": "Path"
+          }
+        },
+        "type": "object",
+        "required": [
+          "path"
+        ],
+        "title": "MediaOut",
+        "description": "Where an attached file was stored, relative to the study folder."
+      },
+      "SessionIn": {
+        "properties": {
+          "operator": {
+            "type": "string",
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Operator"
+          },
+          "rig": {
+            "type": "string",
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Rig"
+          },
+          "rig_check": {
+            "additionalProperties": {
+              "type": "boolean"
+            },
+            "type": "object",
+            "title": "Rig Check"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "operator",
+          "rig"
+        ],
+        "title": "SessionIn",
+        "description": "Start a session: one operator on one rig."
+      },
+      "SessionOut": {
+        "properties": {
+          "session_id": {
+            "type": "string",
+            "title": "Session Id"
+          },
+          "operator": {
+            "type": "string",
+            "title": "Operator"
+          },
+          "rig": {
+            "type": "string",
+            "title": "Rig"
+          },
+          "started_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Started At"
+          },
+          "ended_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ended At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "session_id",
+          "operator",
+          "rig",
+          "started_at",
+          "ended_at"
+        ],
+        "title": "SessionOut",
+        "description": "A session."
+      },
+      "SlotOut": {
+        "properties": {
+          "slot_id": {
+            "type": "string",
+            "title": "Slot Id"
+          },
+          "seq": {
+            "type": "integer",
+            "title": "Seq"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "block": {
+            "type": "integer",
+            "title": "Block"
+          },
+          "replicate": {
+            "type": "integer",
+            "title": "Replicate"
+          },
+          "condition": {
+            "type": "string",
+            "title": "Condition"
+          },
+          "factors": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Factors"
+          },
+          "blind_code": {
+            "type": "string",
+            "title": "Blind Code"
+          },
+          "arm": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Arm"
+          },
+          "policy": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Policy"
+          },
+          "serving": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Serving"
+          }
+        },
+        "type": "object",
+        "required": [
+          "slot_id",
+          "seq",
+          "total",
+          "block",
+          "replicate",
+          "condition",
+          "factors",
+          "blind_code",
+          "arm",
+          "policy",
+          "serving"
+        ],
+        "title": "SlotOut",
+        "description": "A scheduled trial. ``arm``, ``policy`` and ``serving`` are hidden while blinded."
+      },
+      "StartIn": {
+        "properties": {
+          "slot_id": {
+            "type": "string",
+            "title": "Slot Id"
+          },
+          "session_id": {
+            "type": "string",
+            "title": "Session Id"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "slot_id",
+          "session_id"
+        ],
+        "title": "StartIn",
+        "description": "Start a trial for a slot (normally ``up_next``)."
+      },
+      "StatusOut": {
+        "properties": {
+          "slug": {
+            "type": "string",
+            "title": "Slug"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "design_hash": {
+            "type": "string",
+            "title": "Design Hash"
+          },
+          "blinded": {
+            "type": "boolean",
+            "title": "Blinded"
+          },
+          "planned": {
+            "type": "integer",
+            "title": "Planned"
+          },
+          "done": {
+            "type": "integer",
+            "title": "Done"
+          },
+          "pending": {
+            "type": "integer",
+            "title": "Pending"
+          },
+          "invalid_trials": {
+            "type": "integer",
+            "title": "Invalid Trials"
+          },
+          "sessions": {
+            "type": "integer",
+            "title": "Sessions"
+          },
+          "amendments": {
+            "type": "integer",
+            "title": "Amendments"
+          },
+          "stages": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Stages"
+          },
+          "success_stage": {
+            "type": "string",
+            "title": "Success Stage"
+          },
+          "failure_tags": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Failure Tags"
+          },
+          "timeout_s": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Timeout S"
+          },
+          "per_arm": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "prefixItems": [
+                    {
+                      "type": "integer"
+                    },
+                    {
+                      "type": "integer"
+                    }
+                  ],
+                  "type": "array",
+                  "maxItems": 2,
+                  "minItems": 2
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Per Arm"
+          }
+        },
+        "type": "object",
+        "required": [
+          "slug",
+          "name",
+          "status",
+          "design_hash",
+          "blinded",
+          "planned",
+          "done",
+          "pending",
+          "invalid_trials",
+          "sessions",
+          "amendments",
+          "stages",
+          "success_stage",
+          "failure_tags",
+          "timeout_s",
+          "per_arm"
+        ],
+        "title": "StatusOut",
+        "description": "Progress of a locked study. ``per_arm`` is ``None`` while blinded."
+      },
+      "StudyOut": {
+        "properties": {
+          "slug": {
+            "type": "string",
+            "title": "Slug"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          },
+          "title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "locked": {
+            "type": "boolean",
+            "title": "Locked"
+          }
+        },
+        "type": "object",
+        "required": [
+          "slug",
+          "name",
+          "title",
+          "status",
+          "locked"
+        ],
+        "title": "StudyOut",
+        "description": "A study under the served folder."
+      },
+      "TrialOut": {
+        "properties": {
+          "trial_id": {
+            "type": "string",
+            "title": "Trial Id"
+          },
+          "slot": {
+            "$ref": "#/components/schemas/SlotOut"
+          },
+          "session_id": {
+            "type": "string",
+            "title": "Session Id"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "running",
+              "completed",
+              "invalid"
+            ],
+            "title": "Status"
+          },
+          "attempt": {
+            "type": "integer",
+            "title": "Attempt"
+          },
+          "version": {
+            "type": "integer",
+            "title": "Version"
+          },
+          "started_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Started At"
+          },
+          "ended_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ended At"
+          },
+          "duration_s": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Duration S"
+          },
+          "stage": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Stage"
+          },
+          "stage_index": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Stage Index"
+          },
+          "success": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Success"
+          },
+          "termination": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Termination"
+          },
+          "failure_tags": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Failure Tags"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          },
+          "invalid_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Invalid Reason"
+          },
+          "media": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Media"
+          }
+        },
+        "type": "object",
+        "required": [
+          "trial_id",
+          "slot",
+          "session_id",
+          "status",
+          "attempt",
+          "version",
+          "started_at",
+          "ended_at",
+          "duration_s",
+          "stage",
+          "stage_index",
+          "success",
+          "termination",
+          "failure_tags",
+          "notes",
+          "invalid_reason",
+          "media"
+        ],
+        "title": "TrialOut",
+        "description": "A trial and its concurrency version (send it back as ``expected_version``)."
+      },
+      "UndoIn": {
+        "properties": {
+          "session_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Session Id"
+          },
+          "expected_version": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expected Version"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "title": "UndoIn",
+        "description": "Undo the latest trial of a session (within 10 s)."
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      }
+    }
+  }
+}

@@ -5,7 +5,7 @@ from typing import Annotated
 import typer
 
 from fieldtrial import __version__
-from fieldtrial.cli import calc, study
+from fieldtrial.cli import calc, serve, study
 
 app = typer.Typer(
     name="fieldtrial",
@@ -39,3 +39,4 @@ def main(
 
 calc.register(app)
 study.register(app)
+serve.register(app)

@@ -39,13 +39,19 @@ classifiers = [
 # Each core dependency is added in the milestone that first imports it (docs/PLAN.md, Appendix B).
 dependencies = [
     "alembic>=1.13",
+    "fastapi>=0.115",
+    "jinja2>=3.1",
     "numpy>=1.26",
     "pydantic>=2.7",
+    "python-multipart>=0.0.9",
     "pyyaml>=6.0",
+    "qrcode>=7.4",
     "rich>=13.8",
     "scipy>=1.13",
     "sqlalchemy>=2.0.30",
+    "sse-starlette>=2.1",
     "typer>=0.15",
+    "uvicorn[standard]>=0.30",
 ]
 
 [project.optional-dependencies]
@@ -169,6 +175,11 @@ strict = true
 warn_unreachable = true
 enable_error_code = ["ignore-without-code", "redundant-expr", "truthy-bool"]
 
+[[tool.mypy.overrides]]
+# qrcode ships no type hints; it is only used to draw the LAN URL in the terminal.
+module = ["qrcode", "qrcode.*"]
+ignore_missing_imports = true
+
 # --- tests -----------------------------------------------------------------
 
 [tool.pytest.ini_options]
@@ -177,7 +188,12 @@ testpaths = ["tests"]
 addopts = ["-ra", "--strict-markers", "--strict-config", "--import-mode=importlib"]
 markers = ["slow: long statistical property tests; CI runs them nightly"]
 xfail_strict = true
-filterwarnings = ["error"]
+filterwarnings = [
+    "error",
+    # Starlette 1.x asks for httpx2 in its TestClient; httpx still works and is what the
+    # dev extra installs.
+    "ignore:Using `httpx` with `starlette.testclient` is deprecated:UserWarning",
+]
 
 [tool.coverage.run]
 branch = true
@@ -265,13 +281,16 @@ name = "only fieldtrial.services touches the database"
 type = "forbidden"
 source_modules = [
     "fieldtrial.analysis",
+    "fieldtrial.api",
     "fieldtrial.cli",
+    "fieldtrial.client",
     "fieldtrial.design",
     "fieldtrial.io",
     "fieldtrial.report",
     "fieldtrial.runners",
     "fieldtrial.stats",
     "fieldtrial.templates",
+    "fieldtrial.web",
 ]
 forbidden_modules = ["fieldtrial.store", "sqlalchemy", "alembic"]
 allow_indirect_imports = true  # the CLI reaches the database through services, never directly
@@ -286,6 +305,27 @@ source_modules = [
     "fieldtrial.runners",
 ]
 forbidden_modules = ["fieldtrial.cli", "fieldtrial.services"]
+
+[[tool.importlinter.contracts]]
+name = "fieldtrial.client depends only on the API schemas"
+type = "forbidden"
+source_modules = ["fieldtrial.client", "fieldtrial.api.schemas"]
+forbidden_modules = [
+    "fieldtrial.analysis",
+    "fieldtrial.api.v1",
+    "fieldtrial.cli",
+    "fieldtrial.design",
+    "fieldtrial.io",
+    "fieldtrial.report",
+    "fieldtrial.runners",
+    "fieldtrial.services",
+    "fieldtrial.stats",
+    "fieldtrial.store",
+    "fieldtrial.web",
+    "fastapi",
+    "starlette",
+    "httpx",
+]
 
 [[tool.importlinter.contracts]]
 name = "fieldtrial never imports heavy or test-only packages"
