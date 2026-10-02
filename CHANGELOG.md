@@ -8,6 +8,10 @@ minor releases may contain breaking changes.
 
 ## [Unreleased]
 
+## [0.2.0a2] - 2026-10-02
+
+Second v0.2 pre-release: real blinding with the command runner and the openpi router.
+
 ### Added
 
 - Real blinding with switching runners. The console and the REST API start and stop them
@@ -138,7 +142,8 @@ First alpha: the statistics core and the calculator commands.
   reference.
 - Project skeleton: packaging, `fieldtrial --version`, CI and the documentation site.
 
-[Unreleased]: https://github.com/rokbenko/fieldtrial/compare/v0.2.0a1...HEAD
+[Unreleased]: https://github.com/rokbenko/fieldtrial/compare/v0.2.0a2...HEAD
+[0.2.0a2]: https://github.com/rokbenko/fieldtrial/compare/v0.2.0a1...v0.2.0a2
 [0.2.0a1]: https://github.com/rokbenko/fieldtrial/compare/v0.1.0...v0.2.0a1
 [0.1.0]: https://github.com/rokbenko/fieldtrial/compare/v0.1.0a1...v0.1.0
 [0.1.0rc1]: https://github.com/rokbenko/fieldtrial/compare/v0.1.0a1...v0.1.0rc1
