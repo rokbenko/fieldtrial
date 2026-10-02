@@ -151,7 +151,7 @@ def _side(
         step = x[None, :] - m[:, None]
         factor = 1.0 + sign * lam * step
         factor[np.logical_and(np.isinf(lam), step == 0)] = 1.0
-        capital = np.cumprod(factor, axis=1)
+        capital = np.asarray(np.cumprod(factor, axis=1), dtype=np.float64)
     capital[np.isnan(capital)] = 0.0
     return capital
 
