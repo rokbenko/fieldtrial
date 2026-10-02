@@ -8,6 +8,10 @@ minor releases may contain breaking changes.
 
 ## [Unreleased]
 
+## [0.2.0a1] - 2026-10-02
+
+First v0.2 pre-release: crossover rounds, checkpoint ladders and group-sequential stopping.
+
 ### Added
 
 - Crossover rounds (`design.type: crossover_rounds`) for tasks whose scene carries over
@@ -112,7 +116,8 @@ First alpha: the statistics core and the calculator commands.
   reference.
 - Project skeleton: packaging, `fieldtrial --version`, CI and the documentation site.
 
-[Unreleased]: https://github.com/rokbenko/fieldtrial/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/rokbenko/fieldtrial/compare/v0.2.0a1...HEAD
+[0.2.0a1]: https://github.com/rokbenko/fieldtrial/compare/v0.1.0...v0.2.0a1
 [0.1.0]: https://github.com/rokbenko/fieldtrial/compare/v0.1.0a1...v0.1.0
 [0.1.0rc1]: https://github.com/rokbenko/fieldtrial/compare/v0.1.0a1...v0.1.0rc1
 [0.1.0a1]: https://github.com/rokbenko/fieldtrial/releases/tag/v0.1.0a1
