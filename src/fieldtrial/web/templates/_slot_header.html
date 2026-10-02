@@ -1,0 +1,9 @@
+<header class="trial-head">
+  <p class="where">Trial {{ slot.seq }}/{{ slot.total }} · block {{ slot.block }} · {{ slot.condition }}</p>
+  <p class="code" aria-label="Arm to load">{{ slot.blind_code }}{% if not blinded %} <span class="arm">{{ slot.arm }}</span>{% endif %}</p>
+  <ul class="instructions">
+    {% if spec.limits.reset == "independent" %}<li>Reset the scene to {{ slot.condition }} before starting.</li>{% endif %}
+    {% if spec.task.instruction %}<li>Instruction: {{ spec.task.instruction }}</li>{% endif %}
+    {% if spec.limits.timeout_s %}<li>Timeout {{ spec.limits.timeout_s | duration }}{% if spec.limits.no_progress_s %}; call it stuck after {{ spec.limits.no_progress_s | int }} s without progress{% endif %}.</li>{% endif %}
+  </ul>
+</header>

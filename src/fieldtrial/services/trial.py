@@ -293,11 +293,13 @@ def complete_trial(
             trial = _locked_trial(db, ctx, trial_id, expected_version)
             if trial.status != "running":
                 raise ServiceError(f"trial {trial_id} is {trial.status}, not running")
-            end = ended_at or utcnow()
+            # A stopped trial keeps the time it was stopped, not the time it was labelled.
+            end = ended_at or trial.ended_at or utcnow()
             trial.ended_at = end
-            trial.duration_s = (
-                duration_s if duration_s is not None else (end - trial.started_at).total_seconds()
-            )
+            if duration_s is not None:
+                trial.duration_s = duration_s
+            elif trial.duration_s is None or ended_at is not None:
+                trial.duration_s = (end - trial.started_at).total_seconds()
             trial.stage_index, trial.success = stage_index, success
             trial.termination, trial.failure_tags = termination, list(failure_tags)
             trial.notes = notes
@@ -324,6 +326,45 @@ def complete_trial(
             return view
 
     return idempotent(ctx, idempotency_key, "trial_completed", _decode_view, write)
+
+
+def stop_trial(
+    ctx: StudyContext,
+    trial_id: str,
+    *,
+    ended_at: datetime | None = None,
+    expected_version: int | None = None,
+    idempotency_key: str | None = None,
+) -> TrialView:
+    """Stop the clock on a running trial; it stays running until it is labelled.
+
+    The duration counts from start to stop, so time spent labelling is not included.
+    """
+
+    def write() -> TrialView:
+        with ctx.db() as db, db.begin():
+            trial = _locked_trial(db, ctx, trial_id, expected_version)
+            if trial.status != "running":
+                raise ServiceError(f"trial {trial_id} is {trial.status}, not running")
+            if trial.ended_at is not None:
+                raise ServiceError("the trial is already stopped; label it")
+            end = ended_at or utcnow()
+            trial.ended_at = end
+            trial.duration_s = max((end - trial.started_at).total_seconds(), 0.0)
+            _bump_version(db, trial)
+            actor = db.get_one(m.Session, trial.session_id).operator
+            view = _view(trial)
+            append_event(
+                db,
+                ctx.study_id,
+                "trial_stopped",
+                actor,
+                {"trial_id": trial.id, "duration_s": trial.duration_s, "result": _result(view)},
+                idempotency_key=idempotency_key,
+            )
+            return view
+
+    return idempotent(ctx, idempotency_key, "trial_stopped", _decode_view, write)
 
 
 def _reschedule(
@@ -477,6 +518,28 @@ def record_trial(
     return idempotent(ctx, idempotency_key, "trial_recorded", _decode_view, write)
 
 
+_FINISH_KINDS = ("trial_completed", "trial_invalidated", "trial_recorded")
+
+
+def _labelled_at(db: Session, ctx: StudyContext, trial_id: str) -> datetime | None:
+    """When a trial was last labelled (completed, invalidated or recorded)."""
+    events = db.scalars(
+        select(m.Event)
+        .where(m.Event.study_id == ctx.study_id, m.Event.kind.in_(_FINISH_KINDS))
+        .order_by(m.Event.id.desc())
+    )
+    for event in events:
+        if event.payload.get("trial_id") == trial_id:
+            return event.ts
+    return None
+
+
+def labelled_at(ctx: StudyContext, trial_id: str) -> datetime | None:
+    """When a trial was last labelled; the undo window counts from here."""
+    with ctx.db() as db:
+        return _labelled_at(db, ctx, trial_id)
+
+
 def _replacement_slot(db: Session, ctx: StudyContext, trial_id: str) -> str | None:
     for event in reversed(list_events(db, ctx.study_id)):
         if event.kind in ("trial_invalidated", "trial_recorded") and (
@@ -512,8 +575,8 @@ def reopen_trial(
             if session_id is not None and trial.session_id != session_id:
                 raise ServiceError("only the session that ran a trial can undo it")
             current = now or utcnow()
-            ended = trial.ended_at or trial.started_at
-            if window_s is not None and (current - ended).total_seconds() > window_s:
+            finished = _labelled_at(db, ctx, trial.id) or trial.ended_at or trial.started_at
+            if window_s is not None and (current - finished).total_seconds() > window_s:
                 raise ServiceError(f"undo is only possible for {window_s:g} s after a trial")
             later = db.scalar(
                 select(func.count())
@@ -547,7 +610,7 @@ def reopen_trial(
                     replacement.status = "void"
             trial.status = "running"
             trial.stage_index = trial.success = trial.termination = None
-            trial.ended_at = trial.duration_s = trial.invalid_reason = None
+            trial.invalid_reason = None  # ended_at and duration_s keep the stop time
             trial.failure_tags = []
             _bump_version(db, trial)
             slot = db.get_one(m.ScheduleSlot, trial.slot_id)

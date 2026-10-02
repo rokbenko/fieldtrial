@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% block nav %}<a href="/">Studies</a>{% endblock %}
+{% block content %}
+<h1>{{ spec.title or spec.name }}</h1>
+<p class="muted">
+  {{ spec.name }} · design <code>{{ report.design_hash[:12] }}</code> ·
+  <span class="badge status-{{ report.status }}">{{ report.status }}</span>
+  {% if report.blinded %}<span class="badge blind">blinded</span>{% endif %}
+</p>
+
+<section class="progress-block" aria-label="Progress">
+  <progress max="{{ report.planned - report.void }}" value="{{ report.done }}"></progress>
+  <p>
+    <strong>{{ report.done }}</strong> of {{ report.planned - report.void }} trials done ·
+    {{ report.pending }} pending · {{ report.invalid_trials }} invalid ·
+    {{ report.sessions }} sessions{% if report.amendments %} · {{ report.amendments }} amendments{% endif %}
+  </p>
+</section>
+
+<section>
+  <h2>Arms</h2>
+  {% if report.blinded %}
+  <p>{{ spec.arms | length }} arms, shown to operators by blind code only. Per-arm results stay hidden until you unblind on the <a href="/studies/{{ slug }}/report">report page</a>.</p>
+  {% else %}
+  <ul>
+    {% for arm in spec.arms %}
+    <li><strong>{{ arm.id }}</strong>{% if arm.label %} – {{ arm.label }}{% endif %}
+      {% if report.per_arm and report.per_arm.get(arm.id) %}
+        {% set k, n = report.per_arm[arm.id] %}
+        <span class="muted">{{ k }}/{{ n }}{% if n %} = {{ (k / n) | rate }}{% endif %}</span>
+      {% endif %}
+    </li>
+    {% endfor %}
+  </ul>
+  {% endif %}
+</section>
+
+{% set open = sessions | selectattr("ended_at", "none") | list %}
+{% if open %}
+<section>
+  <h2>Open sessions</h2>
+  <ul class="cards">
+    {% for s in open %}
+    <li class="card">
+      <strong>{{ s.operator }}</strong> on {{ s.rig }} <span class="muted">since {{ s.started_at | date }}</span>
+      <span class="actions">
+        <a class="button primary" href="/studies/{{ slug }}/sessions/{{ s.session_id }}">Continue</a>
+        <a class="button" href="/studies/{{ slug }}/sessions/{{ s.session_id }}/mirror">Mirror</a>
+      </span>
+    </li>
+    {% endfor %}
+  </ul>
+</section>
+{% endif %}
+
+{% if report.pending %}
+<section>
+  <h2>Start a session</h2>
+  <form class="stack" hx-post="/studies/{{ slug }}/sessions">
+    <input type="hidden" name="idempotency_key" value="{{ idempotency_key }}">
+    <label>Operator <input name="operator" required maxlength="128" autocomplete="name"></label>
+    <label>Rig <input name="rig" required maxlength="128"></label>
+    {% if spec.rubric.rig_checklist %}
+    <fieldset>
+      <legend>Rig checklist</legend>
+      {% for item in spec.rubric.rig_checklist %}
+      <label class="check"><input type="checkbox" name="check_{{ loop.index0 }}" required> {{ item }}</label>
+      {% endfor %}
+    </fieldset>
+    {% endif %}
+    <label>Notes <textarea name="notes" rows="2"></textarea></label>
+    <button class="big primary" type="submit">Start session</button>
+  </form>
+</section>
+{% endif %}
+
+<nav class="links">
+  <a class="button" href="/studies/{{ slug }}/history">Trial history</a>
+  <a class="button" href="/studies/{{ slug }}/report">Report</a>
+</nav>
+{% endblock %}

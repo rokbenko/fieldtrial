@@ -129,6 +129,12 @@ class StartIn(_In):
     session_id: str
 
 
+class StopIn(_In):
+    """Stop the clock on a running trial (it is labelled afterwards)."""
+
+    expected_version: int | None = None
+
+
 class CompleteIn(_In):
     """The outcome of a running trial.
 

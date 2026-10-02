@@ -190,6 +190,16 @@ class Client:
         data = self._request("POST", self._study_path("/trials"), body=body, idempotent=True)
         return self._as(TrialOut, data)
 
+    def stop_trial(self, trial_id: str, *, expected_version: int | None = None) -> TrialOut:
+        """Stop the clock on a running trial; label it afterwards with :meth:`complete_trial`."""
+        data = self._request(
+            "POST",
+            self._study_path(f"/trials/{trial_id}/stop"),
+            body={"expected_version": expected_version},
+            idempotent=True,
+        )
+        return self._as(TrialOut, data)
+
     def complete_trial(
         self,
         trial_id: str,

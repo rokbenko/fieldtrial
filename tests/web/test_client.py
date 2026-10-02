@@ -41,9 +41,13 @@ def test_client_runs_a_study(server: str, tmp_path: Path) -> None:
         assert slot is not None
         assert slot.arm is None  # blinded
         trial = api.start_trial(slot.slot_id, session_id)
-        api.complete_trial(
-            trial.trial_id, stage="clean", termination="success", expected_version=trial.version
+        stopped = api.stop_trial(trial.trial_id, expected_version=trial.version)
+        assert stopped.status == "running"
+        assert stopped.duration_s is not None
+        done = api.complete_trial(
+            trial.trial_id, stage="clean", termination="success", expected_version=stopped.version
         )
+        assert done.duration_s == stopped.duration_s
     assert api.next() is None
     assert api.session(session_id).done == 8
     last = api.trials(session_id=session_id, limit=1)[0]

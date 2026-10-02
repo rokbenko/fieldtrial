@@ -1,7 +1,7 @@
 """Sessions: one operator on one rig for one continuous stretch of trials."""
 
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any
 
 from sqlalchemy import func, select
@@ -14,6 +14,7 @@ from fieldtrial.services.trial import (
     TrialDetail,
     _require_open,
     _study,
+    labelled_at,
     list_trials,
     next_slot,
 )
@@ -166,6 +167,7 @@ class ConsoleState:
     undoable: TrialDetail | None
     done: int
     total: int
+    undo_until: datetime | None = None
 
 
 def console_state(
@@ -177,10 +179,14 @@ def console_state(
     latest = recent[0] if recent else None
     running = latest if latest is not None and latest.status == "running" else None
     undoable = None
-    if latest is not None and latest.status in ("completed", "invalid") and latest.ended_at:
-        age = ((now or utcnow()) - latest.ended_at).total_seconds()
-        if age <= UNDO_WINDOW_S:
-            undoable = latest
+    undo_until = None
+    if latest is not None and latest.status in ("completed", "invalid"):
+        finished = labelled_at(ctx, latest.trial_id) or latest.ended_at
+        if finished is not None:
+            age = ((now or utcnow()) - finished).total_seconds()
+            if age <= UNDO_WINDOW_S:
+                undoable = latest
+                undo_until = finished + timedelta(seconds=UNDO_WINDOW_S)
     with ctx.db() as db:
         counts = dict(
             db.execute(
@@ -194,6 +200,7 @@ def console_state(
         running=running,
         up_next=None if running else next_slot(ctx),
         undoable=undoable,
+        undo_until=undo_until,
         done=int(counts.get("done", 0)),
         total=int(counts.get("done", 0) + counts.get("pending", 0)),
     )

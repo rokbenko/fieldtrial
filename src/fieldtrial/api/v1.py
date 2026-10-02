@@ -28,6 +28,7 @@ from fieldtrial.api.schemas import (
     SlotOut,
     StartIn,
     StatusOut,
+    StopIn,
     StudyOut,
     TrialOut,
     UndoIn,
@@ -43,7 +44,7 @@ from fieldtrial.services.session import (
     get_session,
     start_session,
 )
-from fieldtrial.services.study import is_blinded, study_status
+from fieldtrial.services.study import is_blinded, status_of
 from fieldtrial.services.trial import (
     SlotView,
     TrialDetail,
@@ -56,6 +57,7 @@ from fieldtrial.services.trial import (
     next_slot,
     reopen_trial,
     start_trial,
+    stop_trial,
 )
 
 ERRORS: dict[int | str, dict[str, Any]] = {
@@ -178,7 +180,7 @@ def studies(reg: Registry) -> list[StudyOut]:
 def status(slug: str, reg: Registry) -> StatusOut:
     """Progress of a study. No per-arm results while blinded."""
     ctx = reg.get(slug)
-    report = study_status(ctx.folder)
+    report = status_of(ctx)
     rubric = ctx.spec.rubric
     return StatusOut(
         slug=slug,
@@ -280,6 +282,16 @@ def start(slug: str, body: StartIn, reg: Registry, key: IdempotencyKey = None) -
     ctx = reg.get(slug)
     view = start_trial(ctx, body.slot_id, body.session_id, idempotency_key=key)
     return _trial(ctx, view.trial_id)
+
+
+@router.post("/studies/{slug}/trials/{trial_id}/stop", response_model=TrialOut)
+def stop(
+    slug: str, trial_id: str, body: StopIn, reg: Registry, key: IdempotencyKey = None
+) -> TrialOut:
+    """Stop the clock; the duration ends here even if labelling takes longer."""
+    ctx = reg.get(slug)
+    stop_trial(ctx, trial_id, expected_version=body.expected_version, idempotency_key=key)
+    return _trial(ctx, trial_id)
 
 
 @router.post("/studies/{slug}/trials/{trial_id}/complete", response_model=TrialOut)

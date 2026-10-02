@@ -104,3 +104,25 @@ def test_simulate_max_trials_and_rates(locked_study: Path) -> None:
     partial = simulate_study(locked_study, {"baseline": 0.5, "q50": 0.9}, max_trials=3)
     assert partial.completed + partial.invalid == 3
     assert study_status(locked_study).pending == 5
+
+
+def test_manual_runner() -> None:
+    from fieldtrial.runners.manual import ManualRunner
+
+    runner = ManualRunner()
+    assert isinstance(runner, Runner)
+    assert not runner.capabilities.reports_outcome
+    with pytest.raises(RuntimeError):
+        runner.start(TrialContext(seq=1, condition="c", factors={}))
+    with pytest.raises(RuntimeError):
+        runner.stop()
+    runner.prepare(ArmSpec("a", "N4"))
+    assert runner.status().message == "load arm N4"
+    runner.start(TrialContext(seq=1, condition="c", factors={}))
+    assert runner.status().state == "running"
+    artifacts = runner.stop("operator_stop")
+    assert artifacts.termination == "operator_stop"
+    assert artifacts.stage_index is None
+    assert artifacts.duration_s >= 0
+    runner.close()
+    assert runner.status().state == "closed"

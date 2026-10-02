@@ -1,0 +1,105 @@
+{%- set sid = state.session.session_id -%}
+{%- set base = "/studies/" ~ slug ~ "/sessions/" ~ sid -%}
+<div class="panel" data-server-now="{{ server_now }}" data-last-event="{{ last_event }}">
+  <p class="meta">
+    <span>{{ state.done }}/{{ state.total }} done</span>
+    <span>{{ state.session.operator }} · {{ state.session.rig }}</span>
+  </p>
+
+  {% if state.running %}
+    {%- set t = state.running -%}
+    {% include "_trial_header.html" %}
+    {% if t.ended_at is none %}
+      <div class="timer" data-started-at="{{ t.started_at.isoformat() }}"
+           data-timeout="{{ spec.limits.timeout_s or '' }}" aria-live="off">0:00</div>
+      {% if not mirror %}
+      <form hx-post="{{ base }}/trials/{{ t.trial_id }}/stop" hx-target="#panel">
+        <input type="hidden" name="version" value="{{ t.version }}">
+        <input type="hidden" name="idempotency_key" value="{{ idempotency_key }}">
+        <button class="big danger" type="submit" data-action="start_stop">Stop</button>
+      </form>
+      {% endif %}
+    {% else %}
+      <p class="stopped">Stopped after <strong>{{ t.duration_s | duration }}</strong>. Label the outcome.</p>
+      {% if not mirror %}
+      <form class="label-form" hx-post="{{ base }}/trials/{{ t.trial_id }}/complete" hx-target="#panel"
+            data-success-index="{{ spec.rubric.success_index }}">
+        <input type="hidden" name="version" value="{{ t.version }}">
+        <input type="hidden" name="idempotency_key" value="{{ idempotency_key }}">
+        {%- set suggested_stage = suggestion.stage_index if suggestion and suggestion.stage_index is not none else none -%}
+        <fieldset class="chips stages">
+          <legend>Furthest stage reached{% if suggestion %} <span class="muted">(simulated runner suggests)</span>{% endif %}</legend>
+          <label><input type="radio" name="stage" value="-1" data-key="0" required
+            {% if suggested_stage == -1 %}checked{% endif %}><span><kbd>0</kbd> none</span></label>
+          {% for stage in spec.rubric.stages %}
+          <label><input type="radio" name="stage" value="{{ loop.index0 }}" data-key="{{ loop.index }}"
+            {% if suggested_stage == loop.index0 %}checked{% endif %}>
+            <span><kbd>{{ loop.index }}</kbd> {{ stage.label }}{% if loop.index0 == spec.rubric.success_index %} ✓{% endif %}</span></label>
+          {% endfor %}
+        </fieldset>
+        <fieldset class="chips">
+          <legend>Why it ended</legend>
+          {% for term in terminations %}
+          <label><input type="radio" name="termination" value="{{ term }}" required
+            {% if suggestion and suggestion.termination == term %}checked{% endif %}><span>{{ term | replace("_", " ") }}</span></label>
+          {% endfor %}
+        </fieldset>
+        {% if spec.rubric.failure_tags %}
+        <fieldset class="chips">
+          <legend>Failure tags</legend>
+          {% for tag in spec.rubric.failure_tags %}
+          <label><input type="checkbox" name="failure_tags" value="{{ tag }}"
+            {% if suggestion and tag in suggestion.failure_tags %}checked{% endif %}><span>{{ tag | replace("_", " ") }}</span></label>
+          {% endfor %}
+        </fieldset>
+        {% endif %}
+        <label>Note <textarea name="notes" rows="2"></textarea></label>
+        <button class="big primary" type="submit" data-action="confirm">Confirm</button>
+      </form>
+      {% endif %}
+    {% endif %}
+    {% if not mirror %}
+    <details class="invalid">
+      <summary data-action="invalid">Invalid trial…</summary>
+      <form class="stack" hx-post="{{ base }}/trials/{{ t.trial_id }}/invalidate" hx-target="#panel">
+        <input type="hidden" name="version" value="{{ t.version }}">
+        <input type="hidden" name="idempotency_key" value="{{ idempotency_key }}">
+        <label>Reason (robot fault, setup error…) <input name="reason" required></label>
+        <button class="button danger" type="submit">Mark invalid and reschedule</button>
+      </form>
+    </details>
+    {% endif %}
+
+  {% elif state.up_next %}
+    {%- set slot = state.up_next -%}
+    {% include "_slot_header.html" %}
+    {% if not mirror %}
+    <form hx-post="{{ base }}/start" hx-target="#panel">
+      <input type="hidden" name="slot_id" value="{{ slot.slot_id }}">
+      <input type="hidden" name="idempotency_key" value="{{ idempotency_key }}">
+      <button class="big primary" type="submit" data-action="start_stop">Start</button>
+    </form>
+    {% else %}
+    <p class="waiting">Waiting to start</p>
+    {% endif %}
+
+  {% else %}
+    <h2 class="done">All scheduled trials are done.</h2>
+    <p><a class="button primary" href="/studies/{{ slug }}/report">Go to the report</a></p>
+  {% endif %}
+
+  {% if state.undoable and not mirror %}
+  <form class="undo" hx-post="{{ base }}/trials/{{ state.undoable.trial_id }}/undo" hx-target="#panel"
+        data-undo-until="{{ state.undo_until.isoformat() if state.undo_until else '' }}">
+    <input type="hidden" name="idempotency_key" value="{{ idempotency_key }}">
+    <button class="button" type="submit" data-action="undo">Undo trial {{ state.undoable.slot.seq }} <span class="countdown"></span></button>
+  </form>
+  {% endif %}
+
+  {% if not mirror and not state.running %}
+  <form class="end" hx-post="{{ base }}/end" hx-confirm="End this session?">
+    <input type="hidden" name="idempotency_key" value="{{ idempotency_key }}">
+    <button class="button" type="submit">End session</button>
+  </form>
+  {% endif %}
+</div>

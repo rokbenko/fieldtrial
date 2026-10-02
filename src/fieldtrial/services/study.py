@@ -402,7 +402,13 @@ class StatusReport:
 
 def study_status(folder: str | Path) -> StatusReport:
     """Progress counts. While the study is blinded, no per-arm results are returned."""
-    with open_study(folder) as ctx, ctx.db() as db:
+    with open_study(folder) as ctx:
+        return status_of(ctx)
+
+
+def status_of(ctx: StudyContext) -> StatusReport:
+    """Progress counts of an open study (see :func:`study_status`)."""
+    with ctx.db() as db:
         study = db.get_one(m.Study, ctx.study_id)
         slot_counts = Counter(
             db.scalars(select(m.ScheduleSlot.status).where(m.ScheduleSlot.study_id == study.id))
