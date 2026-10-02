@@ -1,0 +1,12 @@
+<tr id="trial-{{ trial.trial_id }}" class="status-{{ trial.status }}">
+  <td>{{ trial.slot.seq }}</td>
+  <td>{{ trial.slot.condition }}</td>
+  <td><code>{{ trial.slot.blind_code }}</code>{% if not blinded %} {{ trial.slot.arm }}{% endif %}</td>
+  <td>{{ trial.status }}{% if trial.status == "completed" %} {{ "✓" if trial.success else "✗" }}{% endif %}</td>
+  <td>{% if trial.stage_index is not none %}{{ "none" if trial.stage_index < 0 else spec.rubric.stages[trial.stage_index].id }}{% endif %}</td>
+  <td>{{ (trial.termination or "") | replace("_", " ") }}{% if trial.invalid_reason %} <span class="muted">{{ trial.invalid_reason }}</span>{% endif %}</td>
+  <td>{{ trial.failure_tags | join(", ") }}</td>
+  <td>{{ trial.duration_s | duration }}</td>
+  <td>{{ trial.started_at | date }}</td>
+  <td>{% if trial.status == "completed" %}<button class="button small" hx-get="/studies/{{ slug }}/trials/{{ trial.trial_id }}/edit" hx-target="#trial-{{ trial.trial_id }}" hx-swap="outerHTML">Edit</button>{% endif %}</td>
+</tr>

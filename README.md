@@ -3,27 +3,25 @@
 **Find out whether your robot policy actually got better.**
 
 [![CI](https://github.com/rokbenko/fieldtrial/actions/workflows/ci.yml/badge.svg)](https://github.com/rokbenko/fieldtrial/actions/workflows/ci.yml)
+[![PyPI](https://img.shields.io/pypi/v/fieldtrial.svg)](https://pypi.org/project/fieldtrial/)
 [![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](https://github.com/rokbenko/fieldtrial/blob/main/LICENSE)
 
 fieldtrial is an open-source Python framework for statistically rigorous, real-world
 evaluation of robot policies. LeRobot trains the policy; fieldtrial tells you whether it
 actually got better.
 
-> **Status: alpha.** The statistics core and the calculator commands work. Studies, the
-> operator console and reports follow in 0.1.0. See the [roadmap](https://github.com/rokbenko/fieldtrial/blob/main/docs/ROADMAP.md).
-
 ## Why
 
 Real-world evaluation is slow, noisy and ad hoc. With 40 rollouts, the 95% confidence
-interval for a success rate is about ±15 percentage points, so many apparent
+interval for a success rate is 12 to 15 percentage points wide on each side, so many apparent
 improvements from a fine-tuning run are just noise. fieldtrial helps at every stage:
 
-- **Before an evaluation:** how many rollouts do I need? What is the smallest
-  difference this evaluation can detect?
-- **During:** a randomized, blinded schedule, plus a phone-friendly operator console
-  that logs the outcome, progress stage and failure tags of each rollout.
-- **After:** correct statistics (exact tests, paired designs, multiplicity control),
-  honest wording, and a shareable report.
+- **Before:** how many rollouts do I need? What is the smallest difference this
+  evaluation can detect?
+- **During:** a randomized, blinded schedule, and a phone-friendly operator console that
+  records the outcome, the furthest stage reached and the failure mode of each rollout.
+- **After:** the right statistics for the design (exact tests, paired analyses,
+  multiplicity control), honest wording, and a self-contained report.
 
 ## 30-second demo
 
@@ -38,33 +36,88 @@ Fisher p = 0.0022
 $ uvx fieldtrial power --p1 0.76 --p2 0.90      # rollouts needed to detect 76% → 90%
 112 per arm (pooled-z)
 
-$ uvx fieldtrial mde --p1 0.76 --n 40           # what 40 rollouts per arm can detect
-+21.1 pp (to 0.9707) / −30.1 pp (to 0.4588)
+$ uvx fieldtrial demo                           # a simulated study in the console
 ```
 
-The same functions are available from Python in `fieldtrial.stats`. Every one of them is
-tested against an independent reference implementation.
+`fieldtrial demo` opens a half-run, blinded study with a simulated robot. Run the rest
+from the keyboard (Space, Space, Enter), unblind, and read the report.
 
-`fieldtrial demo`, with a simulated study, the operator console and a report, arrives in
-0.1.0.
+<p>
+  <img src="https://raw.githubusercontent.com/rokbenko/fieldtrial/main/docs/assets/console-running.png" alt="The operator console on a phone: a trial in progress with its blind code, timer and a large Stop button" width="260">
+  <img src="https://raw.githubusercontent.com/rokbenko/fieldtrial/main/docs/assets/console-label.png" alt="Labelling a trial: furthest stage reached, why it ended, failure tags" width="260">
+</p>
+<p>
+  <img src="https://raw.githubusercontent.com/rokbenko/fieldtrial/main/docs/assets/report.png" alt="The HTML report: summary, success rate per arm with confidence intervals, primary analysis and a forest plot" width="560">
+</p>
+
+<!-- A short GIF of a trial run in the console goes here. -->
+
+## Quickstart
+
+```console
+$ uv tool install fieldtrial              # or: pip install fieldtrial
+$ fieldtrial init my-study                # writes my-study/study.yaml
+$ fieldtrial plan my-study --baseline 0.75
+$ fieldtrial lock my-study                # freezes the design and randomizes the schedule
+$ fieldtrial serve my-study --lan         # scan the QR code with a phone at the robot
+$ fieldtrial unblind my-study
+$ fieldtrial report my-study              # my-study/reports/report.html
+```
+
+A study is one folder: `study.yaml` (the design) and a SQLite database. Everything is
+local and works offline; fieldtrial sends no telemetry.
+
+- [Documentation](https://rokbenko.github.io/fieldtrial/): quickstart, concepts, guides
+  and a statistics reference.
+- [Re-analysis of Dream Machines' published pi0.5 results](https://github.com/rokbenko/fieldtrial/tree/main/examples/dream-machines-pi05):
+  which of 30 published comparisons the data actually resolve.
+
+## What you get
+
+- **Design:** randomized complete blocks with balanced arm order, blind codes, a design
+  hash, locking and logged amendments.
+- **Console:** sessions with a rig checklist, a timer, stage and failure-tag labels,
+  10-second undo, invalid trials with automatic rescheduling, a live mirror screen,
+  keyboard and foot-pedal keys, LAN access with a QR code.
+- **Analysis:** the primary test follows from the locked design (exact McNemar with a
+  Tango interval, Cochran–Mantel–Haenszel, or Cochran's Q with Holm), plus an
+  independent-samples sensitivity analysis, stage funnels, time to success, drift checks
+  and a list of every deviation from the plan.
+- **Reports:** self-contained HTML with charts, Markdown for pull requests, and a
+  versioned JSON results model.
+- **Integration:** a REST API with a dependency-free Python client for custom runtimes,
+  CSV import and export, and `fieldtrial.stats` as a library.
+
+Every statistical function is tested against an independent reference implementation.
+Reports only describe a difference when the pre-registered test rejects; otherwise they
+say what the study could have detected.
 
 ## How it fits with LeRobot and openpi
 
 fieldtrial complements LeRobot and openpi and never forks them. It is not a training
 framework, a simulation benchmark, a robot driver, a labeling platform or a cloud
 service. In manual mode, fieldtrial schedules and records the trials and you run the
-robot however you like. Integrations with other stacks are adapters.
+robot however you like. Runners that launch LeRobot rollouts and route openpi traffic for
+real blinding are planned for v0.2; see the
+[roadmap](https://github.com/rokbenko/fieldtrial/blob/main/docs/ROADMAP.md).
+
+## How to cite
+
+If fieldtrial helps your research, please cite it (see
+[CITATION.cff](https://github.com/rokbenko/fieldtrial/blob/main/CITATION.cff)):
+
+```bibtex
+@software{benko_fieldtrial,
+  author  = {Benko, Rok},
+  title   = {fieldtrial: statistically rigorous real-world evaluation for robot policies},
+  url     = {https://github.com/rokbenko/fieldtrial},
+  license = {Apache-2.0}
+}
+```
+
+For evaluation practice in general, see Kress-Gazit et al. (2024), *Robot Learning as an
+Empirical Science: Best Practices for Policy Evaluation*, arXiv:2409.09491.
 
 ## Development
 
 See [CONTRIBUTING.md](https://github.com/rokbenko/fieldtrial/blob/main/CONTRIBUTING.md).
-
-## License
-
-Apache-2.0. Copyright 2026 Rok Benko.
-
----
-
-<sup>The name comes from agricultural field trials. At Rothamsted in the 1920s, R. A.
-Fisher developed randomized block designs for field trials, and those are the designs
-fieldtrial uses to compare robot policies.</sup>

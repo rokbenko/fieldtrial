@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block nav %}<a href="/studies/{{ slug }}">{{ spec.name }}</a>{% endblock %}
+{% block content %}
+<h1>Report</h1>
+{% if results is none %}
+  <p><span class="badge blind">blinded</span> {{ report.done }} of {{ report.planned - report.void }} trials done, {{ report.pending }} pending.</p>
+  <p>Results stay hidden while the study is blinded. Unblinding is logged{% if report.pending %}, and because {{ report.pending }} trials are still pending, every report will list it as a deviation{% endif %}.</p>
+  <form class="stack" hx-post="/studies/{{ slug }}/unblind">
+    <label class="check"><input type="checkbox" name="confirm" value="yes" required> I want to unblind this study now</label>
+    <button class="button danger" type="submit">Unblind</button>
+  </form>
+{% else %}
+  <section>
+    <h2>Summary</h2>
+    <ul class="summary">{% for sentence in results.summary %}<li>{{ sentence }}</li>{% endfor %}</ul>
+  </section>
+  <section>
+    <h2>Deviations from the plan</h2>
+    {% if results.deviations %}
+    <ul>{% for d in results.deviations %}<li><strong>{{ d.kind | replace("_", " ") }}</strong>: {{ d.message }}</li>{% endfor %}</ul>
+    {% else %}<p>None.</p>{% endif %}
+  </section>
+  <section>
+    <h2>Success rate per arm</h2>
+    <div class="table-wrap">
+    <table>
+      <thead><tr><th>Arm</th><th>Code</th><th>Successes</th><th>Completed</th><th>Rate</th><th>95% CI</th><th>Invalid</th></tr></thead>
+      <tbody>
+      {% for a in results.arms %}
+        <tr>
+          <td>{% if a.arm == results.study.treatment %}<strong>{{ a.arm }}</strong>{% else %}{{ a.arm }}{% endif %}{% if a.label %} <span class="muted">{{ a.label }}</span>{% endif %}</td>
+          <td><code>{{ a.blind_code }}</code></td>
+          <td>{{ a.successes }}</td><td>{{ a.completed }}</td>
+          <td>{{ a.rate | rate if a.rate is not none else "–" }}</td>
+          <td>{% if a.ci %}{{ a.ci.low | rate }}–{{ a.ci.high | rate }}{% else %}–{% endif %}</td>
+          <td>{{ a.invalid }}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    </div>
+  </section>
+  <section>
+    <h2>Primary analysis</h2>
+    <p>{{ results.primary.description }}</p>
+  </section>
+  <nav class="links">
+    <a class="button primary" href="/studies/{{ slug }}/report.html" target="_blank" rel="noopener">Full report with charts</a>
+    <a class="button" href="/studies/{{ slug }}/report.html?download=true">Download report.html</a>
+    <a class="button" href="/studies/{{ slug }}/report.md" download>Download report.md</a>
+    <a class="button" href="/studies/{{ slug }}/results.json" download>Download results.json</a>
+  </nav>
+{% endif %}
+{% endblock %}

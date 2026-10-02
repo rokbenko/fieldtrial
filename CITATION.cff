@@ -1,0 +1,27 @@
+cff-version: 1.2.0
+message: "If you use fieldtrial, please cite it as below."
+title: "fieldtrial: statistically rigorous real-world evaluation for robot policies"
+type: software
+authors:
+  - family-names: Benko
+    given-names: Rok
+repository-code: "https://github.com/rokbenko/fieldtrial"
+url: "https://rokbenko.github.io/fieldtrial/"
+license: Apache-2.0
+keywords:
+  - robotics
+  - robot learning
+  - policy evaluation
+  - statistics
+  - experimental design
+references:
+  - type: article
+    title: "Robot Learning as an Empirical Science: Best Practices for Policy Evaluation"
+    authors:
+      - family-names: Kress-Gazit
+        given-names: Hadas
+      - name: "et al."
+    year: 2024
+    identifiers:
+      - type: other
+        value: "arXiv:2409.09491"

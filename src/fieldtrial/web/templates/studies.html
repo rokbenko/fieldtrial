@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Studies</h1>
+{% if not entries %}
+<p class="muted">No studies here yet. Create one with <code>fieldtrial init DIR</code>.</p>
+{% else %}
+<ul class="cards">
+  {% for e in entries %}
+  <li>
+    <a class="card" href="/studies/{{ e.slug }}">
+      <strong>{{ e.title or e.name or e.slug }}</strong>
+      <span class="muted">{{ e.slug }}</span>
+      <span class="badge status-{{ e.status }}">{{ e.status }}</span>
+    </a>
+  </li>
+  {% endfor %}
+</ul>
+{% endif %}
+{% endblock %}

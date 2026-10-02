@@ -12,6 +12,10 @@ closed forms or brute-force enumeration).
 | Did arm 1 beat arm 2 (same conditions)? | Exact McNemar, Tango CI | [Paired designs](paired.md) |
 | More than two arms on the same conditions? | Cochran's Q + pairwise McNemar | [Paired designs](paired.md#more-than-two-arms) |
 | Several comparisons at once? | Holm, Bonferroni, Benjamini–Hochberg | [Multiplicity](multiplicity.md) |
+| Where do arms fail along the task? | Stage funnel, Brunner–Munzel | [Progress stages](stages.md) |
+| How fast do arms succeed? | Cumulative success curve, median time with bootstrap CI | [Time to success](timing.md) |
+| Several replicates per condition? | Cochran–Mantel–Haenszel | [Stratified (CMH)](stratified.md) |
+| Did results change across sessions? | Fisher / chi-square homogeneity | [Drift checks](drift.md) |
 | How many rollouts do I need? What can I detect? | Sample size, power, MDE, exact power | [Planning](planning.md) |
 | How sure am I that B beats A? | Posterior probability (descriptive only) | [Bayesian summaries](bayes.md) |
 

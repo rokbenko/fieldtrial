@@ -1,0 +1,41 @@
+# fieldtrial study: one checkpoint, several serving configurations.
+fieldtrial: 1
+name: __NAME__
+title: "Serving-config sweep"
+
+rubric:
+  stages:
+    - {id: reach, label: "Reached the object"}
+    - {id: grasp, label: "Stable grasp"}
+    - {id: done,  label: "Task completed"}
+  success: done
+  failure_tags: [jitter, timeout, collision]
+
+arms:
+  - id: default
+    policy: {path: outputs/model/pretrained_model}
+    serving: {inference.type: rtc, inference.queue_threshold: 30}
+  - id: q50
+    policy: {path: outputs/model/pretrained_model}
+    serving: {inference.type: rtc, inference.queue_threshold: 50}
+  - id: sync
+    policy: {path: outputs/model/pretrained_model}
+    serving: {inference.type: sync}
+
+conditions:
+  factors:
+    object: {values: [cup, bowl, box]}
+    position: {range: [1, 10]}
+  replicates: 1
+
+design:
+  type: randomized_block
+  order: random
+  blinding: operator
+  seed: 20261003
+
+analysis:
+  primary:
+    comparison: {treatment: q50, control: default}
+  multiplicity: holm
+  secondary: [stage_reached, time_to_success]

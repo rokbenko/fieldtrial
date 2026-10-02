@@ -9,10 +9,10 @@ for the current milestone.
 | Milestone | Scope | Status |
 |---|---|---|
 | M0 | Bootstrap: packaging, CI, docs skeleton, `fieldtrial --version` | done |
-| M1 | Statistics core and calculator CLI (release 0.1.0a1) | done, awaiting release |
-| M2 | Study design, storage and analysis (no UI) | next |
-| M3 | Operator console, REST API and Python client | planned |
-| M4 | Reports, docs and the Dream Machines re-analysis (release 0.1.0) | planned |
+| M1 | Statistics core and calculator CLI (release 0.1.0a1) | released 2026-10-02 |
+| M2 | Study design, storage and analysis (no UI) | done, in 0.1.0rc1 |
+| M3 | Operator console, REST API and Python client | done, in 0.1.0rc1 |
+| M4 | Reports, docs and the Dream Machines re-analysis (release 0.1.0) | release candidate |
 
 ## v0.2
 
@@ -51,5 +51,14 @@ for the current milestone.
 - Import scipy lazily in the CLI, so that `fieldtrial --version` starts faster.
 - Move the dev tooling from the `dev` extra to a PEP 735 dependency group, so that
   `uv run pytest` works in a fresh clone without `--all-extras`.
+- Mark a study `complete` once every slot is done; today its status stays `running`.
+- Let CSV imports carry real timestamps (a `started_at` column) instead of laying rows out
+  in schedule order.
+- Serve uploaded media (clips, photos) in the console and the report; today they are
+  stored under `media/` and listed per trial.
+- Offline queue in the console: keep labels on the device while the Wi-Fi drops and send
+  them when it returns (idempotency keys already make the resend safe).
+- Move to `httpx2` for Starlette's TestClient once it is vetted; the tests silence
+  Starlette's deprecation warning about `httpx` until then.
 - Revisit the docs toolchain. The Material for MkDocs team warns that MkDocs 2.0 removes
   the plugin system, so `docs` pins `mkdocs<2` for now.

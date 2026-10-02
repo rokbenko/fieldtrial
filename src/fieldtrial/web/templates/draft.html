@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block nav %}<a href="/">Studies</a>{% endblock %}
+{% block content %}
+<h1>{{ entry.title or entry.name or entry.slug }}</h1>
+{% if entry.status == "invalid" %}
+<p class="flash">study.yaml has problems. Run <code>fieldtrial validate {{ folder }}</code> to see them.</p>
+{% else %}
+<p>This study is a draft. Lock it before running trials:</p>
+<pre><code>fieldtrial plan {{ folder }}
+fieldtrial lock {{ folder }}</code></pre>
+<p class="muted">Then reload this page.</p>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block nav %}<a href="/studies/{{ slug }}">{{ spec.name }}</a>{% endblock %}
+{% block content %}
+<section id="panel"
+  class="{{ 'mirror' if mirror else 'console' }}"
+  hx-get="/studies/{{ slug }}/sessions/{{ state.session.session_id }}/panel{{ '?mirror=true' if mirror else '' }}"
+  hx-trigger="ft-refresh from:body"
+  hx-swap="innerHTML"
+  data-events="/api/v1/studies/{{ slug }}/events">
+  {% include "_panel.html" %}
+</section>
+{% if not mirror %}
+<details class="keys">
+  <summary>Keyboard and foot pedal</summary>
+  <p class="muted">Keys work anywhere except while typing. Change a key by clicking its box and pressing the new key (a USB foot pedal sends a key too). Saved on this device.</p>
+  <dl id="keymap">
+    <dt>Start / Stop</dt><dd><button type="button" class="key" data-bind="start_stop"></button></dd>
+    <dt>Confirm</dt><dd><button type="button" class="key" data-bind="confirm"></button></dd>
+    <dt>Invalid</dt><dd><button type="button" class="key" data-bind="invalid"></button></dd>
+    <dt>Undo</dt><dd><button type="button" class="key" data-bind="undo"></button></dd>
+    <dt>Stage</dt><dd>0 = none reached, 1–9 = stage number</dd>
+  </dl>
+  <button type="button" class="button" data-reset-keys>Reset to defaults</button>
+</details>
+<p class="links"><a href="/studies/{{ slug }}/sessions/{{ state.session.session_id }}/mirror" target="_blank" rel="noopener">Open a mirror screen</a></p>
+{% endif %}
+{% endblock %}

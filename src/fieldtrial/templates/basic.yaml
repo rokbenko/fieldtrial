@@ -1,0 +1,58 @@
+# fieldtrial study. Edit it, then run `fieldtrial validate` and `fieldtrial plan`.
+# Reference: https://github.com/rokbenko/fieldtrial/blob/main/docs/PLAN.md (section 10)
+fieldtrial: 1                    # schema version
+name: __NAME__
+title: "RTC queue threshold on the 21h pi0.5 checkpoint"
+task:
+  instruction: "Pick the part, hand it over, insert it into the tray"   # passed to the policy if the runner needs it
+  description: |
+    Bimanual pick, handover, insertion. Top layer of the box only.
+
+rubric:
+  stages:                        # ordered; reaching stage k implies every earlier stage
+    - {id: lift,     label: "Lifted the correct part"}
+    - {id: handover, label: "Clean handover, held at least 1 s"}
+    - {id: inserted, label: "Inserted, but tilted or misoriented"}
+    - {id: clean,    label: "Clean insertion, correct orientation"}
+  success: clean                 # success = reached this stage
+  failure_tags: [dropped, missed_grasp, wrong_part, collision, stuck, order_violation]
+  rig_checklist: ["Gripper pads clean", "Lamp on", "Tray empty and seated"]
+
+limits:
+  timeout_s: 45
+  no_progress_s: 10              # shown as a hint; the operator calls "stuck"
+  reset: independent
+
+arms:
+  - id: baseline
+    label: "queue 30"
+    runner: manual
+    policy: {path: outputs/pi05_21h/checkpoints/050000/pretrained_model}
+    serving: {inference.type: rtc, inference.queue_threshold: 30}       # passed through to the runner
+  - id: q50
+    label: "queue 50"
+    runner: manual
+    policy: {path: outputs/pi05_21h/checkpoints/050000/pretrained_model}
+    serving: {inference.type: rtc, inference.queue_threshold: 50}
+
+conditions:
+  factors:
+    slot: {range: [1, 40]}       # cartesian product of all factors = the condition list
+  replicates: 1
+
+design:
+  type: randomized_block         # randomized_block | single_arm
+  order: random                  # random | fixed (when physical constraints dictate the condition order)
+  blinding: operator             # none | operator
+  seed: 20261001
+
+analysis:
+  primary:
+    metric: success
+    comparison: {treatment: q50, control: baseline}
+    alternative: two-sided
+    alpha: 0.05
+  interval: wilson
+  multiplicity: holm             # only used when there are several comparisons
+  secondary: [stage_reached, time_to_success]
+  stopping: {rule: fixed}

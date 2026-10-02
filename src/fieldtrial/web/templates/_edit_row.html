@@ -1,0 +1,38 @@
+<tr id="trial-{{ trial.trial_id }}" class="editing">
+  <td colspan="10">
+    <form class="stack" hx-post="/studies/{{ slug }}/trials/{{ trial.trial_id }}/edit"
+          hx-target="#trial-{{ trial.trial_id }}" hx-swap="outerHTML">
+      <p><strong>Correct trial {{ trial.slot.seq }}</strong> ({{ trial.slot.condition }}, <code>{{ trial.slot.blind_code }}</code>)</p>
+      <input type="hidden" name="version" value="{{ trial.version }}">
+      <input type="hidden" name="idempotency_key" value="{{ idempotency_key }}">
+      <fieldset class="chips">
+        <legend>Furthest stage reached</legend>
+        <label><input type="radio" name="stage" value="-1" required {% if trial.stage_index == -1 %}checked{% endif %}><span>none</span></label>
+        {% for stage in spec.rubric.stages %}
+        <label><input type="radio" name="stage" value="{{ loop.index0 }}" {% if trial.stage_index == loop.index0 %}checked{% endif %}><span>{{ stage.label }}</span></label>
+        {% endfor %}
+      </fieldset>
+      <fieldset class="chips">
+        <legend>Why it ended</legend>
+        {% for term in terminations %}
+        <label><input type="radio" name="termination" value="{{ term }}" required {% if trial.termination == term %}checked{% endif %}><span>{{ term | replace("_", " ") }}</span></label>
+        {% endfor %}
+      </fieldset>
+      {% if spec.rubric.failure_tags %}
+      <fieldset class="chips">
+        <legend>Failure tags</legend>
+        {% for tag in spec.rubric.failure_tags %}
+        <label><input type="checkbox" name="failure_tags" value="{{ tag }}" {% if tag in trial.failure_tags %}checked{% endif %}><span>{{ tag | replace("_", " ") }}</span></label>
+        {% endfor %}
+      </fieldset>
+      {% endif %}
+      <label>Note <textarea name="notes" rows="2">{{ trial.notes or "" }}</textarea></label>
+      <label>Your name <input name="actor" required maxlength="128"></label>
+      <label>Reason for the correction <input name="reason" required></label>
+      <p class="actions">
+        <button class="button primary" type="submit">Save correction</button>
+        <button class="button" type="button" hx-get="/studies/{{ slug }}/trials/{{ trial.trial_id }}/row" hx-target="#trial-{{ trial.trial_id }}" hx-swap="outerHTML">Cancel</button>
+      </p>
+    </form>
+  </td>
+</tr>
