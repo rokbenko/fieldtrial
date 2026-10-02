@@ -87,6 +87,8 @@ nav:
       - Anytime-valid comparisons: stats/anytime.md
       - Best-arm selection: stats/selection.md
       - "STEP: an evaluation": stats/step-evaluation.md
+      - Reward-model agreement: stats/agreement.md
+      - Proxy-assisted estimates: stats/ppi.md
       - Planning: stats/planning.md
       - Bayesian summaries: stats/bayes.md
   - Reference:

@@ -13,6 +13,7 @@ from fieldtrial.stats._types import (
     ProportionEstimate,
     TestResult,
 )
+from fieldtrial.stats.agreement import KappaResult, cohens_kappa, kappa_table
 from fieldtrial.stats.bayes import credible_interval, prob_superiority
 from fieldtrial.stats.compare import INDEPENDENT_TESTS, compare_independent
 from fieldtrial.stats.confseq import (
@@ -44,6 +45,7 @@ from fieldtrial.stats.power import (
     sample_size,
     simulate_power,
 )
+from fieldtrial.stats.ppi import PPIDifference, PPIResult, ppi_difference, ppi_mean, tuned_lambda
 from fieldtrial.stats.proportions import INTERVAL_METHODS, proportion_ci, test_vs_threshold
 from fieldtrial.stats.selection import Elimination, PairBound, SelectionResult, eliminate
 from fieldtrial.stats.sequential import (
@@ -75,7 +77,10 @@ __all__ = [
     "Elimination",
     "HomogeneityResult",
     "Interval",
+    "KappaResult",
     "OddsRatio",
+    "PPIDifference",
+    "PPIResult",
     "PairBound",
     "PlateauResult",
     "ProportionEstimate",
@@ -92,6 +97,7 @@ __all__ = [
     "capital_process",
     "cmh_test",
     "cochran_q",
+    "cohens_kappa",
     "compare_independent",
     "compare_paired",
     "compare_stages",
@@ -101,6 +107,7 @@ __all__ = [
     "crossover_test",
     "eliminate",
     "homogeneity_test",
+    "kappa_table",
     "mcnemar_exact",
     "mcnemar_power",
     "mde",
@@ -109,6 +116,8 @@ __all__ = [
     "plateau",
     "plateau_paired",
     "power",
+    "ppi_difference",
+    "ppi_mean",
     "prob_superiority",
     "proportion_ci",
     "repeated_interval",
@@ -123,4 +132,5 @@ __all__ = [
     "tango_interval",
     "test_vs_threshold",
     "trend_test",
+    "tuned_lambda",
 ]

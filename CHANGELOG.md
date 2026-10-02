@@ -10,6 +10,9 @@ minor releases may contain breaking changes.
 
 ### Added
 
+- `fieldtrial.stats`: `cohens_kappa` and `kappa_table` (Cohen's κ with the
+  Fleiss–Cohen–Everitt interval), and `ppi_mean`, `ppi_difference` and `tuned_lambda`
+  (prediction-powered inference with PPI++ power tuning).
 - `fieldtrial.stats`: anytime-valid statistics.
   - `betting_cs` and `capital_process`: betting confidence sequences for bounded means
     (the hedged capital process of Waudby-Smith and Ramdas), valid at every sample size.
