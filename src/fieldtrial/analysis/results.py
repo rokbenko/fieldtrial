@@ -382,6 +382,48 @@ class SelectionSummary(_Model):
     stopped: bool
 
 
+class AgreementSummary(_Model):
+    """Agreement of a reward model's suggestions with blind human labels (descriptive).
+
+    ``table`` is ``[[both failure, human failure / model success], [human success / model
+    failure, both success]]``. ``trials`` counts linked trials (labelled live, before any
+    score existed) and ``reviews`` reviewed episodes (their first, blind label).
+    """
+
+    model: str
+    threshold: float | None
+    n: int
+    trials: int
+    reviews: int
+    table: list[list[int]]
+    agreement: float
+    kappa: float | None
+    ci: CI | None
+
+
+class ProxyRow(_Model):
+    """A PPI++ estimate of one arm's success rate from one proxy source (secondary)."""
+
+    source: str
+    arm: str
+    labeled: int
+    unlabeled: int
+    lam: float
+    estimate: float
+    ci: CI
+    classical_ci: CI
+
+
+class ProxyDifference(_Model):
+    """Difference of two arms' PPI++ estimates from the same source (secondary)."""
+
+    source: str
+    treatment: str
+    control: str
+    estimate: float
+    ci: CI
+
+
 class RunnerSummary(_Model):
     """What the runner measured for one arm (descriptive; not a test).
 
@@ -465,6 +507,9 @@ class Results(_Model):
     sequential: SequentialSummary | None = None
     anytime: AnytimeSummary | None = None
     selection: SelectionSummary | None = None
+    agreement: list[AgreementSummary] = Field(default_factory=list)
+    proxy: list[ProxyRow] = Field(default_factory=list)
+    proxy_differences: list[ProxyDifference] = Field(default_factory=list)
     runner: list[RunnerSummary] = Field(default_factory=list)
     rig_checks: list[RigCheckRow] = Field(default_factory=list)
     episodes: list[EpisodeSummary] = Field(default_factory=list)

@@ -25,6 +25,7 @@ from fieldtrial.services.analysis import analyze_study
 from fieldtrial.services.events import latest_event_id
 from fieldtrial.services.interim import interim_status, run_interim_in
 from fieldtrial.services.registry import StudyRegistry
+from fieldtrial.services.rewards import review_progress
 from fieldtrial.services.rig import check_rig, has_reference, latest_check
 from fieldtrial.services.session import (
     console_state,
@@ -126,6 +127,7 @@ def study_page(request: Request, slug: str) -> Response:
         request,
         "study.html",
         rig_reference=has_reference(ctx),
+        review=review_progress(ctx),
         slug=slug,
         spec=ctx.spec,
         report=report,

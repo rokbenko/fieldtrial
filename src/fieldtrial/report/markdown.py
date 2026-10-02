@@ -151,6 +151,78 @@ def _design_sections(r: Results) -> list[str]:
             ),
         )
         lines += _section("Best-arm selection", body)
+    if r.agreement:
+        body = [
+            "Reward-model suggestions against blind human labels: linked trials (labelled live) "
+            "and reviewed episodes (their first label, given before the suggestion was shown). "
+            "Descriptive only.",
+            "",
+            *_table(
+                ["Model", "Episodes", "Trials", "Reviewed", "Agreement", "Cohen's κ", "95% CI"],
+                (
+                    [
+                        g.model,
+                        g.n,
+                        g.trials,
+                        g.reviews,
+                        fmt_rate(g.agreement),
+                        _DASH if g.kappa is None else f"{g.kappa:.2f}",
+                        _DASH if g.ci is None else f"{g.ci.low:.2f} to {g.ci.high:.2f}",
+                    ]
+                    for g in r.agreement
+                ),
+            ),
+        ]
+        lines += _section("Reward-model agreement", body)
+    if r.proxy:
+        body = [
+            "Pre-registered secondary analysis: prediction-powered (PPI++) estimates from "
+            "reward-model scores and a random sample of human labels. The primary analysis "
+            "uses the scheduled trials only.",
+            "",
+            *_table(
+                [
+                    "Source",
+                    "Arm",
+                    "Labeled",
+                    "Scored only",
+                    "λ",
+                    "Estimate",
+                    "95% CI",
+                    "Labels alone",
+                ],
+                (
+                    [
+                        q.source,
+                        q.arm,
+                        q.labeled,
+                        q.unlabeled,
+                        f"{q.lam:.2f}",
+                        fmt_rate(q.estimate),
+                        _rate_ci(q.ci),
+                        _rate_ci(q.classical_ci),
+                    ]
+                    for q in r.proxy
+                ),
+            ),
+        ]
+        if r.proxy_differences:
+            body += [
+                "",
+                *_table(
+                    ["Source", "Difference", "Estimate", "95% CI"],
+                    (
+                        [
+                            d.source,
+                            f"{d.treatment} − {d.control}",
+                            fmt_pp(d.estimate),
+                            _bound(d.ci.low, d.ci.high),
+                        ]
+                        for d in r.proxy_differences
+                    ),
+                ),
+            ]
+        lines += _section("Proxy-assisted estimates", body)
     if r.crossover is not None:
         c = r.crossover
         effect = _DASH if c.period_effect is None else fmt_pp(c.period_effect)

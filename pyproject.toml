@@ -63,11 +63,19 @@ openpi = ["websockets>=13"]
 capture = ["opencv-python-headless>=4.8", "av>=12"]
 # Reading LeRobot datasets (parquet) to link trials to episodes; LeRobot itself has it.
 lerobot = ["pyarrow>=15"]
+# Reward-model pre-labels (Robometer, TOPReward) and the in-process LeRobot runner. They
+# pull in torch and transformers, need Python 3.12 or later, and are resolved apart from
+# the dev tools (see [tool.uv] conflicts), so the development environment never has them.
+rewards = ["lerobot[robometer,topreward]>=0.6.1,<0.7; python_version >= '3.12'"]
+lerobot-runner = ["lerobot[dataset]>=0.6.1,<0.7; python_version >= '3.12'"]
 docs = [
     "mkdocs>=1.6,<2",
     "mkdocs-material>=9.6",
     "mkdocstrings[python]>=0.29",
 ]
+
+[dependency-groups]
+# Development tools. `uv sync` and `uv run` include this group by default.
 dev = [
     "pytest>=8.3",
     "pytest-cov>=6.0",
@@ -115,6 +123,12 @@ include = [
 required-version = ">=0.12.21"
 # The version comes from git (hatch-vcs), so rebuild the project when the commit or tags change.
 cache-keys = [{ file = "pyproject.toml" }, { git = { commit = true, tags = true } }]
+# LeRobot pins numpy<2.3 and needs torch; resolve its extras apart from the dev tools so
+# the development environment keeps current numpy and never installs torch.
+conflicts = [
+    [{ group = "dev" }, { extra = "rewards" }],
+    [{ group = "dev" }, { extra = "lerobot-runner" }],
+]
 
 # --- lint and format ---------------------------------------------------------
 
@@ -189,8 +203,9 @@ module = ["qrcode", "qrcode.*"]
 ignore_missing_imports = true
 
 [[tool.mypy.overrides]]
-# pyarrow ships no type hints; only fieldtrial.io.lerobot uses it (lerobot extra).
-module = ["pyarrow", "pyarrow.*"]
+# pyarrow ships no type hints; only fieldtrial.io.lerobot uses it (lerobot extra). LeRobot
+# and torch are never installed in the dev environment (rewards and lerobot-runner extras).
+module = ["pyarrow", "pyarrow.*", "lerobot", "lerobot.*", "torch", "torch.*"]
 ignore_missing_imports = true
 
 # --- tests -----------------------------------------------------------------
@@ -365,4 +380,7 @@ ignore_imports = [
     "fieldtrial.capture.recorder -> av",
     # The lerobot extra, imported inside functions of the dataset reader only.
     "fieldtrial.io.lerobot -> pyarrow",
+    # The rewards extra, imported inside the reward-model scorers only.
+    "fieldtrial.rewards.lerobot_models -> lerobot",
+    "fieldtrial.rewards.lerobot_models -> torch",
 ]

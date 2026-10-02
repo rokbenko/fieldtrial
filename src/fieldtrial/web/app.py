@@ -17,7 +17,7 @@ from fieldtrial.capture.recorder import FrameSource
 from fieldtrial.design.capture_config import CaptureConfig
 from fieldtrial.services import ConcurrencyError, ServiceError
 from fieldtrial.services.registry import StudyRegistry, UnknownStudyError
-from fieldtrial.web import console
+from fieldtrial.web import console, review
 from fieldtrial.web.runners import Runners
 from fieldtrial.web.security import SecurityMiddleware
 
@@ -93,6 +93,7 @@ def create_app(
 
     app.include_router(api_router)
     app.include_router(console.router)
+    app.include_router(review.router)
     app.mount("/static", StaticFiles(directory=STATIC), name="static")
     app.add_middleware(SecurityMiddleware, lan_token=lan_token, allowed_hosts=allowed_hosts)
     return app

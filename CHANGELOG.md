@@ -10,6 +10,20 @@ minor releases may contain breaking changes.
 
 ### Added
 
+- Reward models (`fieldtrial[rewards]`, Python 3.12+: LeRobot's Robometer and TOPReward,
+  or your own scorer):
+  - `fieldtrial score-episodes` scores every episode of a LeRobot dataset; scores are
+    suggestions and never change a label.
+  - `fieldtrial review-sample` draws a seeded random sample of scored episodes, and the
+    console's **Review episodes** page asks for a label before showing the suggestion;
+    changes afterwards are logged with a reason.
+  - Reports gain **Reward-model agreement** (Cohen's κ on blind labels) and, with a
+    pre-registered `analysis.proxy` section, **Proxy-assisted estimates** (PPI++ per arm
+    and the compared arms' difference).
+  - `fieldtrial import-proxy` records scores from elsewhere, for example simulation.
+- `fieldtrial.stats`: `cohens_kappa` and `kappa_table` (Cohen's κ with the
+  Fleiss–Cohen–Everitt interval), and `ppi_mean`, `ppi_difference` and `tuned_lambda`
+  (prediction-powered inference with PPI++ power tuning).
 - `fieldtrial.stats`: anytime-valid statistics.
   - `betting_cs` and `capital_process`: betting confidence sequences for bounded means
     (the hedged capital process of Waudby-Smith and Ramdas), valid at every sample size.
@@ -34,6 +48,13 @@ minor releases may contain breaking changes.
   `anytime` and `selection` (schema version unchanged).
 - Documentation: anytime-valid comparisons, best-arm selection, and an evaluation of STEP
   (Snyder et al., RSS 2025), which fieldtrial does not port because of its license.
+
+### Changed
+
+- The development tools are a PEP 735 `dev` dependency group instead of a `dev` extra, and
+  the new `rewards` and `lerobot-runner` extras are resolved apart from it, so
+  `uv sync --extra openpi --extra capture --extra lerobot --extra docs` is the development
+  setup (`--all-extras` no longer works).
 
 ## [0.2.0] - 2026-10-02
 

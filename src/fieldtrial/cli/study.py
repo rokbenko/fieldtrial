@@ -24,6 +24,7 @@ from fieldtrial.services.adaptive import adaptive_status
 from fieldtrial.services.analysis import analyze_study
 from fieldtrial.services.dataset import link_episodes, plan_links
 from fieldtrial.services.interim import run_interim
+from fieldtrial.services.rewards import draw_review_sample, import_proxy, score_episodes
 from fieldtrial.services.rig import check_rig, grab_camera_frame, set_reference
 from fieldtrial.services.runner_check import check_runners
 from fieldtrial.services.simulate import simulate_study
@@ -529,6 +530,91 @@ def report(
     _console.print(f"Wrote {target}")
 
 
+@_errors
+def score_episodes_cmd(
+    folder: FolderArg,
+    dataset: Annotated[str, typer.Argument(help="Dataset folder, or a repo id cached by LeRobot.")],
+    model: Annotated[
+        str,
+        typer.Option("--model", help="robometer, topreward, or package.module:factory."),
+    ] = "robometer",
+    camera: Annotated[
+        str | None, typer.Option("--camera", help="Camera key, e.g. observation.images.top.")
+    ] = None,
+    arm: Annotated[
+        str | None,
+        typer.Option("--arm", help="Blind code of the arm that ran the unlinked episodes."),
+    ] = None,
+    device: Annotated[str, typer.Option("--device", help="Torch device.")] = "cuda",
+    pretrained: Annotated[
+        str | None, typer.Option("--pretrained", help="Model checkpoint or repo id.")
+    ] = None,
+    threshold: Annotated[
+        float | None,
+        typer.Option("--threshold", help="Score from which a success is suggested."),
+    ] = None,
+    as_json: JsonOption = False,
+) -> None:
+    """Score every episode of a LeRobot dataset with a reward model (rewards extra).
+
+    Scores are suggestions; people's labels stay the labels. Episodes linked to trials take
+    the trial's arm; give --arm (a blind code) for extra episodes of one arm.
+    """
+    from fieldtrial.rewards import ScorerError, make_scorer
+
+    try:
+        scorer = make_scorer(model, camera=camera, device=device, pretrained=pretrained)
+    except ScorerError as exc:
+        raise ServiceError(str(exc)) from exc
+    try:
+        with open_study(folder) as ctx:
+            result = score_episodes(ctx, dataset, scorer, blind_code=arm, threshold=threshold)
+    finally:
+        scorer.close()
+    if as_json:
+        _print_json(result)
+        return
+    _console.print(
+        f"Scored {result.episodes} episodes with {result.model} ({result.linked} linked to "
+        f"trials); {result.suggested_successes} suggested successes."
+    )
+
+
+@_errors
+def review_sample_cmd(
+    folder: FolderArg,
+    dataset: Annotated[str, typer.Argument(help="A scored dataset.")],
+    n: Annotated[int, typer.Option("--n", help="How many episodes to draw.")] = 30,
+    as_json: JsonOption = False,
+) -> None:
+    """Draw scored, unlinked episodes at random for blind human review (in the console)."""
+    with open_study(folder) as ctx:
+        chosen = draw_review_sample(ctx, dataset, n)
+    if as_json:
+        _print_json({"episodes": chosen})
+        return
+    _console.print(
+        f"Drew {len(chosen)} episodes for review. Review them in the console: "
+        f"fieldtrial serve, then the study's Review page."
+    )
+
+
+@_errors
+def import_proxy_cmd(
+    folder: FolderArg,
+    csv_path: Annotated[Path, typer.Argument(help="CSV with columns blind_code,score[,label].")],
+    source: Annotated[str, typer.Option("--source", help="A name for these scores.")],
+    as_json: JsonOption = False,
+) -> None:
+    """Record proxy scores from elsewhere (for example simulation), labels for a random subset."""
+    with open_study(folder) as ctx:
+        count = import_proxy(ctx, csv_path, source=source)
+    if as_json:
+        _print_json({"rows": count, "source": source})
+        return
+    _console.print(f"Recorded {count} proxy scores from {source}.")
+
+
 def _register_all(app: typer.Typer, commands: dict[str, Callable[..., Any]]) -> None:
     for name, command in commands.items():
         app.command(name)(command)
@@ -553,6 +639,9 @@ def register(app: typer.Typer) -> None:
             "check-runners": check_runners_cmd,
             "rig-check": rig_check,
             "link-episodes": link_episodes_cmd,
+            "score-episodes": score_episodes_cmd,
+            "review-sample": review_sample_cmd,
+            "import-proxy": import_proxy_cmd,
             "analyze": analyze,
             "report": report,
         },

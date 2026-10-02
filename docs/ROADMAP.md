@@ -67,7 +67,7 @@ These notes come from reading the LeRobot 0.6.1 source; nothing was measured on 
 | Milestone | Scope | Status |
 |---|---|---|
 | M8 | Anytime-valid comparisons and best-arm selection for serving sweeps; STEP evaluation | done |
-| M9 | Reward-model pre-labels with blind human review, Cohen's κ, proxy-assisted (PPI++) intervals | planned |
+| M9 | Reward-model pre-labels with blind human review, Cohen's κ, proxy-assisted (PPI++) intervals | done |
 | M10 | In-process LeRobot runner (release 0.3.0) | planned |
 
 Limits of M8, to revisit later:
@@ -80,6 +80,18 @@ Limits of M8, to revisit later:
   within ε of the others) could end sweeps sooner.
 - STEP (Snyder et al., RSS 2025) is not ported: its code is CC BY-NC 4.0 and may be
   covered by patents (see `docs/stats/step-evaluation.md`).
+
+Limits of M9, to revisit later:
+
+- The Robometer and TOPReward scorers are written against LeRobot 0.6.1's source and its
+  own scoring scripts, but have not been run with real weights in fieldtrial's CI (no GPU).
+- One score per episode: Robometer's last-frame progress and TOPReward's completion
+  probability. Per-frame curves, SARM (which needs a trained checkpoint) and calibration
+  of the scores are not used yet.
+- Proxy-assisted estimates use the reviewed sample of extra episodes; they estimate the
+  success rate of those episodes, not of the scheduled trials. The intervals are
+  large-sample (normal) intervals; a betting-based, nonasymptotic version could follow.
+- The review page plays the dataset's first camera.
 
 ## Deferred to the milestone that needs them
 
@@ -95,8 +107,6 @@ Limits of M8, to revisit later:
   exported from `fieldtrial.stats`, shadows the submodule attribute. `from
   fieldtrial.stats.power import ...` works.
 - Import scipy lazily in the CLI, so that `fieldtrial --version` starts faster.
-- Move the dev tooling from the `dev` extra to a PEP 735 dependency group, so that
-  `uv run pytest` works in a fresh clone without `--all-extras`.
 - Mark a study `complete` once every slot is done; today its status stays `running`.
 - Let CSV imports carry real timestamps (a `started_at` column) instead of laying rows out
   in schedule order.

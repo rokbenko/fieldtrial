@@ -37,7 +37,7 @@ jobs:
           python-version: ${{ matrix.python }}
           enable-cache: true
       - name: Install
-        run: uv sync --locked --all-extras
+        run: uv sync --locked --extra openpi --extra capture --extra lerobot
       - name: Lint and format
         run: |
           uv run ruff check .
@@ -65,6 +65,6 @@ jobs:
           python-version: "3.12"
           enable-cache: true
       - name: Install
-        run: uv sync --locked --all-extras
+        run: uv sync --locked --extra openpi --extra capture --extra lerobot
       - name: Slow tests
         run: uv run pytest -m slow

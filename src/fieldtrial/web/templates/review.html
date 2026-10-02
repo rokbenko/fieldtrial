@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block nav %}<a href="/studies/{{ slug }}">{{ spec.name }}</a>{% endblock %}
+{% block content %}
+<h1>Review episodes</h1>
+<p class="muted">{{ done }} of {{ total }} sampled episodes reviewed. Label each episode before you see the reward model's suggestion; the agreement in the report uses these first labels.</p>
+
+{% if state %}
+<section class="card">
+  <h2>Episode {{ state.episode_index }}</h2>
+  <p>Your label: <strong>{{ "success" if state.first else "failure" }}</strong>{% if state.revised %}, changed to <strong>{{ "success" if state.final else "failure" }}</strong>{% endif %}.</p>
+  {% if state.suggested is not none %}
+  <p>The reward model suggested <strong>{{ "success" if state.suggested else "failure" }}</strong> (score {{ "%.2f" | format(state.score) }}).
+    {% if state.suggested == state.final %}It agrees with your label.{% else %}It disagrees with your label.{% endif %}</p>
+  {% endif %}
+  <details>
+    <summary>Change the label</summary>
+    <form class="stack" hx-post="/studies/{{ slug }}/review/revise">
+      <input type="hidden" name="root" value="{{ state.root }}">
+      <input type="hidden" name="episode_index" value="{{ state.episode_index }}">
+      <input type="hidden" name="reviewer" value="{{ reviewer }}">
+      <input type="hidden" name="success" value="{{ '0' if state.final else '1' }}">
+      <label>Why change it to {{ "failure" if state.final else "success" }}? <input name="reason" required></label>
+      <button class="button" type="submit">Change to {{ "failure" if state.final else "success" }}</button>
+    </form>
+  </details>
+  <p><a class="button primary" href="/studies/{{ slug }}/review">Next episode</a></p>
+</section>
+{% elif item %}
+<section class="card">
+  <h2>Episode {{ item.episode_index }} <span class="muted">({{ item.position }} of {{ item.total }})</span></h2>
+  {% if item.video %}
+  <video controls preload="metadata" width="100%"
+         src="/studies/{{ slug }}/review/video?root={{ item.root | urlencode }}&amp;episode={{ item.episode_index }}#t={{ '%.3f' | format(item.video.start_s) }},{{ '%.3f' | format(item.video.end_s) }}"></video>
+  <p class="muted">Camera {{ item.video.camera }}, {{ "%.1f" | format(item.video.end_s - item.video.start_s) }} s.</p>
+  {% else %}
+  <p class="muted">This dataset has no video for the episode; review it from its recording and label it here.</p>
+  {% endif %}
+  <form class="stack" hx-post="/studies/{{ slug }}/review/label">
+    <input type="hidden" name="root" value="{{ item.root }}">
+    <input type="hidden" name="episode_index" value="{{ item.episode_index }}">
+    <label>Your name <input name="reviewer" value="{{ reviewer }}" required></label>
+    <div class="actions">
+      <button class="big primary" type="submit" name="success" value="1">Success</button>
+      <button class="big" type="submit" name="success" value="0">Failure</button>
+    </div>
+  </form>
+</section>
+{% elif total %}
+<p>Every sampled episode has been reviewed. Draw more with <code>fieldtrial review-sample</code>, or see the agreement in the <a href="/studies/{{ slug }}/report">report</a>.</p>
+{% else %}
+<p>No episodes to review yet. Score a dataset with <code>fieldtrial score-episodes</code>, then draw a sample with <code>fieldtrial review-sample</code>.</p>
+{% endif %}
+{% endblock %}

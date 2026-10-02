@@ -19,6 +19,7 @@ STREAM_SCHEDULE = 1
 STREAM_BLINDING = 2
 STREAM_SIMULATION = 3
 STREAM_BOOTSTRAP = 4
+STREAM_REVIEW = 5  # draws of episodes for blind human review
 
 _TWO_64 = 2**64
 
