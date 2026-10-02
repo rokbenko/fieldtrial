@@ -45,6 +45,7 @@ from fieldtrial.analysis.adaptive import anytime_final, selection_final
 from fieldtrial.analysis.common import LEVEL, ci_model, num
 from fieldtrial.analysis.crossover import crossover_analysis
 from fieldtrial.analysis.ladder import ladder_analysis
+from fieldtrial.analysis.proxy import agreement, proxy_estimates
 from fieldtrial.analysis.records import StudyContextInfo, TrialRecord
 from fieldtrial.analysis.results import (
     CI,
@@ -1327,6 +1328,32 @@ def analyze(
     deviations = _deviations(data, info, primary.blocks_excluded, primary.n_used)
     deviations += [Deviation(kind="interim", message=note) for note in extras.notes]
     rig_rows = _rig_checks(info)
+    agreement_rows = agreement(info.proxy_items)
+    summary.extend(
+        wording.agreement(
+            model=row.model,
+            n=row.n,
+            agreement=row.agreement,
+            kappa=row.kappa,
+            ci=None if row.ci is None else (row.ci.low, row.ci.high),
+        )
+        for row in agreement_rows
+    )
+    arm_of = {code: arm for arm, code in codes.items()}
+    proxy_rows, proxy_diffs, proxy_notes = proxy_estimates(spec, info.proxy_items, arm_of)
+    summary.extend(
+        wording.proxy_estimate(
+            arm=prow.arm,
+            source=prow.source,
+            estimate=prow.estimate,
+            ci=(prow.ci.low, prow.ci.high),
+            classical=(prow.classical_ci.low, prow.classical_ci.high),
+            labeled=prow.labeled,
+            unlabeled=prow.unlabeled,
+        )
+        for prow in proxy_rows
+    )
+    summary.extend(proxy_notes)
     deviations += [
         Deviation(
             kind="rig_drift",
@@ -1396,6 +1423,9 @@ def analyze(
         sequential=extras.sequential,
         anytime=extras.anytime,
         selection=extras.selection,
+        agreement=agreement_rows,
+        proxy=proxy_rows,
+        proxy_differences=proxy_diffs,
         runner=_runner(data),
         rig_checks=rig_rows,
         episodes=_episodes(data),

@@ -1,5 +1,6 @@
 """Analyzing a study: load its records from the database and run the analysis engine."""
 
+import dataclasses
 from pathlib import Path
 
 from sqlalchemy import select
@@ -7,6 +8,7 @@ from sqlalchemy import select
 from fieldtrial.analysis.engine import analyze
 from fieldtrial.analysis.results import Results
 from fieldtrial.services._context import ServiceError, open_study
+from fieldtrial.services.rewards import proxy_items
 from fieldtrial.services.trial import collect_records
 from fieldtrial.store import models as m
 
@@ -30,4 +32,5 @@ def analyze_study(folder: str | Path) -> Results:
                 for a in db.scalars(select(m.Arm).where(m.Arm.study_id == ctx.study_id))
             }
         records, info = collect_records(ctx)
+        info = dataclasses.replace(info, proxy_items=proxy_items(ctx))
         return analyze(ctx.spec, records, info, blind_codes=codes)

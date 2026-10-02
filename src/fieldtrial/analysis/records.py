@@ -54,5 +54,6 @@ class StudyContextInfo:
     edits_after_unblinding: int = 0
     interim_looks: tuple[dict[str, Any], ...] = ()  # payloads of ``interim_look`` events
     selection_looks: tuple[dict[str, Any], ...] = ()  # payloads of ``selection_look`` events
+    proxy_items: tuple[dict[str, Any], ...] = ()  # scored episodes (services.rewards.proxy_items)
     rig_checks: tuple[dict[str, Any], ...] = ()  # ``rig_check`` events, with their time
     software: dict[str, str] = field(default_factory=dict)

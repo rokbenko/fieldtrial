@@ -259,6 +259,16 @@ class Selection(_Strict):
     min_blocks: int = Field(default=1, ge=1)
 
 
+class Proxy(_Strict):
+    """Proxy-assisted estimates from reward-model scores (docs/stats/ppi.md).
+
+    A score at or above ``threshold`` is shown as a suggested success. With this section,
+    reports add PPI++ estimates per arm as a pre-registered secondary analysis.
+    """
+
+    threshold: float = Field(default=0.5, gt=0, lt=1)
+
+
 class Analysis(_Strict):
     """Pre-registered analysis settings."""
 
@@ -269,6 +279,7 @@ class Analysis(_Strict):
     stopping: Stopping = Field(default_factory=Stopping)
     ladder: Ladder | None = None
     selection: Selection | None = None
+    proxy: Proxy | None = None
 
 
 class StudySpec(_Strict):

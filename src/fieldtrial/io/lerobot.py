@@ -131,3 +131,64 @@ def read_dataset(dataset: str | Path) -> Dataset:
         episodes=episodes,
         has_interventions=has_flag,
     )
+
+
+@dataclass(frozen=True, slots=True)
+class VideoRef:
+    """Where one episode's video is: a file shared by several episodes, and the time span."""
+
+    camera: str
+    path: Path
+    start_s: float
+    end_s: float
+
+
+def video_cameras(dataset: str | Path) -> list[str]:
+    """The dataset's video features (camera keys), in the order ``info.json`` lists them."""
+    root = dataset_root(dataset)
+    info = json.loads((root / "meta" / "info.json").read_text(encoding="utf-8"))
+    return [k for k, f in info.get("features", {}).items() if f.get("dtype") == "video"]
+
+
+def episode_video(dataset: str | Path, episode_index: int, camera: str | None = None) -> VideoRef:
+    """The video file and time span of one episode (the first camera unless one is named).
+
+    In LeRobot v3.0, episodes share video files; ``meta/episodes`` holds each episode's
+    ``videos/<camera>/chunk_index``, ``file_index``, ``from_timestamp`` and
+    ``to_timestamp``, and ``info.json`` the ``video_path`` template.
+    """
+    pq = _pyarrow()
+    root = dataset_root(dataset)
+    info = json.loads((root / "meta" / "info.json").read_text(encoding="utf-8"))
+    cameras = video_cameras(root)
+    if not cameras:
+        raise DatasetError(f"{root} has no video features")
+    key = camera or cameras[0]
+    if key not in cameras:
+        raise DatasetError(f"{root} has no camera {key!r}; it has {', '.join(cameras)}")
+    template = str(info.get("video_path") or "")
+    if not template:
+        raise DatasetError(f"{root} has no video_path in meta/info.json")
+    columns = [
+        "episode_index",
+        f"videos/{key}/chunk_index",
+        f"videos/{key}/file_index",
+        f"videos/{key}/from_timestamp",
+        f"videos/{key}/to_timestamp",
+    ]
+    for f in sorted((root / "meta" / "episodes").glob("*/*.parquet")):
+        table = pq.read_table(f, columns=columns).to_pydict()
+        for i, idx in enumerate(table["episode_index"]):
+            if int(idx) == episode_index:
+                rel = template.format(
+                    video_key=key,
+                    chunk_index=int(table[columns[1]][i]),
+                    file_index=int(table[columns[2]][i]),
+                )
+                return VideoRef(
+                    camera=key,
+                    path=root / rel,
+                    start_s=float(table[columns[3]][i]),
+                    end_s=float(table[columns[4]][i]),
+                )
+    raise DatasetError(f"{root} has no episode {episode_index}")

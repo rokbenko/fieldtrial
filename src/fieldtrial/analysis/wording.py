@@ -488,3 +488,37 @@ def selection_look(dropped: list[str], remaining: int) -> str:
         f"confidence. {'Their' if plural else 'Its'} remaining trials are cancelled; "
         f"{remaining} arms continue."
     )
+
+
+def agreement(
+    *, model: str, n: int, agreement: float, kappa: float | None, ci: tuple[float, float] | None
+) -> str:
+    """How often a reward model's suggestions matched blind human labels (descriptive)."""
+    if kappa is None or ci is None:
+        return check(
+            f"The reward model {model} agreed with the human label on {fmt_rate(agreement)} "
+            f"of {n} episodes; Cohen's κ is undefined because one label was never used."
+        )
+    return check(
+        f"The reward model {model} agreed with the blind human label on {fmt_rate(agreement)} "
+        f"of {n} episodes (Cohen's κ = {kappa:.2f}, 95% CI {ci[0]:.2f} to {ci[1]:.2f})."
+    )
+
+
+def proxy_estimate(
+    *,
+    arm: str,
+    source: str,
+    estimate: float,
+    ci: tuple[float, float],
+    classical: tuple[float, float],
+    labeled: int,
+    unlabeled: int,
+) -> str:
+    """A proxy-assisted (PPI++) estimate: a pre-registered secondary analysis."""
+    return check(
+        f"Secondary, proxy-assisted: {arm} succeeded in an estimated {fmt_rate(estimate)} of "
+        f"episodes from {source} (95% CI {fmt_range(*ci)}; {labeled} human-labeled and "
+        f"{unlabeled} model-scored episodes; {fmt_range(*classical)} from the human labels "
+        "alone)."
+    )

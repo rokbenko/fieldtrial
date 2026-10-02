@@ -1730,6 +1730,230 @@
           }
         }
       }
+    },
+    "/studies/{slug}/review": {
+      "get": {
+        "summary": "Review Page",
+        "description": "The next episode to label, or a labelled episode with the model's suggestion.",
+        "operationId": "review_page_studies__slug__review_get",
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Slug"
+            }
+          },
+          {
+            "name": "root",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Root"
+            }
+          },
+          {
+            "name": "episode",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Episode"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "text/html": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/studies/{slug}/review/label": {
+      "post": {
+        "summary": "Label",
+        "description": "Record the blind first label, then show the suggestion.",
+        "operationId": "label_studies__slug__review_label_post",
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Slug"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_label_studies__slug__review_label_post"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/studies/{slug}/review/revise": {
+      "post": {
+        "summary": "Revise",
+        "description": "Change a label after seeing the suggestion (logged with the reason).",
+        "operationId": "revise_studies__slug__review_revise_post",
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Slug"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_revise_studies__slug__review_revise_post"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/studies/{slug}/review/video": {
+      "get": {
+        "summary": "Video",
+        "description": "The video file of the next episode to review (the page seeks to the episode's span).",
+        "operationId": "video_studies__slug__review_video_get",
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Slug"
+            }
+          },
+          {
+            "name": "root",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Root"
+            }
+          },
+          {
+            "name": "episode",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Episode"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -1776,6 +2000,34 @@
         "title": "AdaptiveStatusOut",
         "description": "An anytime or best-arm selection study, checked after every block. Blind codes only."
       },
+      "Body_label_studies__slug__review_label_post": {
+        "properties": {
+          "root": {
+            "type": "string",
+            "title": "Root"
+          },
+          "episode_index": {
+            "type": "integer",
+            "title": "Episode Index"
+          },
+          "success": {
+            "type": "string",
+            "title": "Success"
+          },
+          "reviewer": {
+            "type": "string",
+            "title": "Reviewer"
+          }
+        },
+        "type": "object",
+        "required": [
+          "root",
+          "episode_index",
+          "success",
+          "reviewer"
+        ],
+        "title": "Body_label_studies__slug__review_label_post"
+      },
       "Body_media_api_v1_studies__slug__trials__trial_id__media_post": {
         "properties": {
           "file": {
@@ -1789,6 +2041,39 @@
           "file"
         ],
         "title": "Body_media_api_v1_studies__slug__trials__trial_id__media_post"
+      },
+      "Body_revise_studies__slug__review_revise_post": {
+        "properties": {
+          "root": {
+            "type": "string",
+            "title": "Root"
+          },
+          "episode_index": {
+            "type": "integer",
+            "title": "Episode Index"
+          },
+          "success": {
+            "type": "string",
+            "title": "Success"
+          },
+          "reason": {
+            "type": "string",
+            "title": "Reason"
+          },
+          "reviewer": {
+            "type": "string",
+            "title": "Reviewer"
+          }
+        },
+        "type": "object",
+        "required": [
+          "root",
+          "episode_index",
+          "success",
+          "reason",
+          "reviewer"
+        ],
+        "title": "Body_revise_studies__slug__review_revise_post"
       },
       "CompleteIn": {
         "properties": {

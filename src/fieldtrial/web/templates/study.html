@@ -35,6 +35,13 @@
   {% endif %}
 </section>
 
+{% if review[1] %}
+<section>
+  <h2>Review</h2>
+  <p>{{ review[0] }} of {{ review[1] }} sampled episodes reviewed. <a class="button" href="/studies/{{ slug }}/review">Review episodes</a></p>
+</section>
+{% endif %}
+
 {% set open = sessions | selectattr("ended_at", "none") | list %}
 {% if open %}
 <section>

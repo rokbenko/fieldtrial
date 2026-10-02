@@ -1,5 +1,86 @@
 {
   "$defs": {
+    "AgreementSummary": {
+      "additionalProperties": false,
+      "description": "Agreement of a reward model's suggestions with blind human labels (descriptive).\n\n``table`` is ``[[both failure, human failure / model success], [human success / model\nfailure, both success]]``. ``trials`` counts linked trials (labelled live, before any\nscore existed) and ``reviews`` reviewed episodes (their first, blind label).",
+      "properties": {
+        "model": {
+          "title": "Model",
+          "type": "string"
+        },
+        "threshold": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Threshold"
+        },
+        "n": {
+          "title": "N",
+          "type": "integer"
+        },
+        "trials": {
+          "title": "Trials",
+          "type": "integer"
+        },
+        "reviews": {
+          "title": "Reviews",
+          "type": "integer"
+        },
+        "table": {
+          "items": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array"
+          },
+          "title": "Table",
+          "type": "array"
+        },
+        "agreement": {
+          "title": "Agreement",
+          "type": "number"
+        },
+        "kappa": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Kappa"
+        },
+        "ci": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CI"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "model",
+        "threshold",
+        "n",
+        "trials",
+        "reviews",
+        "table",
+        "agreement",
+        "kappa",
+        "ci"
+      ],
+      "title": "AgreementSummary",
+      "type": "object"
+    },
     "AnytimeSummary": {
       "additionalProperties": false,
       "description": "Anytime-valid stopping: the test after every complete block.\n\n``rejected_at`` is the first block count at which the data reject the null;\n``stopped_at`` the block count at which the study was stopped (from the recorded look).",
@@ -1175,6 +1256,88 @@
       "title": "Provenance",
       "type": "object"
     },
+    "ProxyDifference": {
+      "additionalProperties": false,
+      "description": "Difference of two arms' PPI++ estimates from the same source (secondary).",
+      "properties": {
+        "source": {
+          "title": "Source",
+          "type": "string"
+        },
+        "treatment": {
+          "title": "Treatment",
+          "type": "string"
+        },
+        "control": {
+          "title": "Control",
+          "type": "string"
+        },
+        "estimate": {
+          "title": "Estimate",
+          "type": "number"
+        },
+        "ci": {
+          "$ref": "#/$defs/CI"
+        }
+      },
+      "required": [
+        "source",
+        "treatment",
+        "control",
+        "estimate",
+        "ci"
+      ],
+      "title": "ProxyDifference",
+      "type": "object"
+    },
+    "ProxyRow": {
+      "additionalProperties": false,
+      "description": "A PPI++ estimate of one arm's success rate from one proxy source (secondary).",
+      "properties": {
+        "source": {
+          "title": "Source",
+          "type": "string"
+        },
+        "arm": {
+          "title": "Arm",
+          "type": "string"
+        },
+        "labeled": {
+          "title": "Labeled",
+          "type": "integer"
+        },
+        "unlabeled": {
+          "title": "Unlabeled",
+          "type": "integer"
+        },
+        "lam": {
+          "title": "Lam",
+          "type": "number"
+        },
+        "estimate": {
+          "title": "Estimate",
+          "type": "number"
+        },
+        "ci": {
+          "$ref": "#/$defs/CI"
+        },
+        "classical_ci": {
+          "$ref": "#/$defs/CI"
+        }
+      },
+      "required": [
+        "source",
+        "arm",
+        "labeled",
+        "unlabeled",
+        "lam",
+        "estimate",
+        "ci",
+        "classical_ci"
+      ],
+      "title": "ProxyRow",
+      "type": "object"
+    },
     "RigCheckRow": {
       "additionalProperties": false,
       "description": "A check of the rig against its reference photo.",
@@ -2054,6 +2217,27 @@
         }
       ],
       "default": null
+    },
+    "agreement": {
+      "items": {
+        "$ref": "#/$defs/AgreementSummary"
+      },
+      "title": "Agreement",
+      "type": "array"
+    },
+    "proxy": {
+      "items": {
+        "$ref": "#/$defs/ProxyRow"
+      },
+      "title": "Proxy",
+      "type": "array"
+    },
+    "proxy_differences": {
+      "items": {
+        "$ref": "#/$defs/ProxyDifference"
+      },
+      "title": "Proxy Differences",
+      "type": "array"
     },
     "runner": {
       "items": {

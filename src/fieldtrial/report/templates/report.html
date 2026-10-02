@@ -138,6 +138,31 @@
 </section>
 {% endif %}
 
+{% if r.agreement %}
+<section>
+  <h2>Reward-model agreement</h2>
+  <p>Reward-model suggestions against blind human labels: linked trials (labelled live) and reviewed episodes (their first label, given before the suggestion was shown). Descriptive only.</p>
+  <div class="table"><table>
+    <thead><tr><th>Model</th><th class="num">Episodes</th><th class="num">Trials</th><th class="num">Reviewed</th><th class="num">Agreement</th><th class="num">Cohen's κ</th><th class="num">95% CI</th></tr></thead>
+    <tbody>{% for g in r.agreement %}<tr><td>{{ g.model }}</td><td class="num">{{ g.n }}</td><td class="num">{{ g.trials }}</td><td class="num">{{ g.reviews }}</td><td class="num">{{ g.agreement | rate }}</td><td class="num">{{ "–" if g.kappa is none else "%.2f" | format(g.kappa) }}</td><td class="num">{{ "–" if g.ci is none else "%.2f to %.2f" | format(g.ci.low, g.ci.high) }}</td></tr>{% endfor %}</tbody>
+  </table></div>
+</section>
+{% endif %}
+
+{% if r.proxy %}
+<section>
+  <h2>Proxy-assisted estimates</h2>
+  <p>Pre-registered secondary analysis: prediction-powered (PPI++) estimates from reward-model scores and a random sample of human labels. The primary analysis uses the scheduled trials only.</p>
+  <div class="table"><table>
+    <thead><tr><th>Source</th><th>Arm</th><th class="num">Labeled</th><th class="num">Scored only</th><th class="num">λ</th><th class="num">Estimate</th><th class="num">95% CI</th><th class="num">Labels alone</th></tr></thead>
+    <tbody>{% for q in r.proxy %}<tr><td>{{ q.source }}</td><td>{{ q.arm }}</td><td class="num">{{ q.labeled }}</td><td class="num">{{ q.unlabeled }}</td><td class="num">{{ "%.2f" | format(q.lam) }}</td><td class="num">{{ q.estimate | rate }}</td><td class="num">{{ q.ci | rate_ci }}</td><td class="num">{{ q.classical_ci | rate_ci }}</td></tr>{% endfor %}</tbody>
+  </table></div>
+  {% if r.proxy_differences %}
+  <ul>{% for d in r.proxy_differences %}<li>{{ d.source }}: {{ d.treatment }} − {{ d.control }} = {{ d.estimate | pp }} (95% CI {{ d.ci | diff_ci }})</li>{% endfor %}</ul>
+  {% endif %}
+</section>
+{% endif %}
+
 {% if r.crossover %}
 {% set c = r.crossover %}
 <section>

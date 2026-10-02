@@ -33,6 +33,8 @@ def normalized_design(spec: StudySpec) -> dict[str, Any]:
         analysis.pop("ladder", None)
     if analysis.get("selection") is None:
         analysis.pop("selection", None)
+    if analysis.get("proxy") is None:
+        analysis.pop("proxy", None)
     stopping = analysis["stopping"]
     if stopping["rule"] == "fixed":
         analysis["stopping"] = {"rule": "fixed"}
