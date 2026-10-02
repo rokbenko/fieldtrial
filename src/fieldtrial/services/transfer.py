@@ -11,13 +11,8 @@ from sqlalchemy import select
 from fieldtrial.io.csv import ImportRow, read_import_csv, write_trials_csv
 from fieldtrial.io.jsonl import write_trials_jsonl
 from fieldtrial.services._context import ServiceError, StudyContext, open_study
-from fieldtrial.services.trial import (
-    collect_records,
-    end_session,
-    pending_slots,
-    record_trial,
-    start_session,
-)
+from fieldtrial.services.session import end_session, start_session
+from fieldtrial.services.trial import collect_records, pending_slots, record_trial
 from fieldtrial.store import models as m
 from fieldtrial.store.models import utcnow
 

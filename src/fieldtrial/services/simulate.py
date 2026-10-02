@@ -7,7 +7,8 @@ from pathlib import Path
 from fieldtrial.runners.base import ArmSpec, TrialContext
 from fieldtrial.runners.sim import SimArm, SimRunner
 from fieldtrial.services._context import ServiceError, open_study
-from fieldtrial.services.trial import end_session, next_slot, record_trial, start_session
+from fieldtrial.services.session import end_session, start_session
+from fieldtrial.services.trial import next_slot, record_trial
 from fieldtrial.store.models import utcnow
 
 

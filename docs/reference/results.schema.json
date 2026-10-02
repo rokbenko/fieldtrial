@@ -156,6 +156,7 @@
           "enum": [
             "amendment",
             "early_unblinding",
+            "late_edit",
             "incomplete",
             "out_of_order",
             "excluded_blocks"

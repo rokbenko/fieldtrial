@@ -699,6 +699,17 @@ def _deviations(data: _Data, info: StudyContextInfo, excluded: int, used: int) -
                 ),
             )
         )
+    if info.edits_after_unblinding:
+        n = info.edits_after_unblinding
+        out.append(
+            Deviation(
+                kind="late_edit",
+                message=(
+                    f"{n} trial label{'s were' if n != 1 else ' was'} edited after unblinding; "
+                    "the event log has the old and new values."
+                ),
+            )
+        )
     if info.pending_slots:
         out.append(
             Deviation(

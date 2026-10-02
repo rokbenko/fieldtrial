@@ -14,6 +14,7 @@ from fieldtrial.design import (
     LoadedStudy,
     Slot,
     StudySpec,
+    StudyValidationError,
     blind_codes,
     build_schedule,
     conditions,
@@ -21,7 +22,7 @@ from fieldtrial.design import (
     load_study,
 )
 from fieldtrial.design.blinding import code_pool
-from fieldtrial.services._context import ServiceError, open_study, resolve_folder
+from fieldtrial.services._context import ServiceError, StudyContext, open_study, resolve_folder
 from fieldtrial.services.events import append_event, list_events
 from fieldtrial.stats import mde
 from fieldtrial.store import models as m
@@ -444,3 +445,50 @@ def study_status(folder: str | Path) -> StatusReport:
             unblinded_at=study.unblinded_at,
             per_arm=per_arm,
         )
+
+
+def is_blinded(ctx: StudyContext) -> bool:
+    """Whether arm identities and per-arm results must stay hidden right now."""
+    if ctx.spec.design.blinding != "operator":
+        return False
+    with ctx.db() as db:
+        return db.get_one(m.Study, ctx.study_id).unblinded_at is None
+
+
+@dataclass(frozen=True, slots=True)
+class StudyEntry:
+    """A study folder found under a served directory."""
+
+    slug: str  # folder name, used in URLs
+    folder: Path
+    name: str | None
+    title: str | None
+    status: str  # draft, invalid, locked, running, closed
+    locked: bool
+
+
+def _entry(folder: Path) -> StudyEntry:
+    if (folder / DB_FILENAME).exists():
+        report = study_status(folder)
+        with open_study(folder) as ctx:
+            title = ctx.spec.title
+        return StudyEntry(folder.name, folder, report.name, title, report.status, True)
+    try:
+        spec = validate_study(folder).spec
+    except (StudyValidationError, OSError):
+        return StudyEntry(folder.name, folder, None, None, "invalid", False)
+    return StudyEntry(folder.name, folder, spec.name, spec.title, "draft", False)
+
+
+def list_studies(root: str | Path) -> list[StudyEntry]:
+    """The study at ``root``, or the studies in its subfolders (sorted by folder name)."""
+    base = resolve_folder(root)
+    if (base / "study.yaml").exists():
+        return [_entry(base)]
+    if not base.is_dir():
+        raise ServiceError(f"{base} is not a folder")
+    return [
+        _entry(child)
+        for child in sorted(base.iterdir())
+        if child.is_dir() and (child / "study.yaml").exists()
+    ]

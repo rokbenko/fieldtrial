@@ -225,7 +225,14 @@ class InvalidCheck(_Model):
 class Deviation(_Model):
     """Something that departs from the locked plan."""
 
-    kind: Literal["amendment", "early_unblinding", "incomplete", "out_of_order", "excluded_blocks"]
+    kind: Literal[
+        "amendment",
+        "early_unblinding",
+        "late_edit",
+        "incomplete",
+        "out_of_order",
+        "excluded_blocks",
+    ]
     message: str
 
 

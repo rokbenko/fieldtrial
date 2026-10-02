@@ -3,11 +3,13 @@
 import re
 from pathlib import Path
 
+from alembic import command
 from alembic.autogenerate import compare_metadata
 from alembic.migration import MigrationContext
-from sqlalchemy import text
+from alembic.script import ScriptDirectory
+from sqlalchemy import create_engine, text
 
-from fieldtrial.store.db import open_database
+from fieldtrial.store.db import alembic_config, open_database
 from fieldtrial.store.ids import uuid7
 from fieldtrial.store.models import Base
 
@@ -45,4 +47,34 @@ def test_reopen_is_idempotent(tmp_path: Path) -> None:
     with engine.connect() as conn:
         version = conn.execute(text("SELECT version_num FROM alembic_version")).scalar()
     engine.dispose()
-    assert version == "0001_baseline"
+    assert version == ScriptDirectory.from_config(alembic_config()).get_current_head()
+
+
+def test_upgrade_from_baseline_keeps_data(tmp_path: Path) -> None:
+    path = tmp_path / "old.db"
+    engine = create_engine(f"sqlite:///{path}")
+    config = alembic_config()
+    with engine.begin() as conn:
+        config.attributes["connection"] = conn
+        command.upgrade(config, "0001_baseline")
+        conn.execute(
+            text(
+                "INSERT INTO study (id, name, design_yaml, design_hash, status, created_at, "
+                "fieldtrial_version) VALUES ('s', 'n', '', 'h', 'locked', '2026-01-01', '0')"
+            )
+        )
+        conn.execute(
+            text(
+                "INSERT INTO event (id, study_id, ts, kind, actor, payload) "
+                "VALUES ('e', 's', '2026-01-01', 'design_locked', 'a', '{}')"
+            )
+        )
+    engine.dispose()
+    engine = open_database(path)
+    with engine.connect() as conn:
+        row = conn.execute(text("SELECT kind, idempotency_key FROM event")).one()
+    assert tuple(row) == ("design_locked", None)
+    with engine.begin() as conn:
+        config.attributes["connection"] = conn
+        command.downgrade(config, "0001_baseline")
+    engine.dispose()

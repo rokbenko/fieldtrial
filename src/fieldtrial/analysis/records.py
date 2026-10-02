@@ -49,4 +49,5 @@ class StudyContextInfo:
     planned_slots: int = 0
     pending_slots: int = 0
     pending_at_unblinding: int | None = None  # from the first ``unblinded`` event
+    edits_after_unblinding: int = 0
     software: dict[str, str] = field(default_factory=dict)

@@ -173,7 +173,10 @@ class Event(Base):
     """Append-only audit log entry."""
 
     __tablename__ = "event"
-    __table_args__ = (Index("ix_event_study_ts", "study_id", "ts"),)
+    __table_args__ = (
+        Index("ix_event_study_ts", "study_id", "ts"),
+        Index("ix_event_idempotency", "study_id", "idempotency_key", unique=True),
+    )
 
     id: Mapped[str] = _id()
     study_id: Mapped[str] = mapped_column(ForeignKey("study.id"))
@@ -181,3 +184,5 @@ class Event(Base):
     kind: Mapped[str] = mapped_column(String(64))
     actor: Mapped[str] = mapped_column(String(128))
     payload: Mapped[dict[str, Any]] = mapped_column(default=dict)
+    # Set by clients that may retry a request; a repeat returns the stored result.
+    idempotency_key: Mapped[str | None] = mapped_column(String(64))

@@ -6,14 +6,13 @@ import pytest
 from sqlalchemy import func, select
 
 from fieldtrial.services import ConcurrencyError, ServiceError, open_study
+from fieldtrial.services.session import end_session, start_session
 from fieldtrial.services.trial import (
     collect_records,
     complete_trial,
-    end_session,
     invalidate_trial,
     next_slot,
     pending_slots,
-    start_session,
     start_trial,
 )
 from fieldtrial.store import models as m

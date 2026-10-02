@@ -1,5 +1,11 @@
-"""Sessions and trials: running the schedule, recording outcomes, voiding and rescheduling."""
+"""Trials: running the schedule, recording outcomes, voiding, rescheduling, undo and edits.
 
+Every write takes an optional ``idempotency_key`` (a retried request is applied once) and,
+where a trial already exists, an optional ``expected_version`` (optimistic concurrency).
+"""
+
+import dataclasses
+import re
 from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import datetime, timedelta
@@ -10,7 +16,7 @@ from sqlalchemy.orm import Session
 
 from fieldtrial.analysis.records import StudyContextInfo, TrialRecord
 from fieldtrial.services._context import ConcurrencyError, ServiceError, StudyContext
-from fieldtrial.services.events import append_event, list_events
+from fieldtrial.services.events import append_event, idempotent, list_events
 from fieldtrial.store import models as m
 from fieldtrial.store.models import utcnow
 
@@ -24,6 +30,9 @@ TERMINATIONS = (
     "other",
 )
 Reschedule = Literal["block", "end"]
+UNDO_WINDOW_S = 10.0
+MAX_MEDIA_BYTES = 200 * 1024 * 1024
+_SAFE_NAME = re.compile(r"[^A-Za-z0-9._-]+")
 
 
 @dataclass(frozen=True, slots=True)
@@ -53,6 +62,18 @@ class TrialView:
     version: int
 
 
+def _view(trial: m.Trial) -> TrialView:
+    return TrialView(trial.id, trial.slot_id, trial.status, trial.attempt, trial.version)
+
+
+def _decode_view(data: dict[str, Any]) -> TrialView:
+    return TrialView(**data)
+
+
+def _result(view: TrialView) -> dict[str, Any]:
+    return dataclasses.asdict(view)
+
+
 def _study(db: Session, ctx: StudyContext) -> m.Study:
     return db.get_one(m.Study, ctx.study_id)
 
@@ -60,57 +81,6 @@ def _study(db: Session, ctx: StudyContext) -> m.Study:
 def _require_open(study: m.Study) -> None:
     if study.status == "closed":
         raise ServiceError("the study is closed")
-
-
-# --- sessions --------------------------------------------------------------------------------
-
-
-def start_session(
-    ctx: StudyContext,
-    *,
-    operator: str,
-    rig: str,
-    rig_check: dict[str, Any] | None = None,
-    environment: dict[str, Any] | None = None,
-    software: dict[str, Any] | None = None,
-    notes: str | None = None,
-    started_at: datetime | None = None,
-) -> str:
-    """Start a working session (one operator on one rig) and return its id."""
-    if not operator.strip() or not rig.strip():
-        raise ServiceError("a session needs an operator and a rig")
-    with ctx.db() as db, db.begin():
-        _require_open(_study(db, ctx))
-        session = m.Session(
-            study_id=ctx.study_id,
-            operator=operator,
-            rig=rig,
-            rig_check=rig_check or {},
-            environment=environment or {},
-            software=software or {},
-            notes=notes,
-            started_at=started_at or utcnow(),
-        )
-        db.add(session)
-        db.flush()
-        append_event(
-            db, ctx.study_id, "session_started", operator, {"session_id": session.id, "rig": rig}
-        )
-        return session.id
-
-
-def end_session(ctx: StudyContext, session_id: str, *, ended_at: datetime | None = None) -> None:
-    """End a session."""
-    with ctx.db() as db, db.begin():
-        session = db.get(m.Session, session_id)
-        if session is None or session.study_id != ctx.study_id:
-            raise ServiceError(f"no session {session_id}")
-        if session.ended_at is not None:
-            raise ServiceError("the session has already ended")
-        session.ended_at = ended_at or utcnow()
-        append_event(
-            db, ctx.study_id, "session_ended", session.operator, {"session_id": session_id}
-        )
 
 
 # --- schedule --------------------------------------------------------------------------------
@@ -133,6 +103,26 @@ def _slot_view(db: Session, slot: m.ScheduleSlot, total: int) -> SlotView:
     )
 
 
+def _active_total(db: Session, ctx: StudyContext) -> int:
+    return int(
+        db.scalar(
+            select(func.count())
+            .select_from(m.ScheduleSlot)
+            .where(m.ScheduleSlot.study_id == ctx.study_id, m.ScheduleSlot.status != "void")
+        )
+        or 0
+    )
+
+
+def slot_view(ctx: StudyContext, slot_id: str) -> SlotView:
+    """One slot, as an operator sees it."""
+    with ctx.db() as db:
+        slot = db.get(m.ScheduleSlot, slot_id)
+        if slot is None or slot.study_id != ctx.study_id:
+            raise ServiceError(f"no slot {slot_id}")
+        return _slot_view(db, slot, _active_total(db, ctx))
+
+
 def next_slot(ctx: StudyContext) -> SlotView | None:
     """The first pending slot in run order that has no trial running, or None when done."""
     with ctx.db() as db:
@@ -151,12 +141,7 @@ def next_slot(ctx: StudyContext) -> SlotView | None:
         ).first()
         if slot is None:
             return None
-        total = db.scalar(
-            select(func.count())
-            .select_from(m.ScheduleSlot)
-            .where(m.ScheduleSlot.study_id == ctx.study_id, m.ScheduleSlot.status != "void")
-        )
-        return _slot_view(db, slot, int(total or 0))
+        return _slot_view(db, slot, _active_total(db, ctx))
 
 
 def pending_slots(ctx: StudyContext) -> list[SlotView]:
@@ -233,17 +218,32 @@ def _new_trial(
 
 
 def start_trial(
-    ctx: StudyContext, slot_id: str, session_id: str, *, started_at: datetime | None = None
+    ctx: StudyContext,
+    slot_id: str,
+    session_id: str,
+    *,
+    started_at: datetime | None = None,
+    idempotency_key: str | None = None,
 ) -> TrialView:
     """Start a trial for a pending slot."""
-    with ctx.db() as db, db.begin():
-        slot = _pending_slot(db, ctx, slot_id)
-        trial = _new_trial(db, ctx, slot, session_id, started_at or utcnow())
-        actor = db.get_one(m.Session, session_id).operator
-        append_event(
-            db, ctx.study_id, "trial_started", actor, {"trial_id": trial.id, "seq": slot.seq}
-        )
-        return TrialView(trial.id, slot.id, trial.status, trial.attempt, trial.version)
+
+    def write() -> TrialView:
+        with ctx.db() as db, db.begin():
+            slot = _pending_slot(db, ctx, slot_id)
+            trial = _new_trial(db, ctx, slot, session_id, started_at or utcnow())
+            actor = db.get_one(m.Session, session_id).operator
+            view = _view(trial)
+            append_event(
+                db,
+                ctx.study_id,
+                "trial_started",
+                actor,
+                {"trial_id": trial.id, "seq": slot.seq, "result": _result(view)},
+                idempotency_key=idempotency_key,
+            )
+            return view
+
+    return idempotent(ctx, idempotency_key, "trial_started", _decode_view, write)
 
 
 def _locked_trial(
@@ -283,33 +283,47 @@ def complete_trial(
     duration_s: float | None = None,
     ended_at: datetime | None = None,
     expected_version: int | None = None,
+    idempotency_key: str | None = None,
 ) -> TrialView:
     """Record the outcome of a running trial. Success means reaching the success stage."""
     success = _check_outcome(ctx, stage_index, termination, failure_tags)
-    with ctx.db() as db, db.begin():
-        trial = _locked_trial(db, ctx, trial_id, expected_version)
-        if trial.status != "running":
-            raise ServiceError(f"trial {trial_id} is {trial.status}, not running")
-        end = ended_at or utcnow()
-        trial.ended_at = end
-        trial.duration_s = (
-            duration_s if duration_s is not None else (end - trial.started_at).total_seconds()
-        )
-        trial.stage_index, trial.success = stage_index, success
-        trial.termination, trial.failure_tags, trial.notes = termination, list(failure_tags), notes
-        trial.status = "completed"
-        _bump_version(db, trial)
-        slot = db.get_one(m.ScheduleSlot, trial.slot_id)
-        slot.status = "done"
-        actor = db.get_one(m.Session, trial.session_id).operator
-        append_event(
-            db,
-            ctx.study_id,
-            "trial_completed",
-            actor,
-            {"trial_id": trial.id, "seq": slot.seq, "stage_index": stage_index, "success": success},
-        )
-        return TrialView(trial.id, slot.id, trial.status, trial.attempt, trial.version)
+
+    def write() -> TrialView:
+        with ctx.db() as db, db.begin():
+            trial = _locked_trial(db, ctx, trial_id, expected_version)
+            if trial.status != "running":
+                raise ServiceError(f"trial {trial_id} is {trial.status}, not running")
+            end = ended_at or utcnow()
+            trial.ended_at = end
+            trial.duration_s = (
+                duration_s if duration_s is not None else (end - trial.started_at).total_seconds()
+            )
+            trial.stage_index, trial.success = stage_index, success
+            trial.termination, trial.failure_tags = termination, list(failure_tags)
+            trial.notes = notes
+            trial.status = "completed"
+            _bump_version(db, trial)
+            slot = db.get_one(m.ScheduleSlot, trial.slot_id)
+            slot.status = "done"
+            actor = db.get_one(m.Session, trial.session_id).operator
+            view = _view(trial)
+            append_event(
+                db,
+                ctx.study_id,
+                "trial_completed",
+                actor,
+                {
+                    "trial_id": trial.id,
+                    "seq": slot.seq,
+                    "stage_index": stage_index,
+                    "success": success,
+                    "result": _result(view),
+                },
+                idempotency_key=idempotency_key,
+            )
+            return view
+
+    return idempotent(ctx, idempotency_key, "trial_completed", _decode_view, write)
 
 
 def _reschedule(
@@ -362,6 +376,7 @@ def invalidate_trial(
     reschedule: Reschedule = "block",
     expected_version: int | None = None,
     actor: str | None = None,
+    idempotency_key: str | None = None,
 ) -> TrialView:
     """Mark a trial invalid (robot fault, setup error, ...) and reschedule its slot.
 
@@ -371,26 +386,40 @@ def invalidate_trial(
     """
     if not reason.strip():
         raise ServiceError("an invalid trial needs a reason")
-    with ctx.db() as db, db.begin():
-        trial = _locked_trial(db, ctx, trial_id, expected_version)
-        if trial.status == "invalid":
-            raise ServiceError(f"trial {trial_id} is already invalid")
-        trial.status = "invalid"
-        trial.invalid_reason = reason
-        trial.ended_at = trial.ended_at or utcnow()
-        _bump_version(db, trial)
-        slot = db.get_one(m.ScheduleSlot, trial.slot_id)
-        slot.status = "void"
-        replacement = _reschedule(db, ctx, slot, reschedule)
-        who = actor or db.get_one(m.Session, trial.session_id).operator
-        append_event(
-            db,
-            ctx.study_id,
-            "trial_invalidated",
-            who,
-            {"trial_id": trial.id, "reason": reason, "replacement_seq": replacement.seq},
-        )
-        return TrialView(trial.id, slot.id, trial.status, trial.attempt, trial.version)
+
+    def write() -> TrialView:
+        with ctx.db() as db, db.begin():
+            trial = _locked_trial(db, ctx, trial_id, expected_version)
+            if trial.status == "invalid":
+                raise ServiceError(f"trial {trial_id} is already invalid")
+            trial.status = "invalid"
+            trial.invalid_reason = reason
+            trial.ended_at = trial.ended_at or utcnow()
+            if trial.duration_s is None:
+                trial.duration_s = (trial.ended_at - trial.started_at).total_seconds()
+            _bump_version(db, trial)
+            slot = db.get_one(m.ScheduleSlot, trial.slot_id)
+            slot.status = "void"
+            replacement = _reschedule(db, ctx, slot, reschedule)
+            who = actor or db.get_one(m.Session, trial.session_id).operator
+            view = _view(trial)
+            append_event(
+                db,
+                ctx.study_id,
+                "trial_invalidated",
+                who,
+                {
+                    "trial_id": trial.id,
+                    "reason": reason,
+                    "replacement_seq": replacement.seq,
+                    "replacement_slot_id": replacement.id,
+                    "result": _result(view),
+                },
+                idempotency_key=idempotency_key,
+            )
+            return view
+
+    return idempotent(ctx, idempotency_key, "trial_invalidated", _decode_view, write)
 
 
 def record_trial(
@@ -406,6 +435,7 @@ def record_trial(
     started_at: datetime | None = None,
     invalid_reason: str | None = None,
     source: str = "manual",
+    idempotency_key: str | None = None,
 ) -> TrialView:
     """Record a whole trial at once (for imports and simulations), as one write and one event.
 
@@ -413,30 +443,320 @@ def record_trial(
     end of its block.
     """
     success = _check_outcome(ctx, stage_index, termination, failure_tags)
-    with ctx.db() as db, db.begin():
-        slot = _pending_slot(db, ctx, slot_id)
-        start = started_at or utcnow()
-        trial = _new_trial(db, ctx, slot, session_id, start)
-        trial.ended_at = start + timedelta(seconds=duration_s)
-        trial.duration_s = duration_s
-        trial.stage_index, trial.success = stage_index, success
-        trial.termination, trial.failure_tags, trial.notes = termination, list(failure_tags), notes
-        payload: dict[str, Any] = {"trial_id": trial.id, "seq": slot.seq, "source": source}
-        if invalid_reason:
-            trial.status, trial.invalid_reason = "invalid", invalid_reason
-            slot.status = "void"
-            payload["replacement_seq"] = _reschedule(db, ctx, slot, "block").seq
-            payload["reason"] = invalid_reason
-        else:
-            trial.status = "completed"
-            slot.status = "done"
-            payload["success"] = success
-        actor = db.get_one(m.Session, session_id).operator
-        append_event(db, ctx.study_id, "trial_recorded", actor, payload)
-        return TrialView(trial.id, slot.id, trial.status, trial.attempt, trial.version)
+
+    def write() -> TrialView:
+        with ctx.db() as db, db.begin():
+            slot = _pending_slot(db, ctx, slot_id)
+            start = started_at or utcnow()
+            trial = _new_trial(db, ctx, slot, session_id, start)
+            trial.ended_at = start + timedelta(seconds=duration_s)
+            trial.duration_s = duration_s
+            trial.stage_index, trial.success = stage_index, success
+            trial.termination, trial.failure_tags = termination, list(failure_tags)
+            trial.notes = notes
+            payload: dict[str, Any] = {"trial_id": trial.id, "seq": slot.seq, "source": source}
+            if invalid_reason:
+                trial.status, trial.invalid_reason = "invalid", invalid_reason
+                slot.status = "void"
+                replacement = _reschedule(db, ctx, slot, "block")
+                payload["replacement_seq"] = replacement.seq
+                payload["replacement_slot_id"] = replacement.id
+                payload["reason"] = invalid_reason
+            else:
+                trial.status = "completed"
+                slot.status = "done"
+                payload["success"] = success
+            actor = db.get_one(m.Session, session_id).operator
+            view = _view(trial)
+            payload["result"] = _result(view)
+            append_event(
+                db, ctx.study_id, "trial_recorded", actor, payload, idempotency_key=idempotency_key
+            )
+            return view
+
+    return idempotent(ctx, idempotency_key, "trial_recorded", _decode_view, write)
+
+
+def _replacement_slot(db: Session, ctx: StudyContext, trial_id: str) -> str | None:
+    for event in reversed(list_events(db, ctx.study_id)):
+        if event.kind in ("trial_invalidated", "trial_recorded") and (
+            event.payload.get("trial_id") == trial_id
+        ):
+            slot_id = event.payload.get("replacement_slot_id")
+            return str(slot_id) if slot_id else None
+    return None
+
+
+def reopen_trial(
+    ctx: StudyContext,
+    trial_id: str,
+    *,
+    session_id: str | None = None,
+    window_s: float | None = UNDO_WINDOW_S,
+    now: datetime | None = None,
+    expected_version: int | None = None,
+    idempotency_key: str | None = None,
+) -> TrialView:
+    """Undo a finished trial's outcome: the trial is running again, waiting for a new label.
+
+    Allowed within ``window_s`` seconds of the trial ending (``None``: no limit), and only
+    for the latest trial of its session (``session_id``, when given, must match). Undoing an
+    invalid trial also voids its replacement slot, which must not have been run yet.
+    """
+
+    def write() -> TrialView:
+        with ctx.db() as db, db.begin():
+            trial = _locked_trial(db, ctx, trial_id, expected_version)
+            if trial.status not in ("completed", "invalid"):
+                raise ServiceError(f"trial {trial_id} is {trial.status}; nothing to undo")
+            if session_id is not None and trial.session_id != session_id:
+                raise ServiceError("only the session that ran a trial can undo it")
+            current = now or utcnow()
+            ended = trial.ended_at or trial.started_at
+            if window_s is not None and (current - ended).total_seconds() > window_s:
+                raise ServiceError(f"undo is only possible for {window_s:g} s after a trial")
+            later = db.scalar(
+                select(func.count())
+                .select_from(m.Trial)
+                .where(
+                    m.Trial.session_id == trial.session_id,
+                    m.Trial.started_at > trial.started_at,
+                )
+            )
+            if later:
+                raise ServiceError("only the latest trial of a session can be undone")
+            previous = {
+                "status": trial.status,
+                "stage_index": trial.stage_index,
+                "termination": trial.termination,
+                "failure_tags": list(trial.failure_tags or []),
+                "notes": trial.notes,
+                "invalid_reason": trial.invalid_reason,
+            }
+            if trial.status == "invalid":
+                replacement_id = _replacement_slot(db, ctx, trial.id)
+                if replacement_id is not None:
+                    replacement = db.get_one(m.ScheduleSlot, replacement_id)
+                    has_trials = db.scalar(
+                        select(func.count())
+                        .select_from(m.Trial)
+                        .where(m.Trial.slot_id == replacement_id)
+                    )
+                    if replacement.status != "pending" or has_trials:
+                        raise ServiceError("the replacement trial has already been run")
+                    replacement.status = "void"
+            trial.status = "running"
+            trial.stage_index = trial.success = trial.termination = None
+            trial.ended_at = trial.duration_s = trial.invalid_reason = None
+            trial.failure_tags = []
+            _bump_version(db, trial)
+            slot = db.get_one(m.ScheduleSlot, trial.slot_id)
+            slot.status = "pending"
+            actor = db.get_one(m.Session, trial.session_id).operator
+            view = _view(trial)
+            append_event(
+                db,
+                ctx.study_id,
+                "trial_reopened",
+                actor,
+                {"trial_id": trial.id, "previous": previous, "result": _result(view)},
+                idempotency_key=idempotency_key,
+            )
+            return view
+
+    return idempotent(ctx, idempotency_key, "trial_reopened", _decode_view, write)
+
+
+def edit_trial(
+    ctx: StudyContext,
+    trial_id: str,
+    *,
+    actor: str,
+    reason: str,
+    stage_index: int | None = None,
+    termination: str | None = None,
+    failure_tags: Sequence[str] | None = None,
+    notes: str | None = None,
+    expected_version: int | None = None,
+    idempotency_key: str | None = None,
+) -> TrialView:
+    """Correct a completed trial's label. The old and new values are logged with a reason.
+
+    Edits after unblinding are listed as deviations in every report.
+    """
+    if not reason.strip():
+        raise ServiceError("an edit needs a reason")
+
+    def write() -> TrialView:
+        with ctx.db() as db, db.begin():
+            trial = _locked_trial(db, ctx, trial_id, expected_version)
+            if trial.status != "completed":
+                raise ServiceError(
+                    f"only completed trials can be edited (this one is {trial.status})"
+                )
+            old_stage, old_term = trial.stage_index, trial.termination
+            old_tags, old_notes = list(trial.failure_tags or []), trial.notes
+            new_stage = old_stage if stage_index is None else stage_index
+            new_term = old_term if termination is None else termination
+            new_tags = old_tags if failure_tags is None else list(failure_tags)
+            new_notes = old_notes if notes is None else (notes or None)
+            old = {
+                "stage_index": old_stage,
+                "termination": old_term,
+                "failure_tags": old_tags,
+                "notes": old_notes,
+            }
+            new = {
+                "stage_index": new_stage,
+                "termination": new_term,
+                "failure_tags": new_tags,
+                "notes": new_notes,
+            }
+            if new == old:
+                raise ServiceError("nothing to change")
+            if new_stage is None or new_term is None:
+                raise ServiceError("a completed trial needs a stage and a termination")
+            trial.success = _check_outcome(ctx, new_stage, new_term, new_tags)
+            trial.stage_index, trial.termination = new_stage, new_term
+            trial.failure_tags, trial.notes = new_tags, new_notes
+            _bump_version(db, trial)
+            view = _view(trial)
+            append_event(
+                db,
+                ctx.study_id,
+                "trial_edited",
+                actor,
+                {
+                    "trial_id": trial.id,
+                    "reason": reason,
+                    "old": old,
+                    "new": new,
+                    "result": _result(view),
+                },
+                idempotency_key=idempotency_key,
+            )
+            return view
+
+    return idempotent(ctx, idempotency_key, "trial_edited", _decode_view, write)
+
+
+def attach_media(
+    ctx: StudyContext,
+    trial_id: str,
+    filename: str,
+    data: bytes,
+    *,
+    actor: str,
+    idempotency_key: str | None = None,
+) -> str:
+    """Save a clip or photo for a trial under ``media/`` and return its path in the folder."""
+    if len(data) > MAX_MEDIA_BYTES:
+        raise ServiceError(f"media files are limited to {MAX_MEDIA_BYTES // 2**20} MB")
+    name = _SAFE_NAME.sub("_", filename.rsplit("/", 1)[-1].rsplit("\\", 1)[-1]).strip("._")
+    if not name:
+        raise ServiceError("the media file needs a name")
+
+    def write() -> str:
+        with ctx.db() as db, db.begin():
+            trial = db.get(m.Trial, trial_id)
+            if trial is None or trial.study_id != ctx.study_id:
+                raise ServiceError(f"no trial {trial_id}")
+            folder = ctx.folder / "media" / trial.id
+            folder.mkdir(parents=True, exist_ok=True)
+            target, n = folder / name, 1
+            while target.exists():
+                stem, dot, ext = name.partition(".")
+                target = folder / f"{stem}-{n}{dot}{ext}"
+                n += 1
+            target.write_bytes(data)
+            relative = target.relative_to(ctx.folder).as_posix()
+            trial.media = [*(trial.media or []), relative]
+            append_event(
+                db,
+                ctx.study_id,
+                "media_attached",
+                actor,
+                {
+                    "trial_id": trial.id,
+                    "path": relative,
+                    "bytes": len(data),
+                    "result": {"path": relative},
+                },
+                idempotency_key=idempotency_key,
+            )
+            return relative
+
+    return idempotent(ctx, idempotency_key, "media_attached", lambda d: str(d["path"]), write)
 
 
 # --- reading -----------------------------------------------------------------------------------
+
+
+@dataclass(frozen=True, slots=True)
+class TrialDetail:
+    """A trial with its slot, for the console and the API."""
+
+    trial_id: str
+    slot: SlotView
+    session_id: str
+    status: str
+    attempt: int
+    version: int
+    started_at: datetime
+    ended_at: datetime | None
+    duration_s: float | None
+    stage_index: int | None
+    success: bool | None
+    termination: str | None
+    failure_tags: tuple[str, ...]
+    notes: str | None
+    invalid_reason: str | None
+    media: tuple[str, ...]
+
+
+def _detail(db: Session, ctx: StudyContext, trial: m.Trial, total: int) -> TrialDetail:
+    return TrialDetail(
+        trial_id=trial.id,
+        slot=_slot_view(db, db.get_one(m.ScheduleSlot, trial.slot_id), total),
+        session_id=trial.session_id,
+        status=trial.status,
+        attempt=trial.attempt,
+        version=trial.version,
+        started_at=trial.started_at,
+        ended_at=trial.ended_at,
+        duration_s=trial.duration_s,
+        stage_index=trial.stage_index,
+        success=trial.success,
+        termination=trial.termination,
+        failure_tags=tuple(trial.failure_tags or ()),
+        notes=trial.notes,
+        invalid_reason=trial.invalid_reason,
+        media=tuple(trial.media or ()),
+    )
+
+
+def get_trial(ctx: StudyContext, trial_id: str) -> TrialDetail:
+    """One trial with its slot."""
+    with ctx.db() as db:
+        trial = db.get(m.Trial, trial_id)
+        if trial is None or trial.study_id != ctx.study_id:
+            raise ServiceError(f"no trial {trial_id}")
+        return _detail(db, ctx, trial, _active_total(db, ctx))
+
+
+def list_trials(
+    ctx: StudyContext, *, session_id: str | None = None, limit: int | None = None
+) -> list[TrialDetail]:
+    """Trials (all statuses), newest first."""
+    with ctx.db() as db:
+        query = select(m.Trial).where(m.Trial.study_id == ctx.study_id)
+        if session_id is not None:
+            query = query.where(m.Trial.session_id == session_id)
+        query = query.order_by(m.Trial.started_at.desc(), m.Trial.id.desc())
+        if limit is not None:
+            query = query.limit(limit)
+        total = _active_total(db, ctx)
+        return [_detail(db, ctx, t, total) for t in db.scalars(query)]
 
 
 def collect_records(ctx: StudyContext) -> tuple[list[TrialRecord], StudyContextInfo]:
@@ -490,6 +810,13 @@ def collect_records(ctx: StudyContext) -> tuple[list[TrialRecord], StudyContextI
             for e in list_events(db, ctx.study_id, "amendment")
         )
         unblinded = list_events(db, ctx.study_id, "unblinded")
+        late_edits = 0
+        if study.unblinded_at is not None:
+            late_edits = sum(
+                1
+                for e in list_events(db, ctx.study_id, "trial_edited")
+                if e.ts > study.unblinded_at
+            )
         info = StudyContextInfo(
             design_hash=study.design_hash,
             status=study.status,
@@ -502,5 +829,6 @@ def collect_records(ctx: StudyContext) -> tuple[list[TrialRecord], StudyContextI
             pending_at_unblinding=(
                 int(unblinded[0].payload.get("pending_slots", 0)) if unblinded else None
             ),
+            edits_after_unblinding=late_edits,
         )
         return records, info
