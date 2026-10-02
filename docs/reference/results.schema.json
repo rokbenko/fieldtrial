@@ -220,7 +220,8 @@
             "incomplete",
             "out_of_order",
             "excluded_blocks",
-            "interim"
+            "interim",
+            "rig_drift"
           ],
           "title": "Kind",
           "type": "string"
@@ -964,6 +965,66 @@
       "title": "Provenance",
       "type": "object"
     },
+    "RigCheckRow": {
+      "additionalProperties": false,
+      "description": "A check of the rig against its reference photo.",
+      "properties": {
+        "checked_at": {
+          "format": "date-time",
+          "title": "Checked At",
+          "type": "string"
+        },
+        "session_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Session Id"
+        },
+        "source": {
+          "title": "Source",
+          "type": "string"
+        },
+        "shift_px": {
+          "title": "Shift Px",
+          "type": "number"
+        },
+        "brightness_change": {
+          "title": "Brightness Change",
+          "type": "number"
+        },
+        "similarity": {
+          "title": "Similarity",
+          "type": "number"
+        },
+        "flagged": {
+          "title": "Flagged",
+          "type": "boolean"
+        },
+        "reasons": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Reasons",
+          "type": "array"
+        }
+      },
+      "required": [
+        "checked_at",
+        "session_id",
+        "source",
+        "shift_px",
+        "brightness_change",
+        "similarity",
+        "flagged"
+      ],
+      "title": "RigCheckRow",
+      "type": "object"
+    },
     "RoundRow": {
       "additionalProperties": false,
       "description": "One round of a crossover design.",
@@ -1696,6 +1757,13 @@
         "$ref": "#/$defs/RunnerSummary"
       },
       "title": "Runner",
+      "type": "array"
+    },
+    "rig_checks": {
+      "items": {
+        "$ref": "#/$defs/RigCheckRow"
+      },
+      "title": "Rig Checks",
       "type": "array"
     }
   },

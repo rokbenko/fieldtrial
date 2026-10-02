@@ -113,6 +113,27 @@ def _design_sections(r: Results) -> list[str]:
             ),
         ]
         lines += _section("Crossover rounds", body)
+    if r.rig_checks:
+        body = [
+            "Photos of the rig compared with its reference photo. A flag is a reason to look "
+            "at the rig, not proof that it changed.",
+            "",
+            *_table(
+                ["Checked (UTC)", "Source", "Shift (px)", "Brightness", "Similarity", "Flag"],
+                (
+                    [
+                        f"{c.checked_at:%Y-%m-%d %H:%M}",
+                        c.source,
+                        f"{c.shift_px:.0f}",
+                        f"{c.brightness_change * 100:+.0f}%",
+                        f"{c.similarity:.2f}",
+                        "flagged" if c.flagged else "",
+                    ]
+                    for c in r.rig_checks
+                ),
+            ),
+        ]
+        lines += _section("Rig checks", body)
     if r.runner:
         body = [
             "What the runner measured, per arm. Descriptive only: no test is run on it.",

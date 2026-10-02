@@ -19,9 +19,10 @@ from fieldtrial.cli.calc import JsonOption, _jsonable, _print_json
 from fieldtrial.design import StudyValidationError
 from fieldtrial.io.csv import CsvImportError, parse_mapping
 from fieldtrial.report import render_html, render_markdown
-from fieldtrial.services import ServiceError
+from fieldtrial.services import ServiceError, open_study
 from fieldtrial.services.analysis import analyze_study
 from fieldtrial.services.interim import run_interim
+from fieldtrial.services.rig import check_rig, set_reference
 from fieldtrial.services.runner_check import check_runners
 from fieldtrial.services.simulate import simulate_study
 from fieldtrial.services.study import (
@@ -368,6 +369,41 @@ def check_runners_cmd(
 
 
 @_errors
+def rig_check(
+    folder: FolderArg,
+    photo: Annotated[Path, typer.Argument(help="A photo of the rig (PNG or JPEG).")],
+    set_ref: Annotated[
+        bool, typer.Option("--set-reference", help="Use this photo as the reference.")
+    ] = False,
+    as_json: JsonOption = False,
+) -> None:
+    """Compare a photo of the rig with its reference photo (or set the reference).
+
+    Flagged checks are listed as deviations in every report.
+    """
+    with open_study(folder) as ctx:
+        if set_ref:
+            target = set_reference(ctx, photo)
+            if as_json:
+                _print_json({"reference": str(target)})
+            else:
+                _console.print(f"Reference photo saved to {target}")
+            return
+        result = check_rig(ctx, photo, source="cli")
+    d = result.drift
+    if as_json:
+        _print_json(result)
+    else:
+        status = "[yellow]flagged[/yellow]" if d.flagged else "[green]ok[/green]"
+        _console.print(
+            f"{status}: shift {d.shift_px:.0f} px, brightness {d.brightness_change * 100:+.0f}%, "
+            f"similarity {d.similarity:.2f}"
+        )
+        for reason in d.reasons:
+            _console.print(f"  - {reason}")
+
+
+@_errors
 def analyze(folder: FolderArg, as_json: JsonOption = False) -> None:
     """Run the pre-registered analysis and print the summary."""
     results = analyze_study(folder)
@@ -428,6 +464,7 @@ def register(app: typer.Typer) -> None:
             "export": export,
             "interim": interim,
             "check-runners": check_runners_cmd,
+            "rig-check": rig_check,
             "analyze": analyze,
             "report": report,
         },

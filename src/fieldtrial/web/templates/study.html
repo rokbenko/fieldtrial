@@ -56,7 +56,7 @@
 {% if report.pending %}
 <section>
   <h2>Start a session</h2>
-  <form class="stack" hx-post="/studies/{{ slug }}/sessions">
+  <form class="stack" hx-post="/studies/{{ slug }}/sessions" hx-encoding="multipart/form-data">
     <input type="hidden" name="idempotency_key" value="{{ idempotency_key }}">
     <label>Operator <input name="operator" required maxlength="128" autocomplete="name"></label>
     <label>Rig <input name="rig" required maxlength="128"></label>
@@ -67,6 +67,10 @@
       <label class="check"><input type="checkbox" name="check_{{ loop.index0 }}" required> {{ item }}</label>
       {% endfor %}
     </fieldset>
+    {% endif %}
+    {% if rig_reference %}
+    <label>Rig photo <span class="muted">(optional: compared with the reference photo)</span>
+      <input type="file" name="rig_photo" accept="image/*" capture="environment"></label>
     {% endif %}
     <label>Notes <textarea name="notes" rows="2"></textarea></label>
     <button class="big primary" type="submit">Start session</button>

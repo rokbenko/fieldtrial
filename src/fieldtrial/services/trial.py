@@ -925,5 +925,8 @@ def collect_records(ctx: StudyContext) -> tuple[list[TrialRecord], StudyContextI
             ),
             edits_after_unblinding=late_edits,
             interim_looks=tuple(e.payload for e in list_events(db, ctx.study_id, "interim_look")),
+            rig_checks=tuple(
+                {"ts": e.ts, **dict(e.payload)} for e in list_events(db, ctx.study_id, "rig_check")
+            ),
         )
         return records, info

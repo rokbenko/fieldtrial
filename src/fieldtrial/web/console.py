@@ -14,15 +14,17 @@ from typing import Annotated, Any
 from fastapi import APIRouter, Form, Request
 from fastapi.responses import HTMLResponse, PlainTextResponse, RedirectResponse, Response
 from fastapi.templating import Jinja2Templates
+from starlette.datastructures import UploadFile as StarletteUpload
 
 from fieldtrial.analysis import wording
 from fieldtrial.analysis.wording import fmt_rate
 from fieldtrial.report import render_html, render_markdown
-from fieldtrial.services import ServiceError
+from fieldtrial.services import ServiceError, StudyContext
 from fieldtrial.services.analysis import analyze_study
 from fieldtrial.services.events import latest_event_id
 from fieldtrial.services.interim import interim_status, run_interim_in
 from fieldtrial.services.registry import StudyRegistry
+from fieldtrial.services.rig import check_rig, has_reference, latest_check
 from fieldtrial.services.session import (
     console_state,
     end_session,
@@ -122,6 +124,7 @@ def study_page(request: Request, slug: str) -> Response:
     return render(
         request,
         "study.html",
+        rig_reference=has_reference(ctx),
         slug=slug,
         spec=ctx.spec,
         report=report,
@@ -133,21 +136,35 @@ def study_page(request: Request, slug: str) -> Response:
 
 @router.post("/studies/{slug}/sessions")
 async def create_session(request: Request, slug: str) -> Response:
-    """Start a session from the study page; the browser goes to its console."""
+    """Start a session from the study page; the browser goes to its console.
+
+    An optional rig photo is compared with the study's reference photo; a flagged result
+    shows as a warning in the console and as a deviation in the report.
+    """
     ctx = _registry(request).get(slug)
-    form = await request.form()
-    checklist = ctx.spec.rubric.rig_checklist
-    checks = {item: form.get(f"check_{i}") == "on" for i, item in enumerate(checklist)}
-    if not all(checks.values()):
-        raise ServiceError("tick every rig check before starting")
+    async with request.form() as form:
+        checklist = ctx.spec.rubric.rig_checklist
+        checks = {item: form.get(f"check_{i}") == "on" for i, item in enumerate(checklist)}
+        if not all(checks.values()):
+            raise ServiceError("tick every rig check before starting")
+        keys = ("operator", "rig", "notes", "idempotency_key")
+        fields = {k: str(form.get(k) or "") for k in keys}
+        photo = form.get("rig_photo")
+        photo_bytes = b""
+        if isinstance(photo, StarletteUpload) and photo.filename:
+            photo_bytes = await photo.read(MAX_RIG_PHOTO + 1)
+            if len(photo_bytes) > MAX_RIG_PHOTO:
+                raise ServiceError("the rig photo is larger than 25 MB")
     session_id = start_session(
         ctx,
-        operator=str(form.get("operator", "")),
-        rig=str(form.get("rig", "")),
+        operator=fields["operator"],
+        rig=fields["rig"],
         rig_check=checks,
-        notes=str(form.get("notes") or "") or None,
-        idempotency_key=str(form.get("idempotency_key") or "") or None,
+        notes=fields["notes"] or None,
+        idempotency_key=fields["idempotency_key"] or None,
     )
+    if photo_bytes and has_reference(ctx):
+        check_rig(ctx, photo_bytes, session_id=session_id, source="upload", actor="console")
     return _redirect(request, f"/studies/{slug}/sessions/{session_id}")
 
 
@@ -157,6 +174,17 @@ def _redirect(request: Request, url: str) -> Response:
     if request.headers.get("hx-request") == "true":
         return Response(status_code=200, headers={"HX-Redirect": url})
     return RedirectResponse(url, status_code=303)
+
+
+MAX_RIG_PHOTO = 25 * 1024 * 1024
+
+
+def _rig_alert(ctx: StudyContext, session_id: str) -> str | None:
+    latest = latest_check(ctx, session_id)
+    if latest is None or not latest.get("flagged"):
+        return None
+    reasons = "; ".join(latest.get("reasons", [])) or "the rig differs from its reference photo"
+    return f"Rig check: {reasons}. Check the camera, the light and the scene before running trials."
 
 
 def _panel_context(
@@ -179,6 +207,7 @@ def _panel_context(
         "interim": interim_status(ctx),
         "notice": notice,
         "runner": runners(request).status(slug),
+        "rig_alert": _rig_alert(ctx, session_id),
     }
 
 

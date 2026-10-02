@@ -129,6 +129,17 @@
 </section>
 {% endif %}
 
+{% if r.rig_checks %}
+<section>
+  <h2>Rig checks</h2>
+  <p>Photos of the rig compared with its reference photo. A flag is a reason to look at the rig, not proof that it changed.</p>
+  <div class="table"><table>
+    <thead><tr><th>Checked (UTC)</th><th>Source</th><th class="num">Shift (px)</th><th class="num">Brightness</th><th class="num">Similarity</th><th>Flag</th></tr></thead>
+    <tbody>{% for c in r.rig_checks %}<tr><td>{{ c.checked_at.strftime("%Y-%m-%d %H:%M") }}</td><td>{{ c.source }}</td><td class="num">{{ "%.0f" | format(c.shift_px) }}</td><td class="num">{{ "%+.0f" | format(c.brightness_change * 100) }}%</td><td class="num">{{ "%.2f" | format(c.similarity) }}</td><td class="{{ 'flag' if c.flagged else '' }}">{{ "flagged" if c.flagged else "" }}</td></tr>{% endfor %}</tbody>
+  </table></div>
+</section>
+{% endif %}
+
 {% if r.runner %}
 <section>
   <h2>Runner</h2>

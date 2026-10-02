@@ -391,3 +391,10 @@ def interim(decision: str, look: int, looks: int) -> str:
         f"Interim look {look} of {looks}: continue. The boundary was not crossed; no "
         "results are shown while the study is blinded."
     )
+
+
+def rig_drift(checked_at: object, reasons: list[str]) -> str:
+    """A flagged rig check, for the deviations list."""
+    when = checked_at.strftime("%Y-%m-%d %H:%M") if hasattr(checked_at, "strftime") else checked_at
+    detail = "; ".join(reasons) or "the rig differs from its reference photo"
+    return check(f"Rig check on {when} UTC differs from the reference photo: {detail}.")
