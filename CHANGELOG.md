@@ -8,6 +8,12 @@ minor releases may contain breaking changes.
 
 ## [Unreleased]
 
+## [0.2.0rc1] - 2026-10-02
+
+Release candidate for 0.2.0: evaluation-camera capture, rig drift checks and LeRobot
+dataset links, completing v0.2 (crossover rounds, checkpoint ladders, group-sequential
+stopping, and real blinding with switching runners).
+
 ### Added
 
 - Rig drift checks. Compare a photo of the rig with a reference photo: shift by phase
@@ -167,7 +173,8 @@ First alpha: the statistics core and the calculator commands.
   reference.
 - Project skeleton: packaging, `fieldtrial --version`, CI and the documentation site.
 
-[Unreleased]: https://github.com/rokbenko/fieldtrial/compare/v0.2.0a2...HEAD
+[Unreleased]: https://github.com/rokbenko/fieldtrial/compare/v0.2.0rc1...HEAD
+[0.2.0rc1]: https://github.com/rokbenko/fieldtrial/compare/v0.2.0a2...v0.2.0rc1
 [0.2.0a2]: https://github.com/rokbenko/fieldtrial/compare/v0.2.0a1...v0.2.0a2
 [0.2.0a1]: https://github.com/rokbenko/fieldtrial/compare/v0.1.0...v0.2.0a1
 [0.1.0]: https://github.com/rokbenko/fieldtrial/compare/v0.1.0a1...v0.1.0

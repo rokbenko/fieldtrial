@@ -20,7 +20,7 @@ for the current milestone.
 |---|---|---|
 | M5 | Crossover rounds, checkpoint ladders (step association, plateau), group-sequential stopping | 0.2.0a1 |
 | M6 | Command-template runner and openpi router: real blinding | 0.2.0a2 |
-| M7 | Evaluation-camera capture, rig drift check, LeRobot dataset links (release 0.2.0) | done |
+| M7 | Evaluation-camera capture, rig drift check, LeRobot dataset links | 0.2.0rc1 |
 
 Limits of M5, to revisit later:
 
