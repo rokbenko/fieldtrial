@@ -8,6 +8,12 @@ minor releases may contain breaking changes.
 
 ## [Unreleased]
 
+## [0.3.0rc1] - 2026-10-02
+
+Release candidate for 0.3.0: anytime-valid comparisons and best-arm selection (M8),
+reward-model scores with blind review, Cohen's κ and PPI++ estimates (M9), and the
+in-process LeRobot runner (M10).
+
 ### Added
 
 - The `lerobot` runner (`fieldtrial[lerobot-runner]`, Python 3.12+): LeRobot policies run
@@ -233,7 +239,8 @@ First alpha: the statistics core and the calculator commands.
   reference.
 - Project skeleton: packaging, `fieldtrial --version`, CI and the documentation site.
 
-[Unreleased]: https://github.com/rokbenko/fieldtrial/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/rokbenko/fieldtrial/compare/v0.3.0rc1...HEAD
+[0.3.0rc1]: https://github.com/rokbenko/fieldtrial/compare/v0.2.0...v0.3.0rc1
 [0.2.0]: https://github.com/rokbenko/fieldtrial/compare/v0.1.0...v0.2.0
 [0.2.0rc1]: https://github.com/rokbenko/fieldtrial/compare/v0.2.0a2...v0.2.0rc1
 [0.2.0a2]: https://github.com/rokbenko/fieldtrial/compare/v0.2.0a1...v0.2.0a2
