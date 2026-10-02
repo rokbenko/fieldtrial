@@ -22,6 +22,8 @@ See [Running a study](studies.md) for the full workflow.
 | `fieldtrial analyze DIR` | Run the pre-registered analysis |
 | `fieldtrial report DIR [--format md\|json] [--out PATH]` | Write `reports/report.md` or `results.json` |
 | `fieldtrial export DIR [--format csv\|jsonl] [--out PATH]` | Export trials (blind codes while blinded) |
+| `fieldtrial serve DIR [--lan] [--port 8765]` | Run the [operator console](console.md) and [REST API](api.md) |
+| `fieldtrial demo [--dir PATH] [--no-browser]` | A half-run simulated study in the console |
 
 ## Calculators
 

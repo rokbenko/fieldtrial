@@ -8,7 +8,8 @@ minor releases may contain breaking changes.
 
 ## [Unreleased]
 
-Studies: design, lock, fill and analyze end to end, without a UI yet.
+Studies: design, lock, fill and analyze end to end, and run them from a phone-friendly
+operator console or your own runtime.
 
 ### Added
 
@@ -32,6 +33,16 @@ Studies: design, lock, fill and analyze end to end, without a UI yet.
 - Commands `init`, `validate`, `plan`, `lock`, `amend`, `simulate`, `import`, `export`,
   `status`, `unblind`, `analyze` and `report`.
 - Documentation: "Running a study" and "Analysis and reports".
+- The operator console (`fieldtrial serve`): start a session with the rig checklist, run
+  trials by blind code with a timer, label the furthest stage, termination and failure tags,
+  undo within 10 seconds, mark invalid trials, correct labels with a logged reason, a live
+  mirror screen, keyboard and foot-pedal keys, light and dark themes. `--lan` serves phones
+  on the local network behind an access token with a QR code.
+- `fieldtrial demo`: a half-run simulated study in the console.
+- REST API v1 with an OpenAPI document, Server-Sent Events, idempotency keys and optimistic
+  concurrency, and `fieldtrial.client`, a dependency-free Python client.
+- Reports list label corrections made after unblinding as deviations.
+- Documentation: "Operator console", "REST API and client" and a phone test checklist.
 
 ## [0.1.0a1] - 2026-10-01
 

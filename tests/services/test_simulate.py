@@ -126,3 +126,18 @@ def test_manual_runner() -> None:
     assert artifacts.duration_s >= 0
     runner.close()
     assert runner.status().state == "closed"
+
+
+def test_simulated_trials_end_before_now(locked_study: Path) -> None:
+    from fieldtrial.store.models import utcnow
+
+    simulate_study(locked_study, {"baseline": 0.5, "q50": 0.9}, invalid_rate=0.3, seed=5)
+    now = utcnow()
+    with open_study(locked_study) as ctx:
+        records, _ = collect_records(ctx)
+    ends = [
+        r.started_at + __import__("datetime").timedelta(seconds=r.duration_s or 0) for r in records
+    ]
+    assert max(ends) <= now
+    starts = [r.started_at for r in records]
+    assert starts == sorted(starts)

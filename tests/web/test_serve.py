@@ -75,3 +75,43 @@ def test_serve_missing_folder(tmp_path: Path) -> None:
     result = runner.invoke(app, ["serve", str(tmp_path / "missing")])
     assert result.exit_code == 1
     assert "is not a folder" in result.output
+
+
+def test_demo_prepares_and_serves(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    calls: list[dict[str, Any]] = []
+    opened: list[str] = []
+    monkeypatch.setattr("uvicorn.run", lambda app, **kw: calls.append(kw))
+    monkeypatch.setattr("webbrowser.open", opened.append)
+    monkeypatch.setattr(
+        "threading.Timer", lambda _s, fn, args: type("T", (), {"start": lambda self: fn(*args)})()
+    )
+    target = tmp_path / "demo"
+    result = runner.invoke(app, ["demo", "--dir", str(target), "--port", "9200"])
+    assert result.exit_code == 0, result.output
+    assert "Half the trials are done" in result.output
+    assert opened == ["http://127.0.0.1:9200/studies/demo"]
+    assert calls == [{"host": "127.0.0.1", "port": 9200, "log_level": "warning"}]
+    status = runner.invoke(app, ["status", str(target), "--json"])
+    report = __import__("json").loads(status.output)
+    assert report["blinded"] is True
+    assert report["done"] + report["invalid_trials"] == 40  # 40 attempts, some voided
+    assert report["pending"] == 80 - report["done"]
+    result = runner.invoke(app, ["demo", "--dir", str(target), "--no-browser"])
+    assert result.exit_code == 1  # the folder already has a study
+
+
+def test_demo_rates_are_recovered(tmp_path: Path) -> None:
+    from fieldtrial.services.analysis import analyze_study
+    from fieldtrial.services.simulate import prepare_demo, sim_rates, simulate_study
+    from fieldtrial.services.study import unblind_study
+
+    study = prepare_demo(tmp_path / "demo")
+    rates = sim_rates(study)
+    assert rates == {"baseline": 0.76, "q50": 0.90}
+    simulate_study(study, rates, seed=2)
+    unblind_study(study)
+    results = analyze_study(study)
+    for arm in results.arms:
+        assert arm.completed == 40
+        assert arm.ci is not None
+        assert arm.ci.low <= rates[arm.arm] <= arm.ci.high

@@ -1,5 +1,6 @@
 """The auto-operator: fill a locked study with simulated trials."""
 
+import math
 from dataclasses import dataclass
 from datetime import timedelta
 from pathlib import Path
@@ -8,7 +9,8 @@ from fieldtrial.runners.base import ArmSpec, TrialContext
 from fieldtrial.runners.sim import SimArm, SimRunner
 from fieldtrial.services._context import ServiceError, open_study
 from fieldtrial.services.session import end_session, start_session
-from fieldtrial.services.trial import next_slot, record_trial
+from fieldtrial.services.study import init_study, lock_study
+from fieldtrial.services.trial import next_slot, pending_slots, record_trial
 from fieldtrial.store.models import utcnow
 
 
@@ -19,6 +21,30 @@ class SimulationResult:
     completed: int
     invalid: int
     sessions: int
+
+
+RESET_S = 20.0  # simulated time between trials
+BREAK_S = 1800.0  # simulated time between sessions
+MAX_TRIAL_S = 600.0  # bound on a simulated trial without a timeout
+
+
+def _span_bound(
+    pending: int,
+    *,
+    max_trials: int | None,
+    invalid_rate: float,
+    timeout_s: float | None,
+    trials_per_session: int,
+) -> timedelta:
+    """An upper bound on the simulated run's length, so it can end before the current time.
+
+    Simulated trials then never carry future timestamps, and trials run later in the console
+    follow them in time.
+    """
+    trials = max_trials if max_trials is not None else math.ceil(pending / (1 - invalid_rate)) + 10
+    sessions = trials // max(trials_per_session, 1) + 1
+    per_trial = (timeout_s or MAX_TRIAL_S) + RESET_S
+    return timedelta(seconds=trials * per_trial + sessions * BREAK_S)
 
 
 def simulate_study(
@@ -52,7 +78,13 @@ def simulate_study(
             failure_tags=tuple(rubric.failure_tags),
             seed=seed,
         )
-        clock = utcnow()
+        clock = utcnow() - _span_bound(
+            len(pending_slots(ctx)),
+            max_trials=max_trials,
+            invalid_rate=invalid_rate,
+            timeout_s=ctx.spec.limits.timeout_s,
+            trials_per_session=trials_per_session,
+        )
         session_id: str | None = None
         in_session = completed = invalid = sessions = 0
         while max_trials is None or completed + invalid < max_trials:
@@ -62,7 +94,7 @@ def simulate_study(
             if session_id is None or in_session >= trials_per_session:
                 if session_id is not None:
                     end_session(ctx, session_id, ended_at=clock)
-                    clock += timedelta(minutes=30)
+                    clock += timedelta(seconds=BREAK_S)
                 sessions += 1
                 session_id = start_session(
                     ctx,
@@ -96,7 +128,7 @@ def simulate_study(
                 invalid_reason=artifacts.invalid_reason,
                 source="sim",
             )
-            clock += timedelta(seconds=artifacts.duration_s + 20.0)  # reset time between trials
+            clock += timedelta(seconds=artifacts.duration_s + RESET_S)
             in_session += 1
             if artifacts.invalid_reason:
                 invalid += 1
@@ -106,3 +138,29 @@ def simulate_study(
             end_session(ctx, session_id, ended_at=clock)
         runner.close()
         return SimulationResult(completed=completed, invalid=invalid, sessions=sessions)
+
+
+def sim_rates(folder: str | Path) -> dict[str, float]:
+    """The true success rates of a study's simulated arms (``policy.sim_success_rate``)."""
+    with open_study(folder) as ctx:
+        return {
+            a.id: float(a.policy.get("sim_success_rate", 0.5))
+            for a in ctx.spec.arms
+            if a.runner == "sim"
+        }
+
+
+def prepare_demo(folder: str | Path, *, prefill: int = 40, seed: int = 1) -> Path:
+    """Create, lock and half-fill the demo study (a simulated robot) in ``folder``."""
+    study_file = init_study(folder, template="demo", name="demo")
+    lock_study(study_file.parent)
+    if prefill:
+        simulate_study(
+            study_file.parent,
+            sim_rates(study_file.parent),
+            seed=seed,
+            invalid_rate=0.03,
+            trials_per_session=10,
+            max_trials=prefill,
+        )
+    return study_file.parent

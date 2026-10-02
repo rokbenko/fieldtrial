@@ -67,6 +67,46 @@ def serve(
     uvicorn.run(app, host="0.0.0.0" if lan else "127.0.0.1", port=port, log_level="warning")
 
 
+@_errors
+def demo(
+    folder: Annotated[
+        Path | None,
+        typer.Option("--dir", help="Where to create the demo study (default: a temp folder)."),
+    ] = None,
+    port: Annotated[int, typer.Option("--port", help="TCP port.")] = 8765,
+    browser: Annotated[
+        bool, typer.Option("--browser/--no-browser", help="Open the console in a browser.")
+    ] = True,
+) -> None:
+    """Try fieldtrial with a simulated robot (see DEMO_HELP)."""
+    import tempfile
+    import threading
+    import webbrowser
+
+    import uvicorn
+
+    from fieldtrial.services.simulate import prepare_demo
+    from fieldtrial.web.app import create_app
+
+    target = folder or Path(tempfile.mkdtemp(prefix="fieldtrial-demo-")) / "demo"
+    study = prepare_demo(target)
+    url = f"http://127.0.0.1:{port}/studies/{study.name}"
+    typer.echo(f"Demo study: {study}")
+    typer.echo(f"Console: {url}")
+    typer.echo("Half the trials are done. Start a session to run the rest. Ctrl+C stops.")
+    if browser:
+        threading.Timer(1.0, webbrowser.open, args=(url,)).start()
+    uvicorn.run(create_app(study), host="127.0.0.1", port=port, log_level="warning")
+
+
+DEMO_HELP = (
+    "Try fieldtrial with a simulated robot. Creates a blinded two-arm study whose arms have "
+    "known true success rates (76% and 90%), runs half of it, and opens the console. Run the "
+    "rest there (the simulated runner suggests each outcome), then unblind on the report page."
+)
+
+
 def register(app: typer.Typer) -> None:
-    """Add ``serve`` to the main app."""
+    """Add ``serve`` and ``demo`` to the main app."""
     app.command("serve")(serve)
+    app.command("demo", help=DEMO_HELP)(demo)

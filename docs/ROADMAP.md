@@ -11,8 +11,8 @@ for the current milestone.
 | M0 | Bootstrap: packaging, CI, docs skeleton, `fieldtrial --version` | done |
 | M1 | Statistics core and calculator CLI (release 0.1.0a1) | released 2026-10-02 |
 | M2 | Study design, storage and analysis (no UI) | done, unreleased |
-| M3 | Operator console, REST API and Python client | next |
-| M4 | Reports, docs and the Dream Machines re-analysis (release 0.1.0) | planned |
+| M3 | Operator console, REST API and Python client | done, unreleased |
+| M4 | Reports, docs and the Dream Machines re-analysis (release 0.1.0) | next |
 
 ## v0.2
 
@@ -54,7 +54,11 @@ for the current milestone.
 - Mark a study `complete` once every slot is done; today its status stays `running`.
 - Let CSV imports carry real timestamps (a `started_at` column) instead of laying rows out
   in schedule order.
-- The simulator's clock starts at the current time and runs forward, so simulated trials
-  carry future timestamps. Harmless for analysis, but odd in exports.
+- Serve uploaded media (clips, photos) in the console and the report; today they are
+  stored under `media/` and listed per trial.
+- Offline queue in the console: keep labels on the device while the Wi-Fi drops and send
+  them when it returns (idempotency keys already make the resend safe).
+- Move to `httpx2` for Starlette's TestClient once it is vetted; the tests silence
+  Starlette's deprecation warning about `httpx` until then.
 - Revisit the docs toolchain. The Material for MkDocs team warns that MkDocs 2.0 removes
   the plugin system, so `docs` pins `mkdocs<2` for now.

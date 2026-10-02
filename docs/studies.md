@@ -52,8 +52,9 @@ deviations, with the reason and the old and new design hash.
 
 ## 3. Run trials
 
-The operator console arrives in v0.1.0. Until then, fill a study by simulation or by
-importing a CSV.
+Run trials at the robot with the [operator console](console.md) (`fieldtrial serve`),
+from your own runtime through the [REST API](api.md), by simulation, or by importing a
+CSV.
 
 **Simulate** (sim runner and auto-operator, for trying things out):
 
