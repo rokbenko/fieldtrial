@@ -42,6 +42,7 @@ dependencies = [
     "fastapi>=0.115",
     "jinja2>=3.1",
     "matplotlib>=3.8",
+    "pillow>=10",  # rig photos; already required by matplotlib
     "numpy>=1.26",
     "pydantic>=2.7",
     "python-multipart>=0.0.9",
@@ -58,6 +59,10 @@ dependencies = [
 [project.optional-dependencies]
 # The openpi router; already present with uvicorn[standard], declared for clarity.
 openpi = ["websockets>=13"]
+# Evaluation-camera capture: OpenCV reads the camera, PyAV encodes the clips.
+capture = ["opencv-python-headless>=4.8", "av>=12"]
+# Reading LeRobot datasets (parquet) to link trials to episodes; LeRobot itself has it.
+lerobot = ["pyarrow>=15"]
 docs = [
     "mkdocs>=1.6,<2",
     "mkdocs-material>=9.6",
@@ -181,6 +186,11 @@ enable_error_code = ["ignore-without-code", "redundant-expr", "truthy-bool"]
 [[tool.mypy.overrides]]
 # qrcode ships no type hints; it is only used to draw the LAN URL in the terminal.
 module = ["qrcode", "qrcode.*"]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+# pyarrow ships no type hints; only fieldtrial.io.lerobot uses it (lerobot extra).
+module = ["pyarrow", "pyarrow.*"]
 ignore_missing_imports = true
 
 # --- tests -----------------------------------------------------------------
@@ -342,9 +352,17 @@ forbidden_modules = [
     "openpi",
     "openpi_client",
     "statsmodels",
+    "pyarrow",
     "torch",
     "websockets",
 ]
 # The openpi router is the one module that uses the openpi extra; it imports
 # websockets inside a function, only when a study asks for the router.
-ignore_imports = ["fieldtrial.runners.openpi_router -> websockets"]
+ignore_imports = [
+    "fieldtrial.runners.openpi_router -> websockets",
+    # The capture extra, imported inside functions of the recorder only.
+    "fieldtrial.capture.recorder -> cv2",
+    "fieldtrial.capture.recorder -> av",
+    # The lerobot extra, imported inside functions of the dataset reader only.
+    "fieldtrial.io.lerobot -> pyarrow",
+]

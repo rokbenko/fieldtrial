@@ -19,9 +19,11 @@ def normalized_design(spec: StudySpec) -> dict[str, Any]:
     """The study without cosmetic fields, with every default filled in.
 
     Fields added after v0.1 are left out while they are unused, so that a study written
-    for 0.1 keeps its hash.
+    for 0.1 keeps its hash. The ``capture`` section (camera, rig checks) describes the
+    setup, not the design, and is always left out.
     """
     data: dict[str, Any] = spec.model_dump(mode="json", exclude=_COSMETIC)
+    data.pop("capture", None)
     if data.get("runners") is None:
         data.pop("runners", None)
     if data["design"].get("rounds") is None:

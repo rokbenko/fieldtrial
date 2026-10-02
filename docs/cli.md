@@ -20,6 +20,8 @@ See [Running a study](studies.md) for the full workflow.
 | `fieldtrial status DIR` | Progress; no per-arm results while blinded |
 | `fieldtrial unblind DIR [--yes]` | Reveal the blind codes (logged) |
 | `fieldtrial check-runners DIR [--api-key KEY]` | Check the study's runner: commands found, policy servers answering with identical metadata (blind codes only) |
+| `fieldtrial rig-check DIR [PHOTO \| --camera] [--set-reference]` | Compare a rig photo with the reference photo, or set the reference ([guide](guides/capture.md)) |
+| `fieldtrial link-episodes DIR DATASET [--first-episode N] [--map links.csv] [--yes]` | Link trials to LeRobot v3.0 dataset episodes ([guide](guides/lerobot.md#linking-trials-to-dataset-episodes)) |
 | `fieldtrial interim DIR` | Run the planned interim look that is due; prints only "continue" or "stop" |
 | `fieldtrial analyze DIR` | Run the pre-registered analysis |
 | `fieldtrial report DIR [--format md\|json] [--out PATH]` | Write `reports/report.md` or `results.json` |

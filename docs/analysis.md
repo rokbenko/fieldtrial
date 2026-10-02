@@ -26,6 +26,11 @@ McNemar p-value. Cochran's Q is reported as the omnibus test.
 With a one-sided `alternative`, the CMH p-value is halved in the hypothesized direction,
 and set to 1 − p/2 in the other.
 
+Flagged [rig checks](guides/capture.md) are listed as deviations, and a table shows every
+check. Trials [linked to LeRobot episodes](guides/lerobot.md#linking-trials-to-dataset-episodes)
+get a descriptive **dataset episodes** table: linked trials, frames and interventions per
+arm.
+
 With a switching runner, a **runner** table lists per arm what the runner measured:
 requests, errors and latency for the openpi router, and abnormal exits for the command
 runner. It is descriptive, a check that the arms were served alike, and no test is run

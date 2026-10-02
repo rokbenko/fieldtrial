@@ -74,15 +74,28 @@ local and works offline; fieldtrial sends no telemetry.
 
 ## What you get
 
-- **Design:** randomized complete blocks with balanced arm order, blind codes, a design
-  hash, locking and logged amendments.
+- **Design:**
+  - randomized complete blocks with balanced arm order
+  - crossover rounds for tasks whose scene carries over
+  - checkpoint ladders
+  - planned interim looks with early stopping
+  - blind codes, a design hash, locking and logged amendments
+- **Real blinding:** a command runner that launches your rollout command for each arm,
+  and an openpi router that sends each trial's requests to that arm's policy server.
 - **Console:** sessions with a rig checklist, a timer, stage and failure-tag labels,
   10-second undo, invalid trials with automatic rescheduling, a live mirror screen,
   keyboard and foot-pedal keys, LAN access with a QR code.
-- **Analysis:** the primary test follows from the locked design (exact McNemar with a
-  Tango interval, Cochran–Mantel–Haenszel, or Cochran's Q with Holm), plus an
-  independent-samples sensitivity analysis, stage funnels, time to success, drift checks
-  and a list of every deviation from the plan.
+- **Evidence:** an evaluation camera that records every trial, rig checks against a
+  reference photo, and links from trials to LeRobot dataset episodes (with DAgger
+  interventions).
+- **Analysis:** the primary test follows from the locked design:
+  - exact McNemar with a Tango interval, Cochran–Mantel–Haenszel, or Cochran's Q with Holm
+  - group-sequential boundaries
+  - the association of success with training step, and plateau detection
+  - a period-adjusted crossover test
+
+  Every analysis also gets an independent-samples sensitivity analysis, stage funnels,
+  time to success, drift checks and a list of every deviation from the plan.
 - **Reports:** self-contained HTML with charts, Markdown for pull requests, and a
   versioned JSON results model.
 - **Integration:** a REST API with a dependency-free Python client for custom runtimes,

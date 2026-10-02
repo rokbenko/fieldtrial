@@ -236,6 +236,7 @@ class Deviation(_Model):
         "out_of_order",
         "excluded_blocks",
         "interim",
+        "rig_drift",
     ]
     message: str
 
@@ -339,6 +340,32 @@ class RunnerSummary(_Model):
     abnormal_exits: int | None = None
 
 
+class RigCheckRow(_Model):
+    """A check of the rig against its reference photo."""
+
+    checked_at: datetime
+    session_id: str | None
+    source: str
+    shift_px: float
+    brightness_change: float
+    similarity: float
+    flagged: bool
+    reasons: list[str] = Field(default_factory=list)
+
+
+class EpisodeSummary(_Model):
+    """Linked LeRobot episodes of one arm (descriptive).
+
+    Intervention counts are None when the dataset has no ``intervention`` flags.
+    """
+
+    arm: str
+    linked_trials: int
+    frames: int
+    trials_with_intervention: int | None = None
+    intervention_frames: int | None = None
+
+
 class Provenance(_Model):
     """Where the numbers came from."""
 
@@ -378,3 +405,5 @@ class Results(_Model):
     crossover: CrossoverSummary | None = None
     sequential: SequentialSummary | None = None
     runner: list[RunnerSummary] = Field(default_factory=list)
+    rig_checks: list[RigCheckRow] = Field(default_factory=list)
+    episodes: list[EpisodeSummary] = Field(default_factory=list)

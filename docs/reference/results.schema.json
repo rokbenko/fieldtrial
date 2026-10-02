@@ -220,7 +220,8 @@
             "incomplete",
             "out_of_order",
             "excluded_blocks",
-            "interim"
+            "interim",
+            "rig_drift"
           ],
           "title": "Kind",
           "type": "string"
@@ -291,6 +292,55 @@
         "small_expected"
       ],
       "title": "DriftCheck",
+      "type": "object"
+    },
+    "EpisodeSummary": {
+      "additionalProperties": false,
+      "description": "Linked LeRobot episodes of one arm (descriptive).\n\nIntervention counts are None when the dataset has no ``intervention`` flags.",
+      "properties": {
+        "arm": {
+          "title": "Arm",
+          "type": "string"
+        },
+        "linked_trials": {
+          "title": "Linked Trials",
+          "type": "integer"
+        },
+        "frames": {
+          "title": "Frames",
+          "type": "integer"
+        },
+        "trials_with_intervention": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Trials With Intervention"
+        },
+        "intervention_frames": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Intervention Frames"
+        }
+      },
+      "required": [
+        "arm",
+        "linked_trials",
+        "frames"
+      ],
+      "title": "EpisodeSummary",
       "type": "object"
     },
     "FunnelStep": {
@@ -962,6 +1012,66 @@
         "rigs"
       ],
       "title": "Provenance",
+      "type": "object"
+    },
+    "RigCheckRow": {
+      "additionalProperties": false,
+      "description": "A check of the rig against its reference photo.",
+      "properties": {
+        "checked_at": {
+          "format": "date-time",
+          "title": "Checked At",
+          "type": "string"
+        },
+        "session_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Session Id"
+        },
+        "source": {
+          "title": "Source",
+          "type": "string"
+        },
+        "shift_px": {
+          "title": "Shift Px",
+          "type": "number"
+        },
+        "brightness_change": {
+          "title": "Brightness Change",
+          "type": "number"
+        },
+        "similarity": {
+          "title": "Similarity",
+          "type": "number"
+        },
+        "flagged": {
+          "title": "Flagged",
+          "type": "boolean"
+        },
+        "reasons": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Reasons",
+          "type": "array"
+        }
+      },
+      "required": [
+        "checked_at",
+        "session_id",
+        "source",
+        "shift_px",
+        "brightness_change",
+        "similarity",
+        "flagged"
+      ],
+      "title": "RigCheckRow",
       "type": "object"
     },
     "RoundRow": {
@@ -1696,6 +1806,20 @@
         "$ref": "#/$defs/RunnerSummary"
       },
       "title": "Runner",
+      "type": "array"
+    },
+    "rig_checks": {
+      "items": {
+        "$ref": "#/$defs/RigCheckRow"
+      },
+      "title": "Rig Checks",
+      "type": "array"
+    },
+    "episodes": {
+      "items": {
+        "$ref": "#/$defs/EpisodeSummary"
+      },
+      "title": "Episodes",
       "type": "array"
     }
   },

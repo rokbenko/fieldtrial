@@ -861,6 +861,13 @@ def collect_records(ctx: StudyContext) -> tuple[list[TrialRecord], StudyContextI
             .where(m.Trial.study_id == ctx.study_id, m.Trial.status != "running")
             .order_by(m.Trial.started_at, m.Trial.id)
         ).all()
+        episodes: dict[str, dict[str, Any]] = {}
+        for event in list_events(db, ctx.study_id, "dataset_link"):
+            for link in event.payload.get("links", []):
+                episodes[str(link["trial_id"])] = {
+                    **link,
+                    "dataset": event.payload.get("dataset"),
+                }
         outputs = {
             str(e.payload.get("trial_id")): dict(e.payload.get("metrics") or {})
             for e in list_events(db, ctx.study_id, "runner_output")
@@ -889,6 +896,7 @@ def collect_records(ctx: StudyContext) -> tuple[list[TrialRecord], StudyContextI
                 notes=t.notes,
                 invalid_reason=t.invalid_reason,
                 runner_metrics=outputs.get(t.id, {}),
+                episode=episodes.get(t.id),
             )
             for t, s, a, c, sess in rows
         ]
@@ -925,5 +933,8 @@ def collect_records(ctx: StudyContext) -> tuple[list[TrialRecord], StudyContextI
             ),
             edits_after_unblinding=late_edits,
             interim_looks=tuple(e.payload for e in list_events(db, ctx.study_id, "interim_look")),
+            rig_checks=tuple(
+                {"ts": e.ts, **dict(e.payload)} for e in list_events(db, ctx.study_id, "rig_check")
+            ),
         )
         return records, info

@@ -53,6 +53,7 @@ from fieldtrial.analysis.results import (
     CrossoverSummary,
     Deviation,
     DriftCheck,
+    EpisodeSummary,
     FunnelStep,
     IndependentComparison,
     InvalidCheck,
@@ -61,6 +62,7 @@ from fieldtrial.analysis.results import (
     PrimaryResult,
     Provenance,
     Results,
+    RigCheckRow,
     RunnerSummary,
     SequentialSummary,
     SessionRow,
@@ -757,6 +759,42 @@ def _primary_ladder(data: _Data, summary: list[str], extras: _Extras) -> Primary
     )
 
 
+def _episodes(data: _Data) -> list[EpisodeSummary]:
+    out = []
+    for arm in data.arm_ids:
+        links = [r.episode for r in data.records if r.arm == arm and r.episode]
+        if not links:
+            continue
+        counts = [link.get("intervention_frames") for link in links]
+        known = [int(c) for c in counts if c is not None]
+        out.append(
+            EpisodeSummary(
+                arm=arm,
+                linked_trials=len(links),
+                frames=sum(int(link.get("length", 0)) for link in links),
+                trials_with_intervention=sum(1 for c in known if c > 0) if known else None,
+                intervention_frames=sum(known) if known else None,
+            )
+        )
+    return out
+
+
+def _rig_checks(info: StudyContextInfo) -> list[RigCheckRow]:
+    return [
+        RigCheckRow(
+            checked_at=c["ts"],
+            session_id=c.get("session_id"),
+            source=str(c.get("source", "")),
+            shift_px=float(c.get("shift_px", 0.0)),
+            brightness_change=float(c.get("brightness_change", 0.0)),
+            similarity=float(c.get("similarity", 0.0)),
+            flagged=bool(c.get("flagged")),
+            reasons=[str(r) for r in c.get("reasons", [])],
+        )
+        for c in info.rig_checks
+    ]
+
+
 def _runner(data: _Data) -> list[RunnerSummary]:
     """Per-arm runner measurements, for trials whose runner reported any."""
     out = []
@@ -1110,6 +1148,15 @@ def analyze(
     invalid = _invalid(data, summary)
     deviations = _deviations(data, info, primary.blocks_excluded, primary.n_used)
     deviations += [Deviation(kind="interim", message=note) for note in extras.notes]
+    rig_rows = _rig_checks(info)
+    deviations += [
+        Deviation(
+            kind="rig_drift",
+            message=wording.rig_drift(row.checked_at, row.reasons),
+        )
+        for row in rig_rows
+        if row.flagged
+    ]
     comparison = spec.analysis.primary.comparison
     sessions = _sessions(data)
     study = StudyInfo(
@@ -1170,4 +1217,6 @@ def analyze(
         crossover=extras.crossover,
         sequential=extras.sequential,
         runner=_runner(data),
+        rig_checks=rig_rows,
+        episodes=_episodes(data),
     )

@@ -20,7 +20,7 @@ for the current milestone.
 |---|---|---|
 | M5 | Crossover rounds, checkpoint ladders (step association, plateau), group-sequential stopping | 0.2.0a1 |
 | M6 | Command-template runner and openpi router: real blinding | 0.2.0a2 |
-| M7 | Evaluation-camera capture, rig drift check, LeRobot dataset links (release 0.2.0) | planned |
+| M7 | Evaluation-camera capture, rig drift check, LeRobot dataset links | 0.2.0rc1 |
 
 Limits of M5, to revisit later:
 
@@ -34,8 +34,33 @@ Limits of M5, to revisit later:
   follow.
 - The openpi router uses one connection per arm for each robot connection; servers that
   allow only one client at a time need one router per robot.
+- Camera capture records one camera per study; several cameras, and audio, could follow.
+- Dataset links match trials to episodes in run order or from a mapping file. A
+  `fieldtrial` rollout strategy that writes the trial id into each episode would make the
+  match exact (see the LeRobot runner notes).
 - The ladder's plateau compares each checkpoint with the final one; a margin relative to
   the best checkpoint would need a different procedure.
+
+### LeRobot runner spike (for v0.3)
+
+These notes come from reading the LeRobot 0.6.1 source; nothing was measured on hardware.
+
+- `lerobot-rollout` (`lerobot/scripts/lerobot_rollout.py::rollout`) builds a
+  `RolloutContext` with `build_rollout_context(cfg, shutdown_event)`. It then runs
+  `create_strategy(cfg.strategy)` and calls `setup`, `run` and `teardown`. A
+  `ProcessSignalHandler` turns SIGINT, SIGTERM, SIGHUP and SIGQUIT into the shutdown event.
+  So the v0.2 `command` runner can already stop it cleanly.
+- `create_strategy` (`rollout/strategies/factory.py`) is a fixed if-chain over `base`,
+  `sentry`, `highlight`, `dagger` and `episodic`. A fieldtrial strategy cannot be
+  selected from the CLI without an upstream change; an in-process runner has to call
+  `build_rollout_context` and its own `RolloutStrategy` subclass
+  (`rollout/strategies/core.py`) directly.
+- The context loads the policy once. An in-process runner could keep one context per arm
+  loaded and switch arms without reloading, at the cost of GPU memory for every arm.
+  Measure the load time and memory of each policy before choosing between that and
+  `launch: per_arm`.
+- Proposing pluggable strategies upstream (a registry instead of the if-chain) would let
+  fieldtrial ship a `lerobot_*` plugin instead.
 
 ## v0.3
 

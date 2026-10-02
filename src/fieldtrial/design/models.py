@@ -10,6 +10,7 @@ from typing import Annotated, Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
+from fieldtrial.design.capture_config import CaptureConfig
 from fieldtrial.design.runner_config import (
     RunnersConfig,
     TemplateError,
@@ -265,6 +266,7 @@ class StudySpec(_Strict):
     design: Design
     analysis: Analysis
     runners: RunnersConfig | None = None
+    capture: CaptureConfig | None = None
 
     @field_validator("arms")
     @classmethod

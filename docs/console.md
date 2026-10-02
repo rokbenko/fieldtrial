@@ -50,6 +50,12 @@ end of its block.
 its label, and give your name and a reason. The event log keeps the old and new label.
 Corrections made after unblinding are listed as deviations in every report.
 
+**Evaluation camera.** With `capture.camera` in `study.yaml`, every trial is recorded from
+Start to Stop and the clip is attached to the trial. If the study has a rig reference
+photo, the session form offers a **Rig photo** field (phones open the camera). Without a
+photo, the rig is checked from the camera. A flagged check shows as a warning above the
+trial. See [Evaluation camera and rig checks](guides/capture.md).
+
 **Switching runners** (`command`, `openpi_router`) start and stop the arm with **Start**
 and **Stop**, and their state appears above the trial ("Runner: …"). If a runner cannot
 start, the trial is marked invalid with the reason and rescheduled. With

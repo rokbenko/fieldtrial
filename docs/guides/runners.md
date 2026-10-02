@@ -66,6 +66,11 @@ The command also gets these environment variables: `FIELDTRIAL_STUDY`, `FIELDTRI
 output goes to `logs/<trial id>.log` in the study folder. Other settings:
 `cwd` (relative to the study folder), `env` (extra variables) and `success_exit_code`.
 
+**Stopping LeRobot cleanly.** `lerobot-rollout` (LeRobot 0.6.1) treats SIGINT, SIGTERM,
+SIGHUP and SIGQUIT as a request to shut down: it ends the rollout and runs its teardown,
+which can return the arm to its starting position. Keep `grace_s` long enough for that.
+The default of 10 seconds covers the 3-second return.
+
 **Outcome from the exit code.** With `success_exit_code: 0`, a command that exits with 0
 gets the success stage preselected in the label form. The operator still confirms the
 label. Use this when your script judges success itself.
