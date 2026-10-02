@@ -921,7 +921,7 @@ Statistically rigorous real-world evaluation for robot policies.
 Source of truth: docs/PLAN.md (read it when unsure). Roadmap: docs/ROADMAP.md.
 
 ## Commands
-- Setup: `uv sync --all-extras`
+- Setup: `uv sync --extra openpi --extra capture --extra lerobot --extra docs` (the dev tools are the default `dev` group; the `rewards` and `lerobot-runner` extras need torch and conflict with it)
 - Fast tests: `uv run pytest -m "not slow"`
 - All tests: `uv run pytest`
 - Lint and format: `uv run ruff check --fix . && uv run ruff format .`

@@ -95,8 +95,6 @@ Limits of M8, to revisit later:
   exported from `fieldtrial.stats`, shadows the submodule attribute. `from
   fieldtrial.stats.power import ...` works.
 - Import scipy lazily in the CLI, so that `fieldtrial --version` starts faster.
-- Move the dev tooling from the `dev` extra to a PEP 735 dependency group, so that
-  `uv run pytest` works in a fresh clone without `--all-extras`.
 - Mark a study `complete` once every slot is done; today its status stays `running`.
 - Let CSV imports carry real timestamps (a `started_at` column) instead of laying rows out
   in schedule order.

@@ -11,7 +11,7 @@ You need [uv](https://docs.astral.sh/uv/) 0.12.21 or newer.
 ```bash
 git clone https://github.com/rokbenko/fieldtrial
 cd fieldtrial
-uv sync --all-extras
+uv sync --extra openpi --extra capture --extra lerobot --extra docs
 uv run pre-commit install
 ```
 
