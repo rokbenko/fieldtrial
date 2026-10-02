@@ -262,7 +262,9 @@ def forest(results: Results) -> str | None:
     ax.set_xlim(-limit, limit)
     from matplotlib.ticker import FuncFormatter
 
-    ax.xaxis.set_major_formatter(FuncFormatter(lambda v, _pos: f"{v * 100:+.0f} pp"))
+    ax.xaxis.set_major_formatter(
+        FuncFormatter(lambda v, _pos: "0 pp" if round(v * 100) == 0 else f"{v * 100:+.0f} pp")
+    )
     ax.set_xlabel("Difference in success rate (95% CI)")
     ax.grid(axis="y", visible=False)
     return _svg(fig, "Forest plot of differences against the control")

@@ -38,6 +38,7 @@ plugins:
 
 markdown_extensions:
   - admonition
+  - attr_list
   - tables
   - toc:
       permalink: true
@@ -51,11 +52,23 @@ not_in_nav: |
 
 nav:
   - Home: index.md
-  - Running a study: studies.md
-  - Analysis and reports: analysis.md
-  - Operator console: console.md
-  - REST API and client: api.md
-  - Command line: cli.md
+  - Quickstart: quickstart.md
+  - Concepts: concepts.md
+  - Using fieldtrial:
+      - Running a study: studies.md
+      - Operator console: console.md
+      - Analysis and reports: analysis.md
+      - Command line: cli.md
+      - REST API and client: api.md
+  - Guides:
+      - How many rollouts do I need?: guides/how-many-rollouts.md
+      - Comparing two checkpoints: guides/comparing-checkpoints.md
+      - Checkpoint ladders: guides/checkpoint-ladders.md
+      - Serving-config sweeps: guides/serving-sweeps.md
+      - Using fieldtrial with LeRobot: guides/lerobot.md
+      - Using fieldtrial with openpi: guides/openpi.md
+      - Custom runtimes via REST: guides/custom-runtimes.md
+      - Testing the console on a phone: guides/console-checklist.md
   - Statistics:
       - Overview: stats/index.md
       - One arm: stats/intervals.md
@@ -68,8 +81,6 @@ nav:
       - Drift checks: stats/drift.md
       - Planning: stats/planning.md
       - Bayesian summaries: stats/bayes.md
-  - Guides:
-      - Testing the console on a phone: guides/console-checklist.md
   - Reference:
       - Python API: reference/api.md
   - Roadmap: ROADMAP.md

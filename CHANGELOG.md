@@ -43,6 +43,12 @@ operator console or your own runtime.
   concurrency, and `fieldtrial.client`, a dependency-free Python client.
 - Reports list label corrections made after unblinding as deviations.
 - Documentation: "Operator console", "REST API and client" and a phone test checklist.
+- A self-contained HTML report with seven charts (`fieldtrial report`, now the default
+  format, and in the console): no scripts and nothing loaded from other hosts.
+- An example re-analysis of Dream Machines' published pi0.5 fine-tuning results.
+- Documentation: quickstart, concepts, guides (planning, comparing checkpoints, ladders,
+  serving sweeps, LeRobot, openpi, custom runtimes), and screenshots.
+- `CITATION.cff`.
 
 ## [0.1.0a1] - 2026-10-01
 

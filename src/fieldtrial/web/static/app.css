@@ -108,13 +108,14 @@ legend { font-weight: 700; padding: 0 6px; }
 .chips legend { width: 100%; }
 .chips label { margin: 0; font-weight: 500; }
 .chips input { position: absolute; opacity: 0; width: 1px; height: 1px; }
-.chips span {
+.chips label > span {
   display: inline-flex; align-items: center; gap: 6px; min-height: var(--target);
   padding: 0 14px; border: 2px solid var(--line); border-radius: 999px; cursor: pointer;
 }
 .chips input:checked + span { background: var(--primary); border-color: var(--primary); color: var(--primary-fg); }
 .chips input:focus-visible + span { outline: 3px solid var(--focus); outline-offset: 2px; }
-.stages span { font-size: 1.05rem; }
+.stages label > span { font-size: 1.05rem; }
+.chips legend .muted { font-weight: 400; }
 
 /* --- pages ------------------------------------------------------------------------------ */
 
