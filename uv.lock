@@ -711,6 +711,9 @@ docs = [
     { name = "mkdocs-material" },
     { name = "mkdocstrings", extra = ["python"] },
 ]
+openpi = [
+    { name = "websockets" },
+]
 
 [package.metadata]
 requires-dist = [
@@ -743,8 +746,9 @@ requires-dist = [
     { name = "typer", specifier = ">=0.15" },
     { name = "types-pyyaml", marker = "extra == 'dev'", specifier = ">=6.0" },
     { name = "uvicorn", extras = ["standard"], specifier = ">=0.30" },
+    { name = "websockets", marker = "extra == 'openpi'", specifier = ">=13" },
 ]
-provides-extras = ["dev", "docs"]
+provides-extras = ["dev", "docs", "openpi"]
 
 [[package]]
 name = "filelock"
