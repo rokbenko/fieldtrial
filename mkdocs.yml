@@ -79,6 +79,9 @@ nav:
       - Time to success: stats/timing.md
       - Stratified (CMH): stats/stratified.md
       - Drift checks: stats/drift.md
+      - Checkpoint ladders: stats/ladders.md
+      - Crossover rounds: stats/crossover.md
+      - Group-sequential stopping: stats/sequential.md
       - Planning: stats/planning.md
       - Bayesian summaries: stats/bayes.md
   - Reference:
