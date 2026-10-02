@@ -70,8 +70,14 @@ def trial(seq: int, timeout_s: float | None = None) -> TrialContext:
 
 
 def run(runner: lr.LeRobotRunner, spec: ArmSpec, seq: int, seconds: float = 0.15) -> Any:
+    """Prepare, start, let the policy drive for ``seconds`` after its first action, stop."""
     runner.prepare(spec)
+    robot = sys.modules["lerobot.robots"].ROBOTS[-1]
+    before = len(robot.actions)
     runner.start(trial(seq))
+    deadline = time.monotonic() + 10  # slow CI runners: wait for the first action
+    while len(robot.actions) == before and time.monotonic() < deadline:
+        time.sleep(0.001)
     time.sleep(seconds)
     return runner.stop()
 
@@ -321,7 +327,14 @@ def test_a_robot_fault_stops_the_loop(fake: ModuleType, tmp_path: Path) -> None:
 def test_an_engine_failure_stops_the_loop(fake: ModuleType, tmp_path: Path) -> None:
     a = checkpoint(tmp_path / "ckpt", "a", engine_fails=True)
     runner = lr.LeRobotRunner(config(), study="s", folder=tmp_path)
-    out = run(runner, arm("K7", a), 1, 0.1)
+    runner.prepare(arm("K7", a))
+    runner.start(trial(1))
+    deadline = time.monotonic() + 5
+    while not fake.robots.ROBOTS[0].actions and time.monotonic() < deadline:
+        time.sleep(0.001)
+    # Stopped right after the engine failed, before the loop's next tick looks at it:
+    # the failure is still reported.
+    out = runner.stop()
     assert out.termination == "robot_fault"
     assert "inference engine failed" in runner.status().message
     runner.close()
