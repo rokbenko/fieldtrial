@@ -1,0 +1,41 @@
+# fieldtrial study: compare checkpoints from one training run against the earliest one.
+fieldtrial: 1
+name: __NAME__
+title: "Checkpoint ladder"
+task:
+  instruction: "Put the cup on the plate"
+
+rubric:
+  stages:
+    - {id: grasp, label: "Grasped the cup"}
+    - {id: lift,  label: "Lifted it clear of the table"}
+    - {id: place, label: "Cup upright on the plate"}
+  success: place
+  failure_tags: [missed_grasp, dropped, knocked_over, stuck]
+
+limits:
+  timeout_s: 30
+
+arms:
+  - {id: step-010k, label: "10k steps", policy: {path: outputs/run/checkpoints/010000/pretrained_model}}
+  - {id: step-020k, label: "20k steps", policy: {path: outputs/run/checkpoints/020000/pretrained_model}}
+  - {id: step-030k, label: "30k steps", policy: {path: outputs/run/checkpoints/030000/pretrained_model}}
+  - {id: step-040k, label: "40k steps", policy: {path: outputs/run/checkpoints/040000/pretrained_model}}
+
+conditions:
+  factors:
+    start: {range: [1, 20]}
+  replicates: 1
+
+design:
+  type: randomized_block
+  order: random
+  blinding: operator
+  seed: 20261002
+
+analysis:
+  primary:
+    comparison: {treatment: step-040k, control: step-010k}
+    alpha: 0.05
+  multiplicity: holm
+  secondary: [stage_reached]

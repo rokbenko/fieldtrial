@@ -1028,6 +1028,7 @@ initialization,paligemma_only,0,40
 | 2026-10-01 | Exact Boschloo power takes the nuisance supremum on a fixed 4001-point grid, so the p-values are exactly monotone and within about 1e-7 of scipy. Tango's interval is validated against an independent numeric-MLE implementation; the R (`PropCIs::scoreci.mp`) reference values are still to come. |
 | 2026-10-01 | mypy has no `python_version` pin and type-checks on each CI interpreter, because scipy-stubs for scipy 1.18 use Python 3.12 syntax. Ruff's `target-version = "py311"` keeps the source 3.11-compatible. |
 | 2026-10-02 | 0.1.0a1 is released on PyPI and tagged `v0.1.0a1` at merge commit `18a7a61` ([rokbenko/fieldtrial#1](https://github.com/rokbenko/fieldtrial/pull/1)). The files were built from the tag in a clean clone and uploaded manually with a project-scoped token; their PyPI sha256 hashes match the build. An unpinned `uvx fieldtrial` resolves to 0.1.0a1. |
+| 2026-10-02 | Schedules, blind codes and simulations draw randomness from the raw 64-bit output of `PCG64(SeedSequence([seed, stream]))`, using rejection sampling and Fisher–Yates. NumPy guarantees that bit stream across versions but not the output of `Generator` methods, and the lock installs different numpy versions on 3.11 and 3.12+. This supersedes `Generator(PCG64(seed))` in §11. Study templates ship as package data in `fieldtrial.templates`, so `fieldtrial init` works from the wheel. |
 
 ---
 

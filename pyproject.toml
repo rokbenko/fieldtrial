@@ -38,9 +38,13 @@ classifiers = [
 ]
 # Each core dependency is added in the milestone that first imports it (docs/PLAN.md, Appendix B).
 dependencies = [
+    "alembic>=1.13",
     "numpy>=1.26",
+    "pydantic>=2.7",
+    "pyyaml>=6.0",
     "rich>=13.8",
     "scipy>=1.13",
+    "sqlalchemy>=2.0.30",
     "typer>=0.15",
 ]
 
@@ -62,6 +66,7 @@ dev = [
     "httpx>=0.28",
     "import-linter>=2.1",
     "scipy-stubs>=1.15",
+    "types-pyyaml>=6.0",
 ]
 
 [project.scripts]
@@ -130,6 +135,7 @@ select = [
 ignore = [
     "D105",  # magic methods need no docstring
     "D107",  # __init__ is documented on the class
+    "D401",  # noun-phrase docstrings ("The schedule for ...") read better for getters
 ]
 
 # Typographic dashes, signs and α in names, formulas and CLI output.
@@ -231,6 +237,24 @@ forbidden_modules = [
     "typer",
     "uvicorn",
     "yaml",
+]
+
+[[tool.importlinter.contracts]]
+name = "fieldtrial.design imports only fieldtrial.stats"
+type = "forbidden"
+source_modules = ["fieldtrial.design"]
+forbidden_modules = [
+    "fieldtrial.analysis",
+    "fieldtrial.api",
+    "fieldtrial.cli",
+    "fieldtrial.client",
+    "fieldtrial.io",
+    "fieldtrial.report",
+    "fieldtrial.runners",
+    "fieldtrial.services",
+    "fieldtrial.store",
+    "fieldtrial.web",
+    "sqlalchemy",
 ]
 
 [[tool.importlinter.contracts]]
