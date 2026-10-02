@@ -38,7 +38,10 @@ class CrossoverResult:
     difference
         Estimated success-rate difference A − B, adjusted for the period effect.
     interval
-        Hills–Armitage t interval for the difference, or None with fewer than 3 cycles.
+        Interval for the difference that inverts the randomization test (or the
+        Hills–Armitage t interval above :data:`EXACT_LIMIT` relabellings).
+    standard_error
+        Hills–Armitage standard error of the difference (None with fewer than 3 cycles).
     period_effect
         Estimated change from the first to the second period of a cycle (scene drift,
         fatigue), the same for both arms.
@@ -54,6 +57,7 @@ class CrossoverResult:
     interval: Interval | None
     period_effect: float
     test: TestResult
+    standard_error: float | None = None
 
 
 def crossover_test(
@@ -96,6 +100,15 @@ def crossover_test(
     cycles is equally likely. A one-sided p-value is the share of assignments at least as
     extreme; the two-sided p-value doubles the smaller one-sided p-value (capped at 1).
 
+    The confidence interval inverts the same randomization test, so it excludes 0 exactly
+    when the two-sided test rejects at :math:`1 - \text{level}`. Under
+    :math:`H_\delta: \tau_A - \tau_B = \delta`, the shifted differences
+    :math:`u_c - \delta s_c` (with :math:`s_c = +1` for ``AB`` and :math:`-1` for ``BA``)
+    do not depend on the order, so the test applies to them; the interval collects the
+    :math:`\delta` it does not reject, with its ends found by bisection. Above
+    :data:`EXACT_LIMIT` relabellings, the test and interval use the t distribution with
+    the standard error above on :math:`m - 2` degrees of freedom.
+
     References
     ----------
     Hills, M. and Armitage, P. (1979). The two-period cross-over clinical trial. *British
@@ -127,21 +140,28 @@ def crossover_test(
         ss = ((u[is_ab] - u[is_ab].mean()) ** 2).sum() + ((u[~is_ab] - u[~is_ab].mean()) ** 2).sum()
         s2 = float(ss) / (m - 2)
         se = 0.5 * math.sqrt(s2 * (1.0 / m_ab + 1.0 / m_ba))
-        q = float(stats.t.isf((1.0 - level) / 2.0, m - 2))
-        interval = Interval(
-            low=float(tau - q * se),
-            high=float(tau + q * se),
-            level=level,
-            method="hills_armitage_t",
-        )
 
     combos = math.comb(m, m_ab)
     if combos <= EXACT_LIMIT:
-        pvalue = _exact_pvalue(u, m_ab, float(tau), alternative)
+        rand = _Randomization(u, is_ab)
+        pvalue = rand.pvalue(0.0, alternative)
         name = "crossover_randomization"
+        bounds = rand.interval(float(tau), 1.0 - level)
+        if bounds is not None:
+            interval = Interval(
+                low=bounds[0], high=bounds[1], level=level, method="crossover_randomization"
+            )
     else:
         pvalue = _t_pvalue(float(tau), se, m - 2, alternative)
         name = "hills_armitage_t"
+        if m >= 3:
+            q = float(stats.t.isf((1.0 - level) / 2.0, m - 2))
+            interval = Interval(
+                low=float(tau - q * se),
+                high=float(tau + q * se),
+                level=level,
+                method="hills_armitage_t",
+            )
     return CrossoverResult(
         cycles=m,
         ab=m_ab,
@@ -150,22 +170,70 @@ def crossover_test(
         interval=interval,
         period_effect=float(period),
         test=TestResult(test=name, statistic=float(tau), pvalue=pvalue, alternative=alternative),
+        standard_error=None if math.isnan(se) else se,
     )
 
 
-def _exact_pvalue(u: np.ndarray, m_ab: int, tau: float, alternative: Alternative) -> float:
-    m = len(u)
-    total = float(u.sum())
-    sums = np.array([u[list(c)].sum() for c in itertools.combinations(range(m), m_ab)], dtype=float)
-    taus = 0.5 * (sums / m_ab - (total - sums) / (m - m_ab))
-    eps = 1e-12 * max(1.0, abs(tau))
-    greater = float((taus >= tau - eps).mean())
-    less = float((taus <= tau + eps).mean())
-    if alternative == "greater":
-        return greater
-    if alternative == "less":
-        return less
-    return min(1.0, 2.0 * min(greater, less))
+class _Randomization:
+    r"""Every relabelling of the cycles with the observed number of AB orders.
+
+    For assignment g, ``a[g]`` is the estimate computed from the period differences ``u``
+    and ``b[g]`` the estimate computed from the order signs ``s`` (+1 AB, -1 BA). Under
+    :math:`H_\delta`, the statistic of assignment g is ``a[g] - delta * b[g]``, and the
+    observed one is ``tau - delta`` (``b`` is 1 for the observed labels).
+    """
+
+    def __init__(self, u: np.ndarray, is_ab: np.ndarray) -> None:
+        m = len(u)
+        m_ab = int(is_ab.sum())
+        rows = np.zeros((math.comb(m, m_ab), m), dtype=bool)
+        for g, chosen in enumerate(itertools.combinations(range(m), m_ab)):
+            rows[g, list(chosen)] = True
+        signs = np.where(is_ab, 1.0, -1.0)
+        self.a = self._estimates(rows, u, m_ab)
+        self.b = self._estimates(rows, signs, m_ab)
+        self.tau = float(self._estimates(is_ab[None, :], u, m_ab)[0])
+
+    @staticmethod
+    def _estimates(rows: np.ndarray, x: np.ndarray, m_ab: int) -> np.ndarray:
+        m_ba = rows.shape[1] - m_ab
+        sums = np.asarray(rows.astype(float) @ x, dtype=float)
+        out: np.ndarray = 0.5 * (sums / m_ab - (float(x.sum()) - sums) / m_ba)
+        return out
+
+    def pvalue(self, delta: float, alternative: Alternative) -> float:
+        null = self.a - delta * self.b
+        observed = self.tau - delta
+        eps = 1e-12 * max(1.0, abs(observed), float(np.abs(null).max(initial=0.0)))
+        greater = float((null >= observed - eps).mean())
+        less = float((null <= observed + eps).mean())
+        if alternative == "greater":
+            return greater
+        if alternative == "less":
+            return less
+        return min(1.0, 2.0 * min(greater, less))
+
+    def interval(self, tau: float, alpha: float) -> tuple[float, float] | None:
+        """Shifts not rejected by the two-sided test at ``alpha``.
+
+        None when even the estimate is rejected, which happens only with ties.
+        """
+        if self.pvalue(tau, "two-sided") <= alpha:
+            return None
+
+        def edge(outer: float) -> float:
+            if self.pvalue(outer, "two-sided") > alpha:
+                return outer
+            inside, out = tau, outer
+            for _ in range(60):
+                mid = 0.5 * (inside + out)
+                if self.pvalue(mid, "two-sided") > alpha:
+                    inside = mid
+                else:
+                    out = mid
+            return inside
+
+        return edge(-1.0), edge(1.0)
 
 
 def _t_pvalue(tau: float, se: float, df: int, alternative: Alternative) -> float:
