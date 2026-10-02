@@ -84,6 +84,9 @@ nav:
       - Checkpoint ladders: stats/ladders.md
       - Crossover rounds: stats/crossover.md
       - Group-sequential stopping: stats/sequential.md
+      - Anytime-valid comparisons: stats/anytime.md
+      - Best-arm selection: stats/selection.md
+      - "STEP: an evaluation": stats/step-evaluation.md
       - Planning: stats/planning.md
       - Bayesian summaries: stats/bayes.md
   - Reference:

@@ -15,6 +15,13 @@ from fieldtrial.stats._types import (
 )
 from fieldtrial.stats.bayes import credible_interval, prob_superiority
 from fieldtrial.stats.compare import INDEPENDENT_TESTS, compare_independent
+from fieldtrial.stats.confseq import (
+    AnytimeTestResult,
+    ConfidenceSequence,
+    betting_cs,
+    capital_process,
+    paired_anytime_test,
+)
 from fieldtrial.stats.crossover import CrossoverResult, crossover_test
 from fieldtrial.stats.drift import HomogeneityResult, homogeneity_test
 from fieldtrial.stats.ladder import (
@@ -38,6 +45,7 @@ from fieldtrial.stats.power import (
     simulate_power,
 )
 from fieldtrial.stats.proportions import INTERVAL_METHODS, proportion_ci, test_vs_threshold
+from fieldtrial.stats.selection import Elimination, PairBound, SelectionResult, eliminate
 from fieldtrial.stats.sequential import (
     SPENDING_FUNCTIONS,
     SequentialDesign,
@@ -60,13 +68,18 @@ __all__ = [
     "SPENDING_FUNCTIONS",
     "AdjustedPValues",
     "Alternative",
+    "AnytimeTestResult",
     "ComparisonResult",
+    "ConfidenceSequence",
     "CrossoverResult",
+    "Elimination",
     "HomogeneityResult",
     "Interval",
     "OddsRatio",
+    "PairBound",
     "PlateauResult",
     "ProportionEstimate",
+    "SelectionResult",
     "SequentialDesign",
     "SequentialResult",
     "StratifiedResult",
@@ -74,7 +87,9 @@ __all__ = [
     "TrendResult",
     "adjust_pvalues",
     "alpha_spending",
+    "betting_cs",
     "boschloo_power",
+    "capital_process",
     "cmh_test",
     "cochran_q",
     "compare_independent",
@@ -84,11 +99,13 @@ __all__ = [
     "credible_interval",
     "crossing_probabilities",
     "crossover_test",
+    "eliminate",
     "homogeneity_test",
     "mcnemar_exact",
     "mcnemar_power",
     "mde",
     "median_time_to_success",
+    "paired_anytime_test",
     "plateau",
     "plateau_paired",
     "power",

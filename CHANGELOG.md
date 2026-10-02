@@ -8,6 +8,17 @@ minor releases may contain breaking changes.
 
 ## [Unreleased]
 
+### Added
+
+- `fieldtrial.stats`: anytime-valid statistics.
+  - `betting_cs` and `capital_process`: betting confidence sequences for bounded means
+    (the hedged capital process of Waudby-Smith and Ramdas), valid at every sample size.
+  - `paired_anytime_test`: a test of paired block differences that may stop after any
+    block, with an anytime-valid p-value and confidence sequence.
+  - `eliminate`: best-arm selection by successive elimination over blocks.
+- Documentation: anytime-valid comparisons, best-arm selection, and an evaluation of STEP
+  (Snyder et al., RSS 2025), which fieldtrial does not port because of its license.
+
 ## [0.2.0] - 2026-10-02
 
 Second release: crossover rounds, checkpoint ladders and group-sequential stopping; real
