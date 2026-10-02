@@ -31,7 +31,14 @@ TEST_LABELS = {
     "mcnemar": "McNemar",
     "cmh": "CMH",
     "binomial": "exact binomial",
+    "mantel": "Mantel",
+    "cochran_armitage": "Cochran–Armitage",
+    "crossover_randomization": "randomization test",
+    "hills_armitage_t": "Hills–Armitage t-test",
+    "group_sequential": "group-sequential McNemar",
 }
+
+SPENDING_LABELS = {"obrien_fleming": "O'Brien–Fleming", "pocock": "Pocock"}
 
 
 def check(text: str) -> str:
@@ -271,4 +278,116 @@ def invalid_flag(per_arm: dict[str, int], attempts: dict[str, int], pvalue: floa
     return check(
         f"Invalid trials are unevenly spread across arms ({parts}; {fmt_p_eq(pvalue)}). "
         "Invalid trials can hide failures; check why they were voided."
+    )
+
+
+def step_association(
+    *,
+    test: str,
+    statistic: float | None,
+    pvalue: float | None,
+    rejected: bool,
+    checkpoints: int,
+) -> str:
+    """Association between training step and success across a checkpoint ladder."""
+    if pvalue is None or statistic is None:
+        return no_data("the association with training step")
+    label = _test(test)
+    if rejected:
+        direction = "rises" if statistic > 0 else "falls"
+        text = (
+            f"Success {direction} with training step across the {checkpoints} checkpoints "
+            f"({label} test of a linear association with step, {fmt_p_eq(pvalue)})."
+        )
+    else:
+        text = (
+            f"No significant association between training step and success detected across "
+            f"the {checkpoints} checkpoints ({label} test, {fmt_p_eq(pvalue)})."
+        )
+    return check(text)
+
+
+def plateau(*, plateau_arm: str | None, final_arm: str, margin: float, alpha: float) -> str:
+    """Where a ladder levels off: non-inferiority against the final checkpoint."""
+    tail = (
+        f"non-inferiority margin {margin * 100:.1f} pp, one-sided α = {alpha:g}, tested "
+        "from the latest checkpoint backwards"
+    )
+    if plateau_arm is None:
+        text = f"No earlier checkpoint was shown to be within the margin of {final_arm} ({tail})."
+    else:
+        text = (
+            f"From {plateau_arm} on, every checkpoint was within {margin * 100:.1f} pp of "
+            f"{final_arm} ({tail})."
+        )
+    return check(text)
+
+
+def crossover(
+    *,
+    treatment: str,
+    control: str,
+    cycles: int,
+    rate_t: float,
+    rate_c: float,
+    diff: float,
+    ci: tuple[float, float] | None,
+    test: str,
+    pvalue: float,
+    rejected: bool,
+    mde_pp: float | None,
+    level: float = 0.95,
+) -> str:
+    """A crossover-rounds comparison: period-adjusted difference over cycles."""
+    interval = f"{fmt_level(level)} CI {fmt_signed(ci[0])} to {fmt_signed(ci[1])}; " if ci else ""
+    if rejected:
+        text = (
+            f"Over {cycles} crossover cycles, {treatment} succeeded in {fmt_rate(rate_t)} of "
+            f"trials vs {fmt_rate(rate_c)} for {control}: period-adjusted difference "
+            f"{fmt_pp(diff)} ({interval}{_test(test)} {fmt_p_eq(pvalue)})."
+        )
+    else:
+        power = (
+            f" With {cycles} cycles and the observed round-to-round variation, this study "
+            f"had 80% power only for differences of at least {abs(mde_pp) * 100:.1f} pp."
+            if mde_pp is not None
+            else ""
+        )
+        text = (
+            f"No significant difference detected over {cycles} crossover cycles: "
+            f"period-adjusted difference {fmt_pp(diff)} ({interval}{_test(test)} "
+            f"{fmt_p_eq(pvalue)}).{power}"
+        )
+    return check(text)
+
+
+def sequential_stop(*, look: int, looks: int, blocks: int, planned: int, spending: str) -> str:
+    """A study that stopped at an interim look."""
+    label = SPENDING_LABELS.get(spending, spending)
+    return check(
+        f"The study stopped at interim look {look} of {looks} ({blocks} of {planned} planned "
+        f"blocks) because the pre-registered {label} boundary was crossed."
+    )
+
+
+def sequential_note(*, looks_run: int, looks: int, spending: str) -> str:
+    """How the p-value of a group-sequential study was computed."""
+    label = SPENDING_LABELS.get(spending, spending)
+    return check(
+        f"Group-sequential design with {label} error spending ({looks_run} of {looks} planned "
+        "looks): the p-value uses stage-wise ordering and the interval is a repeated "
+        "confidence interval."
+    )
+
+
+def interim(decision: str, look: int, looks: int) -> str:
+    """What an interim look reports while the study is blinded."""
+    if decision == "stop":
+        return check(
+            f"Interim look {look} of {looks}: the pre-registered boundary was crossed. Stop "
+            "the study and unblind to see the results."
+        )
+    return check(
+        f"Interim look {look} of {looks}: continue. The boundary was not crossed; no "
+        "results are shown while the study is blinded."
     )

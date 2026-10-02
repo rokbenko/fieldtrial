@@ -13,6 +13,7 @@ from typing import Annotated, Any, NoReturn, ParamSpec, TypeVar
 import typer
 from rich.console import Console
 
+from fieldtrial.analysis import wording
 from fieldtrial.analysis.wording import fmt_pp, fmt_rate
 from fieldtrial.cli.calc import JsonOption, _jsonable, _print_json
 from fieldtrial.design import StudyValidationError
@@ -20,6 +21,7 @@ from fieldtrial.io.csv import CsvImportError, parse_mapping
 from fieldtrial.report import render_html, render_markdown
 from fieldtrial.services import ServiceError
 from fieldtrial.services.analysis import analyze_study
+from fieldtrial.services.interim import run_interim
 from fieldtrial.services.simulate import simulate_study
 from fieldtrial.services.study import (
     amend_study,
@@ -253,6 +255,13 @@ def simulate(
     max_trials: Annotated[
         int | None, typer.Option("--max-trials", help="Stop after this many trials.")
     ] = None,
+    interim_looks: Annotated[
+        bool,
+        typer.Option(
+            "--interim/--no-interim",
+            help="Run planned interim looks as they come due (group-sequential studies).",
+        ),
+    ] = True,
     as_json: JsonOption = False,
 ) -> None:
     """Fill a locked study with simulated trials (sim runner + auto-operator)."""
@@ -262,6 +271,7 @@ def simulate(
         seed=seed,
         invalid_rate=invalid_rate,
         max_trials=max_trials,
+        interim=interim_looks,
     )
     if as_json:
         _print_json(result)
@@ -270,6 +280,9 @@ def simulate(
         f"Simulated {result.completed} completed and {result.invalid} invalid trials "
         f"in {result.sessions} sessions"
     )
+    if result.interim_looks:
+        stop = f"; stopped at look {result.stopped_at}" if result.stopped_at else ""
+        _console.print(f"Ran {result.interim_looks} interim look(s){stop}")
 
 
 @_errors
@@ -309,6 +322,22 @@ def export(
         _print_json({"rows": count, "path": str(target)})
         return
     _console.print(f"Wrote {count} trials to {target}")
+
+
+@_errors
+def interim(folder: FolderArg, as_json: JsonOption = False) -> None:
+    """Run the next planned interim look of a group-sequential study.
+
+    Prints only "continue" or "stop", so the study stays blinded. A stop voids the
+    remaining trials; unblind and report as usual.
+    """
+    result = run_interim(folder)
+    if as_json:
+        _print_json(result)
+        return
+    _console.print(wording.interim(result.decision, result.look, result.planned_looks))
+    if result.voided_slots:
+        _console.print(f"{result.voided_slots} pending trials were cancelled.")
 
 
 @_errors
@@ -370,6 +399,7 @@ def register(app: typer.Typer) -> None:
             "simulate": simulate,
             "import": import_cmd,
             "export": export,
+            "interim": interim,
             "analyze": analyze,
             "report": report,
         },

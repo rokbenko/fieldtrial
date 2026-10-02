@@ -32,7 +32,11 @@ api.end_session(session)
 ```
 
 Other calls: `studies()`, `status()`, `next()`, `trial()`, `trials()`,
-`invalidate_trial(trial_id, reason)`, `undo(trial_id)` and `attach_media(trial_id, path)`.
+`invalidate_trial(trial_id, reason)`, `undo(trial_id)`, `attach_media(trial_id, path)`, and
+for group-sequential studies `interim_status()` and `run_interim()`
+(`GET`/`POST /api/v1/studies/{study}/interim`). An interim look returns only "continue" or
+"stop", and a stop cancels the remaining trials. `run_interim()` is never retried
+automatically, because a look is not idempotent.
 Errors raise `ApiError` with the HTTP `status` and a `detail` message.
 
 ## Rules for any client

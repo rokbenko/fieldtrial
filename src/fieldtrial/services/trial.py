@@ -893,5 +893,6 @@ def collect_records(ctx: StudyContext) -> tuple[list[TrialRecord], StudyContextI
                 int(unblinded[0].payload.get("pending_slots", 0)) if unblinded else None
             ),
             edits_after_unblinding=late_edits,
+            interim_looks=tuple(e.payload for e in list_events(db, ctx.study_id, "interim_look")),
         )
         return records, info

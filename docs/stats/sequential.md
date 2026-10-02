@@ -9,9 +9,9 @@ boundaries raise the bar at each look so the overall error stays at α.
 ```python
 from fieldtrial.stats import sequential_test, spending_boundaries
 
-design = spending_boundaries([0.25, 0.5, 0.75, 1.0], alpha=0.05)   # O'Brien–Fleming type
-design.boundaries          # (4.33, 2.96, 2.36, 2.01)
-sequential_test([1.2, 3.1], design)   # stops at look 2
+design = spending_boundaries([0.25, 0.5, 0.75, 1.0], alpha=0.05)  # O'Brien–Fleming type
+design.boundaries  # (4.33, 2.96, 2.36, 2.01)
+sequential_test([1.2, 3.1], design)  # stops at look 2
 ```
 
 ## Error spending

@@ -50,4 +50,5 @@ class StudyContextInfo:
     pending_slots: int = 0
     pending_at_unblinding: int | None = None  # from the first ``unblinded`` event
     edits_after_unblinding: int = 0
+    interim_looks: tuple[dict[str, Any], ...] = ()  # payloads of ``interim_look`` events
     software: dict[str, str] = field(default_factory=dict)

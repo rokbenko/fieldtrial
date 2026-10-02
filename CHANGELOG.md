@@ -8,6 +8,38 @@ minor releases may contain breaking changes.
 
 ## [Unreleased]
 
+### Added
+
+- Crossover rounds (`design.type: crossover_rounds`) for tasks whose scene carries over
+  between trials. Each arm runs whole rounds in cycles of two, in randomized, balanced
+  order. The analysis is a period-adjusted difference with an exact randomization test,
+  and its interval inverts the same test. A new `crossover-rounds` template. The console
+  shows the round and when to reset the scene.
+- Checkpoint ladders (`analysis.ladder`): Mantel's test of a linear association between
+  training step and success, and plateau detection by fixed-sequence non-inferiority
+  against the final checkpoint. Without a comparison, the association test is the
+  primary analysis. Reports gain a success-by-step chart and a plateau table.
+- Group-sequential stopping (`analysis.stopping: {rule: group_sequential, looks: K}`):
+  - Lan–DeMets error-spending boundaries (O'Brien–Fleming or Pocock type).
+  - Interim looks via `fieldtrial interim`, the console and `POST /api/v1/studies/{study}/interim`.
+    A look reveals only "continue" or "stop" and cancels the remaining trials on a stop.
+  - A stage-wise p-value and a repeated confidence interval in the final analysis.
+  - The simulator runs planned looks as they come due (`--no-interim` to skip them).
+- `fieldtrial.stats`:
+  - `spending_boundaries`, `constant_boundaries`, `crossing_probabilities`,
+    `sequential_test`, `repeated_interval`
+  - `trend_test`, `stratified_trend_test`, `plateau`, `plateau_paired`
+  - `crossover_test`
+- `Results` gains optional `ladder`, `crossover` and `sequential` blocks, and the primary
+  methods `ladder`, `crossover` and `group_sequential` (schema version unchanged:
+  additions only).
+
+### Changed
+
+- `limits.reset: carry_over` is now accepted together with `design.type: crossover_rounds`.
+- Design hashes of existing studies are unchanged: new settings are left out of the hash
+  while they are unused.
+
 ## [0.1.0] - 2026-10-02
 
 First release. Studies: design, lock, fill and analyze end to end, run them from a

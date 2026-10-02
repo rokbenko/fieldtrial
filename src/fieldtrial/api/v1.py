@@ -16,11 +16,14 @@ import anyio
 from fastapi import APIRouter, Depends, File, Header, Query, Request, UploadFile
 from sse_starlette import EventSourceResponse, ServerSentEvent
 
+from fieldtrial.analysis import wording
 from fieldtrial.api.schemas import (
     CompleteIn,
     ConsoleOut,
     EditIn,
     ErrorOut,
+    InterimOut,
+    InterimStatusOut,
     InvalidateIn,
     MediaOut,
     SessionIn,
@@ -35,6 +38,7 @@ from fieldtrial.api.schemas import (
 )
 from fieldtrial.services import ServiceError, StudyContext
 from fieldtrial.services.events import events_after, latest_event_id
+from fieldtrial.services.interim import interim_status, run_interim_in
 from fieldtrial.services.registry import StudyRegistry
 from fieldtrial.services.session import (
     ConsoleState,
@@ -208,6 +212,37 @@ def next_trial(slug: str, reg: Registry) -> SlotOut | None:
     ctx = reg.get(slug)
     slot = next_slot(ctx)
     return None if slot is None else slot_out(ctx, slot, is_blinded(ctx))
+
+
+@router.get("/studies/{slug}/interim", response_model=InterimStatusOut | None)
+def interim(slug: str, reg: Registry) -> InterimStatusOut | None:
+    """Interim-look status, or null when the study has no group-sequential rule."""
+    found = interim_status(reg.get(slug))
+    if found is None:
+        return None
+    return InterimStatusOut(
+        planned_looks=found.planned_looks,
+        looks_done=found.looks_done,
+        complete_blocks=found.complete_blocks,
+        next_look=found.next_look,
+        blocks_needed=found.blocks_needed,
+        due=found.due,
+        stopped_at=found.stopped_at,
+    )
+
+
+@router.post("/studies/{slug}/interim", response_model=InterimOut)
+def run_interim(slug: str, reg: Registry) -> InterimOut:
+    """Run the interim look that is due. A stop cancels the remaining trials."""
+    result = run_interim_in(reg.get(slug), actor="api")
+    return InterimOut(
+        look=result.look,
+        planned_looks=result.planned_looks,
+        decision=result.decision,
+        complete_blocks=result.complete_blocks,
+        voided_slots=result.voided_slots,
+        message=wording.interim(result.decision, result.look, result.planned_looks),
+    )
 
 
 # --- sessions ----------------------------------------------------------------------------------

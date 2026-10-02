@@ -16,6 +16,7 @@ from fastapi import APIRouter, Form, Request
 from fastapi.responses import HTMLResponse, PlainTextResponse, RedirectResponse, Response
 from fastapi.templating import Jinja2Templates
 
+from fieldtrial.analysis import wording
 from fieldtrial.analysis.wording import fmt_rate
 from fieldtrial.report import render_html, render_markdown
 from fieldtrial.runners.base import ArmSpec, RunArtifacts, Runner, TrialContext
@@ -24,6 +25,7 @@ from fieldtrial.runners.sim import SimArm, SimRunner
 from fieldtrial.services import ServiceError, StudyContext
 from fieldtrial.services.analysis import analyze_study
 from fieldtrial.services.events import latest_event_id
+from fieldtrial.services.interim import interim_status, run_interim_in
 from fieldtrial.services.registry import StudyRegistry
 from fieldtrial.services.session import (
     console_state,
@@ -221,7 +223,9 @@ def _redirect(request: Request, url: str) -> Response:
     return RedirectResponse(url, status_code=303)
 
 
-def _panel_context(request: Request, slug: str, session_id: str) -> dict[str, Any]:
+def _panel_context(
+    request: Request, slug: str, session_id: str, notice: str | None = None
+) -> dict[str, Any]:
     ctx = _registry(request).get(slug)
     state = console_state(ctx, session_id)
     suggestion = None
@@ -236,6 +240,8 @@ def _panel_context(request: Request, slug: str, session_id: str) -> dict[str, An
         "server_now": datetime.now(UTC).isoformat(),
         "last_event": latest_event_id(ctx) or "",
         "idempotency_key": _key(),
+        "interim": interim_status(ctx),
+        "notice": notice,
     }
 
 
@@ -368,6 +374,20 @@ def undo(
     ctx = _registry(request).get(slug)
     reopen_trial(ctx, trial_id, session_id=session_id, idempotency_key=idempotency_key)
     return panel(request, slug, session_id)
+
+
+@router.post("/studies/{slug}/sessions/{session_id}/interim", response_class=HTMLResponse)
+def interim(request: Request, slug: str, session_id: str) -> HTMLResponse:
+    """Run the interim look that is due. Shows only "continue" or "stop"."""
+    ctx = _registry(request).get(slug)
+    result = run_interim_in(ctx, actor="console")
+    notice = wording.interim(result.decision, result.look, result.planned_looks)
+    return render(
+        request,
+        "_panel.html",
+        mirror=False,
+        **_panel_context(request, slug, session_id, notice=notice),
+    )
 
 
 @router.post("/studies/{slug}/sessions/{session_id}/end")

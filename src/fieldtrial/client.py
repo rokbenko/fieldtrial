@@ -26,6 +26,8 @@ from pydantic import BaseModel, TypeAdapter
 
 from fieldtrial.api.schemas import (
     ConsoleOut,
+    InterimOut,
+    InterimStatusOut,
     MediaOut,
     SessionOut,
     SlotOut,
@@ -176,6 +178,15 @@ class Client:
         }
         data = self._request("POST", self._study_path("/sessions"), body=body, idempotent=True)
         return self._as(ConsoleOut, data)
+
+    def interim_status(self) -> InterimStatusOut | None:
+        """Interim-look status of a group-sequential study (None for other studies)."""
+        data = self._request("GET", self._study_path("/interim"))
+        return None if data is None else self._as(InterimStatusOut, data)
+
+    def run_interim(self) -> InterimOut:
+        """Run the interim look that is due (not retried: a look is not idempotent)."""
+        return self._as(InterimOut, self._request("POST", self._study_path("/interim"), body={}))
 
     def end_session(self, session_id: str) -> SessionOut:
         """End a session."""

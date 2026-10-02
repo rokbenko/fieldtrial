@@ -330,6 +330,10 @@ class StudySpec(_Strict):
                 raise ValueError(
                     "group-sequential stopping supports exactly 2 arms in this version"
                 )
+            if self.conditions.replicates != 1:
+                raise ValueError(
+                    "group-sequential stopping needs conditions.replicates: 1 in this version"
+                )
         if primary.comparison is not None:
             for role in ("treatment", "control"):
                 arm = getattr(primary.comparison, role)

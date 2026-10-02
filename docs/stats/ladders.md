@@ -6,9 +6,9 @@ Two questions are fixed before the data are seen.
 ```python
 from fieldtrial.stats import plateau, trend_test
 
-counts = [(30, 60), (44, 60), (51, 60), (53, 60)]          # (successes, trials) per step
+counts = [(30, 60), (44, 60), (51, 60), (53, 60)]  # (successes, trials) per step
 trend_test(counts, scores=[10_000, 20_000, 40_000, 80_000])
-plateau(counts, margin=0.10)                                # where it levels off
+plateau(counts, margin=0.10)  # where it levels off
 ```
 
 ## Trend

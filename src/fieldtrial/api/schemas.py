@@ -54,6 +54,29 @@ class StatusOut(_Out):
     per_arm: dict[str, tuple[int, int]] | None
 
 
+class InterimStatusOut(_Out):
+    """Interim looks of a group-sequential study. Counts only, nothing per arm."""
+
+    planned_looks: int
+    looks_done: int
+    complete_blocks: int
+    next_look: int | None
+    blocks_needed: int | None
+    due: bool
+    stopped_at: int | None
+
+
+class InterimOut(_Out):
+    """The outcome of an interim look: ``continue`` or ``stop``, nothing else."""
+
+    look: int
+    planned_looks: int
+    decision: str
+    complete_blocks: int
+    voided_slots: int
+    message: str
+
+
 class SlotOut(_Out):
     """A scheduled trial. ``arm``, ``policy`` and ``serving`` are hidden while blinded."""
 

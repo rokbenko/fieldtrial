@@ -16,15 +16,21 @@ for the current milestone.
 
 ## v0.2
 
-- Command-template runner: spawns your rollout command per arm, which makes real blinding
-  possible.
-- openpi router: blinded A/B testing for websocket policy servers.
-- Evaluation-camera capture (`capture` extra).
-- Links between trials and LeRobot dataset episodes.
-- Checkpoint ladders: trend test and plateau detection.
-- Crossover-rounds design for tasks where scene state carries over between trials.
-- Rig drift check against reference images.
-- Group-sequential stopping.
+| Milestone | Scope | Status |
+|---|---|---|
+| M5 | Crossover rounds, checkpoint ladders (step association, plateau), group-sequential stopping (release 0.2.0a1) | done |
+| M6 | Command-template runner and openpi router: real blinding (release 0.2.0a2) | planned |
+| M7 | Evaluation-camera capture, rig drift check, LeRobot dataset links (release 0.2.0) | planned |
+
+Limits of M5, to revisit later:
+
+- Crossover designs compare exactly 2 arms; Williams-type crossovers for more arms are
+  not supported yet.
+- Group-sequential stopping supports 2-arm randomized block designs with one replicate
+  (the McNemar score statistic). CMH and multi-arm sequential designs, futility
+  boundaries and stopping-adjusted point estimates are not supported yet.
+- The ladder's plateau compares each checkpoint with the final one; a margin relative to
+  the best checkpoint would need a different procedure.
 
 ## v0.3
 
@@ -64,5 +70,7 @@ for the current milestone.
   whole test suite runs from the sdist alone.
 - Test the console on Windows and on real phones (`docs/guides/console-checklist.md`);
   0.1.0 was verified on Linux and in Chromium at phone size.
+- `fieldtrial status` could show where a group-sequential study stands (looks done, next
+  look due); today that is in the console and `GET /api/v1/studies/{study}/interim`.
 - Revisit the docs toolchain. The Material for MkDocs team warns that MkDocs 2.0 removes
   the plugin system, so `docs` pins `mkdocs<2` for now.

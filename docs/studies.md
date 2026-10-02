@@ -20,13 +20,52 @@ $ fieldtrial validate my-study
 $ fieldtrial plan my-study --baseline 0.76
 ```
 
-Templates: `basic` (two arms, 40 starting positions), `checkpoint-ladder` (four checkpoints)
-and `serving-sweep` (three serving settings across objects and positions). `validate`
+Templates: `basic` (two arms, 40 starting positions), `checkpoint-ladder` (four checkpoints
+with a pre-registered [ladder](guides/checkpoint-ladders.md)), `crossover-rounds` (two arms
+on a task whose scene carries over) and `serving-sweep` (three serving settings across
+objects and positions). `validate`
 reports every problem with its line in `study.yaml`. `plan` previews the schedule and the
 minimum detectable effect for the planned number of trials.
 
 The `plan` MDE uses the independent-samples formula. Paired designs usually detect
 somewhat smaller differences, so the number is conservative.
+
+### Designs
+
+| `design.type` | When | Primary analysis |
+|---|---|---|
+| `randomized_block` | Each trial starts from a reset scene | Exact McNemar (2 arms), Cochran's Q + Holm (more arms), CMH (replicates) |
+| `crossover_rounds` | The scene carries over between trials (filling a tray) | [Crossover rounds](stats/crossover.md) |
+| `single_arm` | One policy against a fixed bar | Exact binomial test against `threshold` |
+
+**Crossover rounds.** Each arm runs a whole round: one pass over every condition, without
+resetting the scene in between. Rounds come in cycles of two, one per arm, in a randomized
+and balanced order. Set `limits.reset: carry_over` and the number of rounds:
+
+```yaml
+limits:
+  reset: carry_over
+design:
+  type: crossover_rounds
+  rounds: 16          # 8 cycles
+  order: fixed        # the same condition order in every round
+```
+
+A round is the unit of analysis, so plan enough cycles: with 4 cycles, no result can reach
+p < 0.05. Crossover designs compare exactly 2 arms and need `conditions.replicates: 1`. An
+invalid trial is retried at the end of the same round.
+
+**Stopping early.** A two-arm `randomized_block` study can plan interim looks:
+
+```yaml
+analysis:
+  stopping: {rule: group_sequential, looks: 4, spending: obrien_fleming}
+```
+
+The study is analyzed after 25%, 50% and 75% of the blocks (or at the fractions in `at:`)
+and stops if the [error-spending boundary](stats/sequential.md) is crossed. Run a look with
+`fieldtrial interim my-study` or from the console when it is due. A look reports only
+"continue" or "stop", so the study stays blinded. A stop cancels the remaining trials.
 
 ## 2. Lock
 
@@ -47,7 +86,8 @@ $ fieldtrial amend my-study --reason "two more start positions"
 ```
 
 Completed trials are kept. Pending trials the new design no longer contains are removed,
-and new ones are appended. The seed cannot be amended. Every report lists amendments as
+and new ones are appended. The seed cannot be amended, and neither can the rounds of a
+crossover design. Every report lists amendments as
 deviations, with the reason and the old and new design hash.
 
 ## 3. Run trials

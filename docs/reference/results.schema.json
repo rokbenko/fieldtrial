@@ -148,6 +148,66 @@
       "title": "ConditionRow",
       "type": "object"
     },
+    "CrossoverSummary": {
+      "additionalProperties": false,
+      "description": "Crossover rounds: per-round results and the period effect.",
+      "properties": {
+        "treatment": {
+          "title": "Treatment",
+          "type": "string"
+        },
+        "control": {
+          "title": "Control",
+          "type": "string"
+        },
+        "cycles": {
+          "title": "Cycles",
+          "type": "integer"
+        },
+        "cycles_used": {
+          "title": "Cycles Used",
+          "type": "integer"
+        },
+        "ab": {
+          "title": "Ab",
+          "type": "integer"
+        },
+        "ba": {
+          "title": "Ba",
+          "type": "integer"
+        },
+        "rounds": {
+          "items": {
+            "$ref": "#/$defs/RoundRow"
+          },
+          "title": "Rounds",
+          "type": "array"
+        },
+        "period_effect": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Period Effect"
+        }
+      },
+      "required": [
+        "treatment",
+        "control",
+        "cycles",
+        "cycles_used",
+        "ab",
+        "ba",
+        "rounds",
+        "period_effect"
+      ],
+      "title": "CrossoverSummary",
+      "type": "object"
+    },
     "Deviation": {
       "additionalProperties": false,
       "description": "Something that departs from the locked plan.",
@@ -159,7 +219,8 @@
             "late_edit",
             "incomplete",
             "out_of_order",
-            "excluded_blocks"
+            "excluded_blocks",
+            "interim"
           ],
           "title": "Kind",
           "type": "string"
@@ -404,6 +465,151 @@
       "title": "InvalidCheck",
       "type": "object"
     },
+    "LadderResult": {
+      "additionalProperties": false,
+      "description": "A checkpoint ladder: association with step, and where success levels off.",
+      "properties": {
+        "arms": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Arms",
+          "type": "array"
+        },
+        "steps": {
+          "items": {
+            "type": "number"
+          },
+          "title": "Steps",
+          "type": "array"
+        },
+        "association": {
+          "$ref": "#/$defs/StepAssociation"
+        },
+        "margin": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Margin"
+        },
+        "plateau_method": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Plateau Method"
+        },
+        "plateau": {
+          "items": {
+            "$ref": "#/$defs/PlateauRow"
+          },
+          "title": "Plateau",
+          "type": "array"
+        },
+        "plateau_arm": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Plateau Arm"
+        }
+      },
+      "required": [
+        "arms",
+        "steps",
+        "association",
+        "margin",
+        "plateau_method"
+      ],
+      "title": "LadderResult",
+      "type": "object"
+    },
+    "LookRow": {
+      "additionalProperties": false,
+      "description": "One look of a group-sequential design.",
+      "properties": {
+        "look": {
+          "title": "Look",
+          "type": "integer"
+        },
+        "kind": {
+          "enum": [
+            "interim",
+            "final"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "fraction": {
+          "title": "Fraction",
+          "type": "number"
+        },
+        "blocks": {
+          "title": "Blocks",
+          "type": "integer"
+        },
+        "z": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Z"
+        },
+        "boundary": {
+          "title": "Boundary",
+          "type": "number"
+        },
+        "crossed": {
+          "title": "Crossed",
+          "type": "boolean"
+        },
+        "recorded_decision": {
+          "anyOf": [
+            {
+              "enum": [
+                "continue",
+                "stop"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Recorded Decision"
+        }
+      },
+      "required": [
+        "look",
+        "kind",
+        "fraction",
+        "blocks",
+        "z",
+        "boundary",
+        "crossed"
+      ],
+      "title": "LookRow",
+      "type": "object"
+    },
     "Pairwise": {
       "additionalProperties": false,
       "description": "One arm compared with another inside the primary analysis.",
@@ -477,6 +683,40 @@
       "title": "Pairwise",
       "type": "object"
     },
+    "PlateauRow": {
+      "additionalProperties": false,
+      "description": "One checkpoint tested for non-inferiority against the final checkpoint.",
+      "properties": {
+        "arm": {
+          "title": "Arm",
+          "type": "string"
+        },
+        "difference": {
+          "title": "Difference",
+          "type": "number"
+        },
+        "ci": {
+          "$ref": "#/$defs/CI"
+        },
+        "tested": {
+          "title": "Tested",
+          "type": "boolean"
+        },
+        "noninferior": {
+          "title": "Noninferior",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "arm",
+        "difference",
+        "ci",
+        "tested",
+        "noninferior"
+      ],
+      "title": "PlateauRow",
+      "type": "object"
+    },
     "PrimaryResult": {
       "additionalProperties": false,
       "description": "The pre-registered primary analysis, chosen from the locked design.",
@@ -487,7 +727,10 @@
             "cochran_q",
             "cmh",
             "threshold",
-            "descriptive"
+            "descriptive",
+            "crossover",
+            "ladder",
+            "group_sequential"
           ],
           "title": "Method",
           "type": "string"
@@ -721,6 +964,111 @@
       "title": "Provenance",
       "type": "object"
     },
+    "RoundRow": {
+      "additionalProperties": false,
+      "description": "One round of a crossover design.",
+      "properties": {
+        "round": {
+          "title": "Round",
+          "type": "integer"
+        },
+        "cycle": {
+          "title": "Cycle",
+          "type": "integer"
+        },
+        "period": {
+          "title": "Period",
+          "type": "integer"
+        },
+        "arm": {
+          "title": "Arm",
+          "type": "string"
+        },
+        "successes": {
+          "title": "Successes",
+          "type": "integer"
+        },
+        "completed": {
+          "title": "Completed",
+          "type": "integer"
+        },
+        "rate": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Rate"
+        }
+      },
+      "required": [
+        "round",
+        "cycle",
+        "period",
+        "arm",
+        "successes",
+        "completed",
+        "rate"
+      ],
+      "title": "RoundRow",
+      "type": "object"
+    },
+    "SequentialSummary": {
+      "additionalProperties": false,
+      "description": "Group-sequential stopping: planned and performed looks.",
+      "properties": {
+        "spending": {
+          "title": "Spending",
+          "type": "string"
+        },
+        "planned_looks": {
+          "title": "Planned Looks",
+          "type": "integer"
+        },
+        "planned_fractions": {
+          "items": {
+            "type": "number"
+          },
+          "title": "Planned Fractions",
+          "type": "array"
+        },
+        "planned_blocks": {
+          "title": "Planned Blocks",
+          "type": "integer"
+        },
+        "looks": {
+          "items": {
+            "$ref": "#/$defs/LookRow"
+          },
+          "title": "Looks",
+          "type": "array"
+        },
+        "stopped_at": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Stopped At"
+        }
+      },
+      "required": [
+        "spending",
+        "planned_looks",
+        "planned_fractions",
+        "planned_blocks",
+        "looks",
+        "stopped_at"
+      ],
+      "title": "SequentialSummary",
+      "type": "object"
+    },
     "SessionRow": {
       "additionalProperties": false,
       "description": "Outcomes per arm in one session.",
@@ -875,6 +1223,60 @@
         "funnel"
       ],
       "title": "StageSummary",
+      "type": "object"
+    },
+    "StepAssociation": {
+      "additionalProperties": false,
+      "description": "Test of a linear association between training step and success (ladders).",
+      "properties": {
+        "test": {
+          "title": "Test",
+          "type": "string"
+        },
+        "statistic": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Statistic"
+        },
+        "pvalue": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Pvalue"
+        },
+        "alternative": {
+          "title": "Alternative",
+          "type": "string"
+        },
+        "rejected": {
+          "title": "Rejected",
+          "type": "boolean"
+        },
+        "primary": {
+          "title": "Primary",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "test",
+        "statistic",
+        "pvalue",
+        "alternative",
+        "rejected",
+        "primary"
+      ],
+      "title": "StepAssociation",
       "type": "object"
     },
     "StudyInfo": {
@@ -1175,6 +1577,39 @@
       },
       "title": "Summary",
       "type": "array"
+    },
+    "ladder": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/LadderResult"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "crossover": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/CrossoverSummary"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "sequential": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/SequentialSummary"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
     }
   },
   "required": [
