@@ -8,66 +8,11 @@ minor releases may contain breaking changes.
 
 ## [Unreleased]
 
-## [0.2.0rc1] - 2026-10-02
+## [0.2.0] - 2026-10-02
 
-Release candidate for 0.2.0: evaluation-camera capture, rig drift checks and LeRobot
-dataset links, completing v0.2 (crossover rounds, checkpoint ladders, group-sequential
-stopping, and real blinding with switching runners).
-
-### Added
-
-- Rig drift checks. Compare a photo of the rig with a reference photo: shift by phase
-  correlation, brightness change, and structural similarity (SSIM) after alignment.
-  - Run them with `fieldtrial rig-check DIR PHOTO` (or `--camera`), or attach a photo
-    when a console session starts.
-  - A flagged check shows as a console warning and as a report deviation, and the report
-    lists every check.
-- Evaluation-camera capture (`fieldtrial[capture]`: OpenCV and PyAV). With
-  `capture.camera` in `study.yaml`, every trial is recorded from Start to Stop and the
-  clip is attached to the trial. The rig is checked from the camera at session start and
-  every `capture.drift.every_trials` trials. A camera failure never blocks a trial.
-- Links between trials and LeRobot v3.0 dataset episodes (`fieldtrial[lerobot]`:
-  pyarrow).
-  - `fieldtrial link-episodes DIR DATASET` matches trials to episodes in run order, or
-    from a `trial,episode_index` mapping file, and shows the plan by blind code before
-    writing.
-  - Episodes with DAgger `intervention` flags get intervention counts, and reports gain a
-    descriptive dataset-episodes table.
-- A `capture:` section in `study.yaml`, always left out of the design hash.
-
-### Changed
-
-- `pillow` is declared as a dependency; it was already required by matplotlib.
-
-## [0.2.0a2] - 2026-10-02
-
-Second v0.2 pre-release: real blinding with the command runner and the openpi router.
-
-### Added
-
-- Real blinding with switching runners. The console and the REST API start and stop them
-  with each trial. `fieldtrial check-runners` checks the setup and names arms by blind
-  code only.
-  - `command` runner: runs `runners.command.template` for each trial with the arm's
-    `policy` and `serving` values. The template is split like a shell would but never
-    runs in one, and placeholders are checked at validation.
-    - The command gets its own process group and is stopped with SIGINT, then SIGTERM,
-      then SIGKILL. Logs go to `logs/`, and the environment carries the blind code only.
-    - `launch: per_arm` keeps one process per arm and sends it start and stop lines.
-    - With `success_exit_code`, a successful exit preselects the success stage.
-  - `openpi_router` runner: a websocket proxy in front of one openpi policy server per
-    arm.
-    - It refuses arms whose metadata differ, passes `Api-Key` headers through and forwards
-      frames unchanged to the current trial's arm.
-    - It records request latency per trial. Install with `fieldtrial[openpi]`.
-- A runner that cannot start a trial marks it invalid with the reason, so the slot is
-  rescheduled.
-- Reports gain a descriptive runner table per arm: requests, errors, latency and abnormal
-  exits.
-
-## [0.2.0a1] - 2026-10-02
-
-First v0.2 pre-release: crossover rounds, checkpoint ladders and group-sequential stopping.
+Second release: crossover rounds, checkpoint ladders and group-sequential stopping; real
+blinding with switching runners; evaluation-camera capture, rig drift checks and links to
+LeRobot datasets. Studies, design hashes and results files from 0.1 keep working.
 
 ### Added
 
@@ -86,20 +31,73 @@ First v0.2 pre-release: crossover rounds, checkpoint ladders and group-sequentia
     A look reveals only "continue" or "stop" and cancels the remaining trials on a stop.
   - A stage-wise p-value and a repeated confidence interval in the final analysis.
   - The simulator runs planned looks as they come due (`--no-interim` to skip them).
+- Real blinding with switching runners. The console and the REST API start and stop them
+  with each trial. `fieldtrial check-runners` checks the setup and names arms by blind
+  code only.
+  - `command` runner: runs `runners.command.template` for each trial with the arm's
+    `policy` and `serving` values. The template is split like a shell would but never
+    runs in one, and placeholders are checked at validation.
+    - The command gets its own process group and is stopped with SIGINT, then SIGTERM,
+      then SIGKILL. Logs go to `logs/`, and the environment carries the blind code only.
+    - `launch: per_arm` keeps one process per arm and sends it start and stop lines.
+    - With `success_exit_code`, a successful exit preselects the success stage.
+  - `openpi_router` runner: a websocket proxy in front of one openpi policy server per
+    arm.
+    - It refuses arms whose metadata differ, passes `Api-Key` headers through and forwards
+      frames unchanged to the current trial's arm.
+    - It records request latency per trial. Install with `fieldtrial[openpi]`.
+  - A runner that cannot start a trial marks it invalid with the reason, so the slot is
+    rescheduled.
+  - Reports gain a descriptive runner table per arm: requests, errors, latency and
+    abnormal exits.
+- Rig drift checks. Compare a photo of the rig with a reference photo: shift by phase
+  correlation, brightness change, and structural similarity (SSIM) after alignment.
+  - Run them with `fieldtrial rig-check DIR PHOTO` (or `--camera`), or attach a photo
+    when a console session starts.
+  - A flagged check shows as a console warning and as a report deviation, and the report
+    lists every check.
+- Evaluation-camera capture (`fieldtrial[capture]`: OpenCV and PyAV). With
+  `capture.camera` in `study.yaml`, every trial is recorded from Start to Stop and the
+  clip is attached to the trial. The rig is checked from the camera at session start and
+  every `capture.drift.every_trials` trials. A camera failure never blocks a trial.
+- Links between trials and LeRobot v3.0 dataset episodes (`fieldtrial[lerobot]`:
+  pyarrow).
+  - `fieldtrial link-episodes DIR DATASET` matches trials to episodes in run order, or
+    from a `trial,episode_index` mapping file, and shows the plan by blind code before
+    writing.
+  - Episodes with DAgger `intervention` flags get intervention counts, and reports gain a
+    descriptive dataset-episodes table.
+- A `capture:` section in `study.yaml`, always left out of the design hash.
 - `fieldtrial.stats`:
   - `spending_boundaries`, `constant_boundaries`, `crossing_probabilities`,
     `sequential_test`, `repeated_interval`
   - `trend_test`, `stratified_trend_test`, `plateau`, `plateau_paired`
   - `crossover_test`
-- `Results` gains optional `ladder`, `crossover` and `sequential` blocks, and the primary
-  methods `ladder`, `crossover` and `group_sequential` (schema version unchanged:
-  additions only).
+- `Results` gains optional `ladder`, `crossover` and `sequential` blocks, the lists
+  `runner`, `rig_checks` and `episodes` (empty by default), and the primary methods
+  `ladder`, `crossover` and `group_sequential` (schema version unchanged: additions only).
 
 ### Changed
 
 - `limits.reset: carry_over` is now accepted together with `design.type: crossover_rounds`.
 - Design hashes of existing studies are unchanged: new settings are left out of the hash
   while they are unused.
+- `pillow` is declared as a dependency; it was already required by matplotlib.
+
+## [0.2.0rc1] - 2026-10-02
+
+Release candidate of 0.2.0, published to PyPI for testing. Its changes are listed under
+0.2.0; the release is identical apart from this changelog.
+
+## [0.2.0a2] - 2026-10-02
+
+Second v0.2 pre-release: real blinding with the command runner and the openpi router. Its
+changes are listed under 0.2.0.
+
+## [0.2.0a1] - 2026-10-02
+
+First v0.2 pre-release: crossover rounds, checkpoint ladders and group-sequential stopping.
+Its changes are listed under 0.2.0.
 
 ## [0.1.0] - 2026-10-02
 
@@ -173,7 +171,8 @@ First alpha: the statistics core and the calculator commands.
   reference.
 - Project skeleton: packaging, `fieldtrial --version`, CI and the documentation site.
 
-[Unreleased]: https://github.com/rokbenko/fieldtrial/compare/v0.2.0rc1...HEAD
+[Unreleased]: https://github.com/rokbenko/fieldtrial/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/rokbenko/fieldtrial/compare/v0.1.0...v0.2.0
 [0.2.0rc1]: https://github.com/rokbenko/fieldtrial/compare/v0.2.0a2...v0.2.0rc1
 [0.2.0a2]: https://github.com/rokbenko/fieldtrial/compare/v0.2.0a1...v0.2.0a2
 [0.2.0a1]: https://github.com/rokbenko/fieldtrial/compare/v0.1.0...v0.2.0a1
