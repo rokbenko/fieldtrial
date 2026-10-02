@@ -36,7 +36,10 @@ Other calls: `studies()`, `status()`, `next()`, `trial()`, `trials()`,
 for group-sequential studies `interim_status()` and `run_interim()`
 (`GET`/`POST /api/v1/studies/{study}/interim`). An interim look returns only "continue" or
 "stop", and a stop cancels the remaining trials. `run_interim()` is never retried
-automatically, because a look is not idempotent.
+automatically, because a look is not idempotent. For anytime-valid and best-arm
+selection studies, `adaptive_status()` (`GET /api/v1/studies/{study}/adaptive`) returns
+the rule, the complete blocks, whether the study stopped and the blind codes of dropped
+arms; their looks run by themselves when `complete_trial()` finishes a block.
 Errors raise `ApiError` with the HTTP `status` and a `detail` message.
 
 If the study's arms use a [switching runner](guides/runners.md), starting, stopping,

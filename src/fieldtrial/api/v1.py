@@ -18,6 +18,7 @@ from sse_starlette import EventSourceResponse, ServerSentEvent
 
 from fieldtrial.analysis import wording
 from fieldtrial.api.schemas import (
+    AdaptiveStatusOut,
     CompleteIn,
     ConsoleOut,
     EditIn,
@@ -37,6 +38,7 @@ from fieldtrial.api.schemas import (
     UndoIn,
 )
 from fieldtrial.services import ServiceError, StudyContext
+from fieldtrial.services.adaptive import adaptive_status
 from fieldtrial.services.events import events_after, latest_event_id
 from fieldtrial.services.interim import interim_status, run_interim_in
 from fieldtrial.services.registry import StudyRegistry
@@ -229,6 +231,26 @@ def interim(slug: str, reg: Registry) -> InterimStatusOut | None:
         blocks_needed=found.blocks_needed,
         due=found.due,
         stopped_at=found.stopped_at,
+    )
+
+
+@router.get("/studies/{slug}/adaptive", response_model=AdaptiveStatusOut | None)
+def adaptive(slug: str, reg: Registry) -> AdaptiveStatusOut | None:
+    """Status of a study checked after every block (anytime stopping or best-arm selection).
+
+    Null for other studies. Looks run by themselves when trials are completed; dropped arms
+    are named by blind code.
+    """
+    found = adaptive_status(reg.get(slug))
+    if found is None:
+        return None
+    return AdaptiveStatusOut(
+        rule=found.rule,
+        complete_blocks=found.complete_blocks,
+        min_blocks=found.min_blocks,
+        stopped=found.stopped,
+        dropped=list(found.dropped),
+        remaining=found.remaining,
     )
 
 

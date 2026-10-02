@@ -67,6 +67,33 @@ and stops if the [error-spending boundary](stats/sequential.md) is crossed. Run 
 `fieldtrial interim my-study` or from the console when it is due. A look reports only
 "continue" or "stop", so the study stays blinded. A stop cancels the remaining trials.
 
+To check after every block instead of at a few planned looks, use the
+[anytime-valid rule](stats/anytime.md):
+
+```yaml
+analysis:
+  stopping: {rule: anytime}      # optional: min_blocks: 10
+```
+
+Nothing needs to be run by hand: each time a trial completes a block, fieldtrial applies the
+pre-registered test and stops the study (cancelling the remaining trials) as soon as it
+rejects. It stops early on large differences, but has less power than a fixed or
+group-sequential design for small ones.
+
+**Selecting the best of several arms.** With three or more arms, for example serving
+configurations, `analysis.selection` replaces the comparison:
+
+```yaml
+analysis:
+  primary: {}
+  selection: {rule: elimination, delta: 0.05}
+```
+
+After every complete block, an arm that another arm beats with confidence is
+[dropped](stats/selection.md) and its remaining trials are cancelled; the study stops when
+one arm remains. The console names dropped arms by blind code only. The `best-arm`
+template sets this up for four serving configurations.
+
 ## 2. Lock
 
 ```console

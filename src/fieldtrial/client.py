@@ -25,6 +25,7 @@ from urllib.request import Request, urlopen
 from pydantic import BaseModel, TypeAdapter
 
 from fieldtrial.api.schemas import (
+    AdaptiveStatusOut,
     ConsoleOut,
     InterimOut,
     InterimStatusOut,
@@ -183,6 +184,11 @@ class Client:
         """Interim-look status of a group-sequential study (None for other studies)."""
         data = self._request("GET", self._study_path("/interim"))
         return None if data is None else self._as(InterimStatusOut, data)
+
+    def adaptive_status(self) -> AdaptiveStatusOut | None:
+        """Status of an anytime or best-arm selection study (None for other studies)."""
+        data = self._request("GET", self._study_path("/adaptive"))
+        return None if data is None else self._as(AdaptiveStatusOut, data)
 
     def run_interim(self) -> InterimOut:
         """Run the interim look that is due (not retried: a look is not idempotent)."""

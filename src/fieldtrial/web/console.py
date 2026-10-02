@@ -20,6 +20,7 @@ from fieldtrial.analysis import wording
 from fieldtrial.analysis.wording import fmt_rate
 from fieldtrial.report import render_html, render_markdown
 from fieldtrial.services import ServiceError, StudyContext
+from fieldtrial.services.adaptive import adaptive_status
 from fieldtrial.services.analysis import analyze_study
 from fieldtrial.services.events import latest_event_id
 from fieldtrial.services.interim import interim_status, run_interim_in
@@ -207,6 +208,7 @@ def _panel_context(
         "last_event": latest_event_id(ctx) or "",
         "idempotency_key": _key(),
         "interim": interim_status(ctx),
+        "adaptive": adaptive_status(ctx),
         "notice": notice,
         "runner": runners(request).status(slug),
         "rig_alert": _rig_alert(ctx, session_id),

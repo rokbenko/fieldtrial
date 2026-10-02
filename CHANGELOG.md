@@ -26,6 +26,10 @@ minor releases may contain breaking changes.
 - Automatic looks are recorded as `interim_look` (rule `anytime`) and `selection_look`
   events and name arms by blind code in the console; they run when a trial is completed in
   the console or the API, and in `fieldtrial simulate`, but not during CSV imports.
+- A `best-arm` template: four serving configurations with best-arm selection.
+- The console shows how many blocks an anytime or selection study has checked and which
+  blind codes were dropped; `GET /api/v1/studies/{study}/adaptive`, the client's
+  `adaptive_status()`, `fieldtrial status` and `fieldtrial simulate` report the same.
 - `Results` gains optional `anytime` and `selection` blocks and the primary methods
   `anytime` and `selection` (schema version unchanged).
 - Documentation: anytime-valid comparisons, best-arm selection, and an evaluation of STEP
