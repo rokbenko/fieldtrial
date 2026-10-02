@@ -21,7 +21,7 @@ from fieldtrial.services.rewards import (
 )
 from fieldtrial.web.console import _redirect, _registry, render
 
-router = APIRouter()
+router = APIRouter(include_in_schema=False)
 
 Text = Annotated[str, Form()]
 
