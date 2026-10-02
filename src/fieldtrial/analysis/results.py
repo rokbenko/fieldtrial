@@ -21,6 +21,8 @@ PrimaryMethod = Literal[
     "crossover",  # crossover rounds: period-adjusted difference, randomization test
     "ladder",  # checkpoint ladder without a comparison: association with training step
     "group_sequential",  # 2 arms, complete blocks, McNemar score at planned looks
+    "anytime",  # 2 arms, complete blocks, betting test checked after every block
+    "selection",  # several arms, successive elimination after every block
 ]
 
 
@@ -323,6 +325,63 @@ class SequentialSummary(_Model):
     stopped_at: int | None
 
 
+class BoundRow(_Model):
+    """A confidence-sequence interval after ``blocks`` complete blocks."""
+
+    blocks: int
+    low: float
+    high: float
+
+
+class AnytimeSummary(_Model):
+    """Anytime-valid stopping: the test after every complete block.
+
+    ``rejected_at`` is the first block count at which the data reject the null;
+    ``stopped_at`` the block count at which the study was stopped (from the recorded look).
+    """
+
+    min_blocks: int
+    planned_blocks: int
+    blocks: int
+    rejected_at: int | None
+    stopped_at: int | None
+    capital: float
+    sequence: list[BoundRow]
+
+
+class EliminationRow(_Model):
+    """An arm dropped after ``block`` because ``by`` beat it with confidence."""
+
+    arm: str
+    block: int
+    by: str
+
+
+class PairRow(_Model):
+    """Confidence sequence of ``first - second`` on the blocks that ran both arms."""
+
+    first: str
+    second: str
+    blocks: int
+    estimate: float | None
+    low: float
+    high: float
+
+
+class SelectionSummary(_Model):
+    """Best-arm selection by successive elimination."""
+
+    delta: float
+    min_blocks: int
+    planned_blocks: int
+    blocks: int
+    survivors: list[str]
+    best: str | None
+    eliminations: list[EliminationRow]
+    pairs: list[PairRow]
+    stopped: bool
+
+
 class RunnerSummary(_Model):
     """What the runner measured for one arm (descriptive; not a test).
 
@@ -404,6 +463,8 @@ class Results(_Model):
     ladder: LadderResult | None = None
     crossover: CrossoverSummary | None = None
     sequential: SequentialSummary | None = None
+    anytime: AnytimeSummary | None = None
+    selection: SelectionSummary | None = None
     runner: list[RunnerSummary] = Field(default_factory=list)
     rig_checks: list[RigCheckRow] = Field(default_factory=list)
     episodes: list[EpisodeSummary] = Field(default_factory=list)

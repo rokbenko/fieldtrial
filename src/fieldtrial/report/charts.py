@@ -226,7 +226,9 @@ def time_curves(results: Results) -> str | None:
 def forest(results: Results) -> str | None:
     """Differences against the control with confidence intervals (primary and sensitivity)."""
     primary = results.primary
-    kind = "repeated CI" if primary.method == "group_sequential" else "paired"
+    kind = {"group_sequential": "repeated CI", "anytime": "confidence sequence"}.get(
+        primary.method, "paired"
+    )
     rows: list[tuple[str, float, float, float, str]] = [
         (f"{w.treatment} vs {w.control} ({kind})", w.difference, w.ci.low, w.ci.high, INK)
         for w in primary.pairwise
@@ -439,9 +441,77 @@ def crossover_rounds(results: Results) -> str | None:
     return _svg(fig, "Success rate per crossover round")
 
 
+def _pp_axis(ax: "Axes", axis: str = "y") -> None:
+    from matplotlib.ticker import FuncFormatter
+
+    fmt = FuncFormatter(lambda v, _pos: "0 pp" if round(v * 100) == 0 else f"{v * 100:+.0f} pp")
+    (ax.yaxis if axis == "y" else ax.xaxis).set_major_formatter(fmt)
+
+
+def confidence_sequence(results: Results) -> str | None:
+    """The anytime-valid confidence sequence for the paired difference, block by block."""
+    anytime = results.anytime
+    if anytime is None or not anytime.sequence:
+        return None
+    blocks = [row.blocks for row in anytime.sequence]
+    fig = _figure(2.6)
+    ax = fig.add_subplot()
+    _style(ax)
+    ax.fill_between(
+        blocks,
+        [row.low for row in anytime.sequence],
+        [row.high for row in anytime.sequence],
+        step="post",
+        color=GRID,
+        label="Confidence sequence",
+    )
+    ax.axhline(0, color=INK, linewidth=1)
+    if anytime.stopped_at:
+        ax.axvline(anytime.stopped_at, color="#6b7280", linestyle="--", linewidth=1)
+    ax.set_ylim(-1.02, 1.02)
+    _pp_axis(ax)
+    ax.set_xlabel("Complete blocks")
+    ax.set_ylabel("Difference in success rate")
+    return _svg(fig, "Anytime-valid confidence sequence by block")
+
+
+def selection_pairs(results: Results) -> str | None:
+    """Confidence sequences for every pair of arms at the end of best-arm selection."""
+    selection = results.selection
+    if selection is None or not selection.pairs:
+        return None
+    rows = [p for p in selection.pairs if p.blocks]
+    if not rows:
+        return None
+    fig = _figure(0.45 * len(rows) + 1.0)
+    ax = fig.add_subplot()
+    _style(ax)
+    for y, pair in enumerate(reversed(rows)):
+        mid = pair.estimate if pair.estimate is not None else (pair.low + pair.high) / 2
+        ax.errorbar(
+            mid,
+            y,
+            xerr=[[mid - pair.low], [pair.high - mid]],
+            fmt="s",
+            color=INK,
+            capsize=4,
+            elinewidth=2,
+        )
+    ax.axvline(0, color=INK, linewidth=1)
+    ax.set_yticks(range(len(rows)), [f"{p.first} − {p.second}" for p in reversed(rows)])
+    ax.set_ylim(-0.6, len(rows) - 0.4)
+    ax.set_xlim(-1.05, 1.05)
+    _pp_axis(ax, "x")
+    ax.set_xlabel("Difference in success rate (confidence sequence)")
+    ax.grid(axis="y", visible=False)
+    return _svg(fig, "Pairwise confidence sequences of best-arm selection")
+
+
 CHARTS: tuple[tuple[str, str, Any], ...] = (
     ("rates", "Success rate per arm", success_rates),
     ("forest", "Differences against the control", forest),
+    ("confseq", "Anytime-valid confidence sequence", confidence_sequence),
+    ("pairs", "Best-arm selection pairs", selection_pairs),
     ("ladder", "Success by training step", ladder_rates),
     ("rounds", "Success per crossover round", crossover_rounds),
     ("stages", "Furthest stage reached", stage_stacks),

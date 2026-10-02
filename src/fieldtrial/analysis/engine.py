@@ -41,12 +41,14 @@ from scipy import stats as sp_stats
 
 from fieldtrial import __version__
 from fieldtrial.analysis import wording
+from fieldtrial.analysis.adaptive import anytime_final, selection_final
 from fieldtrial.analysis.common import LEVEL, ci_model, num
 from fieldtrial.analysis.crossover import crossover_analysis
 from fieldtrial.analysis.ladder import ladder_analysis
 from fieldtrial.analysis.records import StudyContextInfo, TrialRecord
 from fieldtrial.analysis.results import (
     CI,
+    AnytimeSummary,
     ArmSummary,
     ConditionCell,
     ConditionRow,
@@ -64,6 +66,7 @@ from fieldtrial.analysis.results import (
     Results,
     RigCheckRow,
     RunnerSummary,
+    SelectionSummary,
     SequentialSummary,
     SessionRow,
     StageComparison,
@@ -72,7 +75,7 @@ from fieldtrial.analysis.results import (
     StudyInfo,
     TimingSummary,
 )
-from fieldtrial.analysis.sequential import final_analysis
+from fieldtrial.analysis.sequential import complete_pairs, final_analysis
 from fieldtrial.design import StudySpec
 from fieldtrial.design import conditions as design_conditions
 from fieldtrial.stats import (
@@ -106,6 +109,8 @@ class _Extras:
     ladder: LadderResult | None = None
     crossover: CrossoverSummary | None = None
     sequential: SequentialSummary | None = None
+    anytime: AnytimeSummary | None = None
+    selection: SelectionSummary | None = None
     notes: list[str] = field(default_factory=list)
 
 
@@ -246,6 +251,8 @@ def _primary(
 
     if spec.design.type == "crossover_rounds":
         return _primary_crossover(data, summary, extras)
+    if spec.analysis.selection is not None:
+        return _primary_selection(data, info, summary, extras)
     if primary.comparison is None:
         return _primary_ladder(data, summary, extras)
     treatment, control = primary.comparison.treatment, primary.comparison.control
@@ -361,6 +368,8 @@ def _primary(
         method = "cochran_q"
     if spec.analysis.stopping.rule == "group_sequential":
         return _primary_sequential(data, info, summary, extras, blocks, excluded, rate_ci)
+    if spec.analysis.stopping.rule == "anytime":
+        return _primary_anytime(data, info, summary, extras, excluded, rate_ci)
     if not blocks:
         summary.append(wording.no_data("the paired comparison"))
         return PrimaryResult(
@@ -594,6 +603,175 @@ def _primary_sequential(
         rejected=rejected,
         pairwise=[pair],
         mde_pp=mde_pp,
+        **base,  # type: ignore[arg-type]
+    )
+
+
+def _primary_anytime(
+    data: _Data,
+    info: StudyContextInfo,
+    summary: list[str],
+    extras: _Extras,
+    excluded: int,
+    rate_ci: Callable[[int, int], tuple[float, float]],
+) -> PrimaryResult:
+    spec = data.spec
+    primary = spec.analysis.primary
+    assert primary.comparison is not None
+    treatment, control = primary.comparison.treatment, primary.comparison.control
+    description = (
+        f"Anytime-valid comparison of {treatment} vs {control}: a betting test of the paired "
+        "block differences, checked after every complete block, with an anytime-valid "
+        "p-value and a confidence sequence for the paired difference."
+    )
+    base: dict[str, object] = {"alternative": primary.alternative, "alpha": primary.alpha}
+    outcome = anytime_final(spec, data.records, info.interim_looks)
+    if outcome is None:
+        summary.append(wording.no_data("the anytime-valid comparison"))
+        return PrimaryResult(
+            method="anytime",
+            test="betting_paired",
+            description=description,
+            treatment=treatment,
+            control=control,
+            n_used=0,
+            blocks_excluded=excluded,
+            estimate=None,
+            estimate_kind="difference",
+            ci=None,
+            statistic=None,
+            pvalue=None,
+            rejected=False,
+            **base,  # type: ignore[arg-type]
+        )
+    extras.anytime = outcome.summary
+    extras.notes.extend(outcome.notes)
+    res = outcome.result
+    seq = outcome.summary
+    if seq.stopped_at is not None:
+        summary.append(wording.anytime_stop(blocks=seq.stopped_at, planned=seq.planned_blocks))
+    used = set(range(1, seq.blocks + 1))
+    pairs = {b: o for b, o in complete_pairs(data.records, treatment, control).items() if b in used}
+    n = len(pairs)
+    kt = sum(t for t, _ in pairs.values())
+    kc = sum(c for _, c in pairs.values())
+    b = sum(t and not c for t, c in pairs.values())
+    c = sum(c and not t for t, c in pairs.values())
+    interval = res.sequence.interval()
+    ci = CI(low=interval.low, high=interval.high, level=interval.level, method=interval.method)
+    rejected = res.rejected_at is not None
+    pvalue = res.test.pvalue
+    summary.append(
+        wording.difference(
+            treatment=treatment,
+            control=control,
+            k1=kt,
+            n1=n,
+            ci1=rate_ci(kt, n),
+            k2=kc,
+            n2=n,
+            diff=res.estimate,
+            ci=(ci.low, ci.high),
+            test="betting_paired",
+            pvalue=pvalue,
+            rejected=rejected,
+            mde_pp=None,
+            level=ci.level,
+            power_note=wording.ANYTIME_POWER,
+        )
+    )
+    summary.append(wording.anytime_note(blocks=n))
+    pair = Pairwise(
+        treatment=treatment,
+        control=control,
+        n_pairs=n,
+        b=b,
+        c=c,
+        difference=res.estimate,
+        ci=ci,
+        pvalue=pvalue,
+        adjusted_pvalue=pvalue,
+        rejected=rejected,
+    )
+    return PrimaryResult(
+        method="anytime",
+        test="betting_paired",
+        description=description,
+        treatment=treatment,
+        control=control,
+        n_used=n,
+        blocks_excluded=excluded,
+        estimate=res.estimate,
+        estimate_kind="difference",
+        ci=ci,
+        statistic=res.test.statistic,
+        pvalue=pvalue,
+        rejected=rejected,
+        pairwise=[pair],
+        **base,  # type: ignore[arg-type]
+    )
+
+
+def _primary_selection(
+    data: _Data, info: StudyContextInfo, summary: list[str], extras: _Extras
+) -> PrimaryResult:
+    spec = data.spec
+    selection = spec.analysis.selection
+    assert selection is not None
+    description = (
+        f"Best-arm selection over {len(data.arm_ids)} arms by successive elimination on "
+        "paired block differences (betting confidence sequences, union bound over all "
+        f"pairs, δ = {selection.delta:g}), checked after every complete block."
+    )
+    base: dict[str, object] = {
+        "alternative": "two-sided",
+        "alpha": selection.delta,
+    }
+    outcome = selection_final(spec, data.records, info.selection_looks)
+    if outcome is None:
+        summary.append(wording.no_data("best-arm selection"))
+        return PrimaryResult(
+            method="selection",
+            test="elimination",
+            description=description,
+            treatment=None,
+            control=None,
+            n_used=0,
+            blocks_excluded=0,
+            estimate=None,
+            estimate_kind="difference",
+            ci=None,
+            statistic=None,
+            pvalue=None,
+            rejected=False,
+            **base,  # type: ignore[arg-type]
+        )
+    extras.selection = outcome.summary
+    extras.notes.extend(outcome.notes)
+    sel = outcome.summary
+    summary.append(
+        wording.selection(
+            survivors=sel.survivors,
+            eliminations=[(e.arm, e.block) for e in sel.eliminations],
+            blocks=sel.blocks,
+            planned=sel.planned_blocks,
+            delta=sel.delta,
+        )
+    )
+    return PrimaryResult(
+        method="selection",
+        test="elimination",
+        description=description,
+        treatment=sel.best,
+        control=None,
+        n_used=sel.blocks,
+        blocks_excluded=0,
+        estimate=None,
+        estimate_kind="difference",
+        ci=None,
+        statistic=None,
+        pvalue=None,
+        rejected=sel.best is not None,
         **base,  # type: ignore[arg-type]
     )
 
@@ -1216,6 +1394,8 @@ def analyze(
         ladder=extras.ladder,
         crossover=extras.crossover,
         sequential=extras.sequential,
+        anytime=extras.anytime,
+        selection=extras.selection,
         runner=_runner(data),
         rig_checks=rig_rows,
         episodes=_episodes(data),

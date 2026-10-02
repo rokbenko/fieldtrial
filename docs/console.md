@@ -70,6 +70,11 @@ planned interim look is due. **Run interim look** shows only "continue" or "stop
 study stays blinded. After a stop, the remaining trials are cancelled and the console
 points to the report.
 
+**Anytime stopping and best-arm selection** need no button: completing a trial that
+finishes a block runs the check. A line above the trial says how many blocks are complete
+and, in a selection study, which blind codes have been dropped. When the study stops, the
+console says so and points to the report.
+
 ## Keys and foot pedals
 
 | Action | Default key |

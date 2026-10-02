@@ -19,6 +19,8 @@ closed forms or brute-force enumeration).
 | Does success change with training step? Where does it level off? | Cochran–Armitage / Mantel trend, fixed-sequence non-inferiority | [Checkpoint ladders](ladders.md) |
 | The scene carries over between trials? | Two-period crossover of whole rounds, exact randomization test | [Crossover rounds](crossover.md) |
 | Can I stop early? | Lan–DeMets error spending, stage-wise p-values | [Group-sequential stopping](sequential.md) |
+| Can I look after every block? | Betting confidence sequences, anytime-valid p-values | [Anytime-valid comparisons](anytime.md) |
+| Which of several configurations is best? | Successive elimination with confidence sequences | [Best-arm selection](selection.md) |
 | How many rollouts do I need? What can I detect? | Sample size, power, MDE, exact power | [Planning](planning.md) |
 | How sure am I that B beats A? | Posterior probability (descriptive only) | [Bayesian summaries](bayes.md) |
 

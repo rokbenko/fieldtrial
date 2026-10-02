@@ -1,0 +1,46 @@
+# fieldtrial study: several serving configurations, pick the best by successive elimination.
+# After every complete block, a configuration that another one beats with confidence is
+# dropped and its remaining trials are cancelled; the study stops when one remains.
+# See docs/stats/selection.md.
+fieldtrial: 1
+name: __NAME__
+title: "Best serving configuration"
+
+rubric:
+  stages:
+    - {id: reach, label: "Reached the object"}
+    - {id: grasp, label: "Stable grasp"}
+    - {id: done,  label: "Task completed"}
+  success: done
+  failure_tags: [jitter, timeout, collision]
+
+arms:
+  - id: q30
+    policy: {path: outputs/model/pretrained_model}
+    serving: {inference.type: rtc, inference.queue_threshold: 30}
+  - id: q50
+    policy: {path: outputs/model/pretrained_model}
+    serving: {inference.type: rtc, inference.queue_threshold: 50}
+  - id: q70
+    policy: {path: outputs/model/pretrained_model}
+    serving: {inference.type: rtc, inference.queue_threshold: 70}
+  - id: sync
+    policy: {path: outputs/model/pretrained_model}
+    serving: {inference.type: sync}
+
+conditions:
+  factors:
+    object: {values: [cup, bowl, box]}
+    position: {range: [1, 30]}
+  replicates: 1
+
+design:
+  type: randomized_block
+  order: random
+  blinding: operator
+  seed: 20261003
+
+analysis:
+  primary: {}
+  selection: {rule: elimination, delta: 0.05}
+  secondary: [stage_reached, time_to_success]

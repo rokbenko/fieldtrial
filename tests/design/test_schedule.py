@@ -175,6 +175,21 @@ def test_v01_design_hashes_are_unchanged(template: str, expected: str) -> None:
     assert design_hash(parse_study(text).spec) == expected
 
 
+def test_v02_design_hashes_are_unchanged() -> None:
+    # Computed with fieldtrial 0.2.0 from PyPI; v0.3 added stopping.min_blocks and
+    # analysis.selection, which must stay out of the hash of a 0.2 design.
+    sequential = template_text("basic", "seq").replace(
+        "  stopping: {rule: fixed}", "  stopping: {rule: group_sequential, looks: 4}", 1
+    )
+    assert design_hash(parse_study(sequential).spec) == (
+        "dfa3292bcb924f9a06731e86d8bea3ef413cb0c82cbf6194f4516633a40be1ac"
+    )
+    crossover = template_text("crossover-rounds", "cr")
+    assert design_hash(parse_study(crossover).spec) == (
+        "1836d705c5d6c21eb9552a18e8c2ac418db013beb39be1193611243e20ee9a84"
+    )
+
+
 def test_new_fields_change_the_hash() -> None:
     base = design_hash(parse_study(BASIC).spec)
     sequential = BASIC.replace(

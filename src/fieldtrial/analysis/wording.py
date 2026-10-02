@@ -36,6 +36,7 @@ TEST_LABELS = {
     "crossover_randomization": "randomization test",
     "hills_armitage_t": "Hills–Armitage t-test",
     "group_sequential": "group-sequential McNemar",
+    "betting_paired": "anytime-valid betting test",
 }
 
 SPENDING_LABELS = {"obrien_fleming": "O'Brien–Fleming", "pocock": "Pocock"}
@@ -141,6 +142,7 @@ def difference(
     mde_pp: float | None,
     level: float = 0.95,
     note: str = "",
+    power_note: str | None = None,
 ) -> str:
     """A two-arm comparison of success rates.
 
@@ -152,6 +154,8 @@ def difference(
     least X pp.``
 
     ``note`` is appended after the p-value, for example ``", Holm-adjusted"``.
+    ``power_note`` replaces the fixed-design power statement after a non-significant
+    result (anytime-valid designs, whose power differs).
     """
     interval = f"{fmt_level(level)} CI {fmt_signed(ci[0])} to {fmt_signed(ci[1])}"
     if rejected:
@@ -163,7 +167,8 @@ def difference(
     else:
         text = (
             f"No significant difference detected: {fmt_pp(diff)} ({interval}; "
-            f"{fmt_p_eq(pvalue)}{note}). {no_difference_power(n1, n2, mde_pp)}"
+            f"{fmt_p_eq(pvalue)}{note}). "
+            f"{power_note if power_note is not None else no_difference_power(n1, n2, mde_pp)}"
         )
     return check(text)
 
@@ -398,3 +403,88 @@ def rig_drift(checked_at: object, reasons: list[str]) -> str:
     when = checked_at.strftime("%Y-%m-%d %H:%M") if hasattr(checked_at, "strftime") else checked_at
     detail = "; ".join(reasons) or "the rig differs from its reference photo"
     return check(f"Rig check on {when} UTC differs from the reference photo: {detail}.")
+
+
+def anytime_stop(*, blocks: int, planned: int) -> str:
+    """A study stopped by its anytime-valid test."""
+    return check(
+        f"The study stopped after {blocks} of {planned} planned blocks because the "
+        "pre-registered anytime-valid test rejected the null hypothesis."
+    )
+
+
+def anytime_note(*, blocks: int) -> str:
+    """How the p-value and interval of an anytime-valid study were computed."""
+    return check(
+        f"Anytime-valid design checked after every block ({blocks} complete): the p-value is "
+        "anytime-valid and the interval is a confidence sequence, both valid whenever the "
+        "study stopped."
+    )
+
+
+ANYTIME_POWER = (
+    "An anytime-valid test needs more blocks than a fixed design to detect the same "
+    "difference; see the confidence sequence for the differences still compatible with "
+    "the data."
+)
+
+
+def anytime_look(blocks: int) -> str:
+    """What the console says when an anytime study stops (while blinded)."""
+    return check(
+        f"After {blocks} complete blocks the pre-registered anytime-valid test rejected the "
+        "null hypothesis. The remaining trials are cancelled; unblind to see the results."
+    )
+
+
+def _elimination_list(eliminations: list[tuple[str, int]]) -> str:
+    return ", ".join(f"{arm} after block {block}" for arm, block in eliminations)
+
+
+def selection(
+    *,
+    survivors: list[str],
+    eliminations: list[tuple[str, int]],
+    blocks: int,
+    planned: int,
+    delta: float,
+) -> str:
+    """The result of best-arm selection by successive elimination.
+
+    An arm is called the highest only when it is the single survivor.
+    """
+    method = f"successive elimination, δ = {delta:g}"
+    dropped = _elimination_list(eliminations)
+    if len(survivors) == 1:
+        return check(
+            f"Selected arm: {survivors[0]}. Every other arm was dropped because another arm "
+            f"had a higher success rate with confidence ({method}): {dropped}. With "
+            f"probability at least {fmt_rate(1 - delta)}, {survivors[0]} has the highest "
+            f"success rate."
+        )
+    names = ", ".join(survivors)
+    if not eliminations:
+        return check(
+            f"No arm could be singled out after {blocks} of {planned} planned blocks: "
+            f"{names} could not be told apart ({method})."
+        )
+    return check(
+        f"No single arm could be selected after {blocks} of {planned} planned blocks: "
+        f"{names} could not be told apart ({method}). Dropped: {dropped}."
+    )
+
+
+def selection_look(dropped: list[str], remaining: int) -> str:
+    """What the console says when arms are dropped (by blind code, while blinded)."""
+    names = ", ".join(dropped)
+    plural = "s" if len(dropped) != 1 else ""
+    if remaining <= 1:
+        return check(
+            f"Arm{plural} {names} dropped; one arm remains, so the study is complete. "
+            "Unblind to see the results."
+        )
+    return check(
+        f"Arm{plural} {names} dropped: another arm had a higher success rate with "
+        f"confidence. {'Their' if plural else 'Its'} remaining trials are cancelled; "
+        f"{remaining} arms continue."
+    )

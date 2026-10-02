@@ -27,6 +27,28 @@ arms:
 The analysis is the same as for a [checkpoint ladder](checkpoint-ladders.md): Cochran's Q,
 then each setting against the control with Holm's adjustment.
 
+## Picking the best setting
+
+If the question is "which setting is best?" rather than "does each setting differ from the
+default?", use best-arm selection:
+
+```console
+$ fieldtrial init sweep --template best-arm
+```
+
+```yaml
+analysis:
+  primary: {}
+  selection: {rule: elimination, delta: 0.05}
+```
+
+After every complete block, a setting that another setting beats with confidence is
+dropped and its remaining trials are cancelled, which saves rollouts on settings that are
+clearly out of contention. The study stops when one setting remains; that setting is the
+best with probability at least 1 − δ. Settings within a few points of each other usually all
+survive, and the report says that they could not be told apart. See
+[best-arm selection](../stats/selection.md) for how many blocks this takes.
+
 ## Lessons from a published sweep
 
 The [Dream Machines re-analysis](https://github.com/rokbenko/fieldtrial/tree/main/examples/dream-machines-pi05)

@@ -353,6 +353,84 @@
         }
       }
     },
+    "/api/v1/studies/{slug}/adaptive": {
+      "get": {
+        "summary": "Adaptive",
+        "description": "Status of a study checked after every block (anytime stopping or best-arm selection).\n\nNull for other studies. Looks run by themselves when trials are completed; dropped arms\nare named by blind code.",
+        "operationId": "adaptive_api_v1_studies__slug__adaptive_get",
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Slug"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/AdaptiveStatusOut"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "title": "Response Adaptive Api V1 Studies  Slug  Adaptive Get"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/studies/{slug}/sessions": {
       "post": {
         "summary": "Create Session",
@@ -1656,6 +1734,48 @@
   },
   "components": {
     "schemas": {
+      "AdaptiveStatusOut": {
+        "properties": {
+          "rule": {
+            "type": "string",
+            "title": "Rule"
+          },
+          "complete_blocks": {
+            "type": "integer",
+            "title": "Complete Blocks"
+          },
+          "min_blocks": {
+            "type": "integer",
+            "title": "Min Blocks"
+          },
+          "stopped": {
+            "type": "boolean",
+            "title": "Stopped"
+          },
+          "dropped": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Dropped"
+          },
+          "remaining": {
+            "type": "integer",
+            "title": "Remaining"
+          }
+        },
+        "type": "object",
+        "required": [
+          "rule",
+          "complete_blocks",
+          "min_blocks",
+          "stopped",
+          "dropped",
+          "remaining"
+        ],
+        "title": "AdaptiveStatusOut",
+        "description": "An anytime or best-arm selection study, checked after every block. Blind codes only."
+      },
       "Body_media_api_v1_studies__slug__trials__trial_id__media_post": {
         "properties": {
           "file": {

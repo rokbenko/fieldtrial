@@ -78,7 +78,8 @@ local and works offline; fieldtrial sends no telemetry.
   - randomized complete blocks with balanced arm order
   - crossover rounds for tasks whose scene carries over
   - checkpoint ladders
-  - planned interim looks with early stopping
+  - planned interim looks, or anytime-valid checks after every block, with early stopping
+  - best-arm selection among serving configurations by successive elimination
   - blind codes, a design hash, locking and logged amendments
 - **Real blinding:** a command runner that launches your rollout command for each arm,
   and an openpi router that sends each trial's requests to that arm's policy server.
@@ -90,7 +91,7 @@ local and works offline; fieldtrial sends no telemetry.
   interventions).
 - **Analysis:** the primary test follows from the locked design:
   - exact McNemar with a Tango interval, Cochran–Mantel–Haenszel, or Cochran's Q with Holm
-  - group-sequential boundaries
+  - group-sequential boundaries, and anytime-valid confidence sequences
   - the association of success with training step, and plateau detection
   - a period-adjusted crossover test
 

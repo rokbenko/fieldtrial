@@ -64,12 +64,22 @@ These notes come from reading the LeRobot 0.6.1 source; nothing was measured on 
 
 ## v0.3
 
-- In-process LeRobot runner.
-- Reward-model pre-labeling (Robometer, TOPReward) with human confirmation and agreement
-  tracking.
-- Proxy-assisted intervals using prediction-powered inference.
-- Serving-config sweeps with best-arm identification.
-- Near-optimal sequential comparison (evaluate Snyder et al., RSS 2025).
+| Milestone | Scope | Status |
+|---|---|---|
+| M8 | Anytime-valid comparisons and best-arm selection for serving sweeps; STEP evaluation | done |
+| M9 | Reward-model pre-labels with blind human review, Cohen's κ, proxy-assisted (PPI++) intervals | planned |
+| M10 | In-process LeRobot runner (release 0.3.0) | planned |
+
+Limits of M8, to revisit later:
+
+- Anytime-valid stopping supports 2 arms in randomized blocks with one replicate, like
+  group-sequential stopping. A non-inferiority margin exists in `fieldtrial.stats`
+  (`paired_anytime_test(null=...)`) but not yet in `study.yaml`.
+- Best-arm selection needs every surviving arm in every block (`replicates: 1`) and drops an
+  arm only on a pairwise confidence sequence; an indifference zone (stop when the leader is
+  within ε of the others) could end sweeps sooner.
+- STEP (Snyder et al., RSS 2025) is not ported: its code is CC BY-NC 4.0 and may be
+  covered by patents (see `docs/stats/step-evaluation.md`).
 
 ## Deferred to the milestone that needs them
 

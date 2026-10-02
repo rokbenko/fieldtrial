@@ -12,6 +12,8 @@ design, and nothing is chosen after seeing the data.
 | `randomized_block`, 2 arms, several replicates | [Cochran–Mantel–Haenszel test](stats/stratified.md) stratified by condition; reports the Mantel–Haenszel odds ratio |
 | `randomized_block`, more than 2 arms | [Cochran's Q](stats/paired.md) on complete blocks, then each arm vs the control with exact McNemar tests and the pre-registered `multiplicity` adjustment (Holm by default) |
 | `randomized_block`, 2 arms, `stopping: group_sequential` | [Group-sequential](stats/sequential.md) McNemar score statistic at the planned looks; stage-wise p-value and a repeated confidence interval |
+| `randomized_block`, 2 arms, `stopping: anytime` | [Anytime-valid betting test](stats/anytime.md) of the paired block differences after every block; anytime-valid p-value and confidence sequence |
+| `randomized_block` with `analysis.selection` | [Best-arm selection](stats/selection.md) by successive elimination; names a selected arm only when one survives |
 | `randomized_block` with `analysis.ladder` and no `comparison` | [Mantel's test](stats/ladders.md) of a linear association between training step and success, stratified by condition |
 | `crossover_rounds` | [Period-adjusted difference](stats/crossover.md) over cycles of whole rounds, exact randomization test and interval |
 | `single_arm` with `threshold` | [Exact binomial test](stats/intervals.md) against the threshold |
@@ -43,6 +45,11 @@ pre-registered secondary analysis alongside one.
 In a group-sequential study, the report lists every look with its information fraction,
 statistic and boundary. Looks that were planned but not run, and interim decisions that
 no longer reproduce because labels were edited later, are listed as deviations.
+
+An anytime-valid study shows its confidence sequence block by block, and the block at
+which it stopped. A best-arm selection lists the dropped arms, the block after which each
+was dropped and the arm that beat it, and the confidence sequence of every pair. If edited
+labels no longer reproduce a recorded stop or elimination, that is listed as a deviation.
 
 ## Sensitivity analysis
 

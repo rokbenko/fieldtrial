@@ -1,5 +1,67 @@
 {
   "$defs": {
+    "AnytimeSummary": {
+      "additionalProperties": false,
+      "description": "Anytime-valid stopping: the test after every complete block.\n\n``rejected_at`` is the first block count at which the data reject the null;\n``stopped_at`` the block count at which the study was stopped (from the recorded look).",
+      "properties": {
+        "min_blocks": {
+          "title": "Min Blocks",
+          "type": "integer"
+        },
+        "planned_blocks": {
+          "title": "Planned Blocks",
+          "type": "integer"
+        },
+        "blocks": {
+          "title": "Blocks",
+          "type": "integer"
+        },
+        "rejected_at": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Rejected At"
+        },
+        "stopped_at": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Stopped At"
+        },
+        "capital": {
+          "title": "Capital",
+          "type": "number"
+        },
+        "sequence": {
+          "items": {
+            "$ref": "#/$defs/BoundRow"
+          },
+          "title": "Sequence",
+          "type": "array"
+        }
+      },
+      "required": [
+        "min_blocks",
+        "planned_blocks",
+        "blocks",
+        "rejected_at",
+        "stopped_at",
+        "capital",
+        "sequence"
+      ],
+      "title": "AnytimeSummary",
+      "type": "object"
+    },
     "ArmSummary": {
       "additionalProperties": false,
       "description": "Per-arm counts. ``rate`` and ``ci`` are ``None`` when the arm has no completed trial.",
@@ -68,6 +130,31 @@
         "ci"
       ],
       "title": "ArmSummary",
+      "type": "object"
+    },
+    "BoundRow": {
+      "additionalProperties": false,
+      "description": "A confidence-sequence interval after ``blocks`` complete blocks.",
+      "properties": {
+        "blocks": {
+          "title": "Blocks",
+          "type": "integer"
+        },
+        "low": {
+          "title": "Low",
+          "type": "number"
+        },
+        "high": {
+          "title": "High",
+          "type": "number"
+        }
+      },
+      "required": [
+        "blocks",
+        "low",
+        "high"
+      ],
+      "title": "BoundRow",
       "type": "object"
     },
     "CI": {
@@ -292,6 +379,31 @@
         "small_expected"
       ],
       "title": "DriftCheck",
+      "type": "object"
+    },
+    "EliminationRow": {
+      "additionalProperties": false,
+      "description": "An arm dropped after ``block`` because ``by`` beat it with confidence.",
+      "properties": {
+        "arm": {
+          "title": "Arm",
+          "type": "string"
+        },
+        "block": {
+          "title": "Block",
+          "type": "integer"
+        },
+        "by": {
+          "title": "By",
+          "type": "string"
+        }
+      },
+      "required": [
+        "arm",
+        "block",
+        "by"
+      ],
+      "title": "EliminationRow",
       "type": "object"
     },
     "EpisodeSummary": {
@@ -660,6 +772,53 @@
       "title": "LookRow",
       "type": "object"
     },
+    "PairRow": {
+      "additionalProperties": false,
+      "description": "Confidence sequence of ``first - second`` on the blocks that ran both arms.",
+      "properties": {
+        "first": {
+          "title": "First",
+          "type": "string"
+        },
+        "second": {
+          "title": "Second",
+          "type": "string"
+        },
+        "blocks": {
+          "title": "Blocks",
+          "type": "integer"
+        },
+        "estimate": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Estimate"
+        },
+        "low": {
+          "title": "Low",
+          "type": "number"
+        },
+        "high": {
+          "title": "High",
+          "type": "number"
+        }
+      },
+      "required": [
+        "first",
+        "second",
+        "blocks",
+        "estimate",
+        "low",
+        "high"
+      ],
+      "title": "PairRow",
+      "type": "object"
+    },
     "Pairwise": {
       "additionalProperties": false,
       "description": "One arm compared with another inside the primary analysis.",
@@ -780,7 +939,9 @@
             "descriptive",
             "crossover",
             "ladder",
-            "group_sequential"
+            "group_sequential",
+            "anytime",
+            "selection"
           ],
           "title": "Method",
           "type": "string"
@@ -1204,6 +1365,77 @@
         "trials"
       ],
       "title": "RunnerSummary",
+      "type": "object"
+    },
+    "SelectionSummary": {
+      "additionalProperties": false,
+      "description": "Best-arm selection by successive elimination.",
+      "properties": {
+        "delta": {
+          "title": "Delta",
+          "type": "number"
+        },
+        "min_blocks": {
+          "title": "Min Blocks",
+          "type": "integer"
+        },
+        "planned_blocks": {
+          "title": "Planned Blocks",
+          "type": "integer"
+        },
+        "blocks": {
+          "title": "Blocks",
+          "type": "integer"
+        },
+        "survivors": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Survivors",
+          "type": "array"
+        },
+        "best": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Best"
+        },
+        "eliminations": {
+          "items": {
+            "$ref": "#/$defs/EliminationRow"
+          },
+          "title": "Eliminations",
+          "type": "array"
+        },
+        "pairs": {
+          "items": {
+            "$ref": "#/$defs/PairRow"
+          },
+          "title": "Pairs",
+          "type": "array"
+        },
+        "stopped": {
+          "title": "Stopped",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "delta",
+        "min_blocks",
+        "planned_blocks",
+        "blocks",
+        "survivors",
+        "best",
+        "eliminations",
+        "pairs",
+        "stopped"
+      ],
+      "title": "SelectionSummary",
       "type": "object"
     },
     "SequentialSummary": {
@@ -1794,6 +2026,28 @@
       "anyOf": [
         {
           "$ref": "#/$defs/SequentialSummary"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "anytime": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/AnytimeSummary"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "selection": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/SelectionSummary"
         },
         {
           "type": "null"

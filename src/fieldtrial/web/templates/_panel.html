@@ -9,6 +9,12 @@
   {% if runner and runner.message %}<p class="runner muted" role="status">Runner: {{ runner.message }}</p>{% endif %}
   {% if rig_alert %}<p class="notice" role="alert">{{ rig_alert }}</p>{% endif %}
   {% if notice %}<p class="notice" role="status">{{ notice }}</p>{% endif %}
+  {% if adaptive and not adaptive.stopped %}
+  <p class="muted adaptive" role="status">
+    {% if adaptive.rule == "anytime" %}Checked after every block: {{ adaptive.complete_blocks }} complete. The study stops by itself when the pre-registered test decides.
+    {% else %}Best-arm selection: {{ adaptive.complete_blocks }} complete blocks, {{ adaptive.remaining }} arms running{% if adaptive.dropped %}; dropped: {{ adaptive.dropped | join(", ") }} (their remaining trials are cancelled){% endif %}.{% endif %}
+  </p>
+  {% endif %}
   {% if interim and interim.due and not state.running %}
   <div class="notice interim" role="status">
     <p><strong>Interim look {{ interim.next_look }} of {{ interim.planned_looks }} is due</strong>
@@ -99,6 +105,15 @@
     <p class="waiting">Waiting to start</p>
     {% endif %}
 
+  {% elif adaptive and adaptive.stopped %}
+    {% if adaptive.rule == "anytime" %}
+    <h2 class="done">The study stopped after {{ adaptive.complete_blocks }} blocks.</h2>
+    <p>The pre-registered anytime-valid test decided, so the remaining trials were cancelled. Unblind on the report page to see the results.</p>
+    {% else %}
+    <h2 class="done">One arm remains, so the study is complete.</h2>
+    <p>Dropped: {{ adaptive.dropped | join(", ") }}. Unblind on the report page to see which arm was selected.</p>
+    {% endif %}
+    <p><a class="button primary" href="/studies/{{ slug }}/report">Go to the report</a></p>
   {% elif interim and interim.stopped_at %}
     <h2 class="done">The study stopped at interim look {{ interim.stopped_at }}.</h2>
     <p>The pre-registered boundary was crossed, so the remaining trials were cancelled. Unblind on the report page to see the results.</p>

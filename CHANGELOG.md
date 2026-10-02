@@ -8,6 +8,33 @@ minor releases may contain breaking changes.
 
 ## [Unreleased]
 
+### Added
+
+- `fieldtrial.stats`: anytime-valid statistics.
+  - `betting_cs` and `capital_process`: betting confidence sequences for bounded means
+    (the hedged capital process of Waudby-Smith and Ramdas), valid at every sample size.
+  - `paired_anytime_test`: a test of paired block differences that may stop after any
+    block, with an anytime-valid p-value and confidence sequence.
+  - `eliminate`: best-arm selection by successive elimination over blocks.
+- Anytime-valid stopping (`analysis.stopping: {rule: anytime}`, 2 arms): the study is
+  checked after every complete block and stops, cancelling the remaining trials, as soon as
+  the betting test rejects. Reports show the confidence sequence block by block.
+- Best-arm selection (`analysis.selection: {rule: elimination, delta: 0.05}`, several arms
+  in randomized blocks): after every complete block, arms that another arm beats with
+  confidence are dropped and their remaining trials cancelled; the study stops when one
+  arm remains. Reports name a selected arm only when it is the single survivor.
+- Automatic looks are recorded as `interim_look` (rule `anytime`) and `selection_look`
+  events and name arms by blind code in the console; they run when a trial is completed in
+  the console or the API, and in `fieldtrial simulate`, but not during CSV imports.
+- A `best-arm` template: four serving configurations with best-arm selection.
+- The console shows how many blocks an anytime or selection study has checked and which
+  blind codes were dropped; `GET /api/v1/studies/{study}/adaptive`, the client's
+  `adaptive_status()`, `fieldtrial status` and `fieldtrial simulate` report the same.
+- `Results` gains optional `anytime` and `selection` blocks and the primary methods
+  `anytime` and `selection` (schema version unchanged).
+- Documentation: anytime-valid comparisons, best-arm selection, and an evaluation of STEP
+  (Snyder et al., RSS 2025), which fieldtrial does not port because of its license.
+
 ## [0.2.0] - 2026-10-02
 
 Second release: crossover rounds, checkpoint ladders and group-sequential stopping; real

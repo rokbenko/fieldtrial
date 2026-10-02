@@ -10,14 +10,14 @@ See [Running a study](studies.md) for the full workflow.
 
 | Command | What it does |
 |---|---|
-| `fieldtrial init DIR [--template basic\|checkpoint-ladder\|crossover-rounds\|serving-sweep]` | Create a study folder with a `study.yaml` |
+| `fieldtrial init DIR [--template basic\|best-arm\|checkpoint-ladder\|crossover-rounds\|serving-sweep]` | Create a study folder with a `study.yaml` |
 | `fieldtrial validate DIR` | Check `study.yaml`; every problem with its line |
 | `fieldtrial plan DIR [--baseline 0.76]` | Schedule preview and minimum detectable effect |
 | `fieldtrial lock DIR` | Freeze the design and randomize the schedule |
 | `fieldtrial amend DIR --reason "..."` | Apply `study.yaml` edits as a logged amendment |
-| `fieldtrial simulate DIR --rates baseline=0.76,q50=0.90 [--seed 1] [--no-interim]` | Fill the study with simulated trials (running planned interim looks as they come due) |
+| `fieldtrial simulate DIR --rates baseline=0.76,q50=0.90 [--seed 1] [--no-interim]` | Fill the study with simulated trials (running planned interim looks as they come due, and the checks of anytime and best-arm studies) |
 | `fieldtrial import DIR results.csv [--map arm=policy,success=ok]` | Import trials from a CSV (all or nothing) |
-| `fieldtrial status DIR` | Progress; no per-arm results while blinded |
+| `fieldtrial status DIR` | Progress, and for anytime and best-arm studies the blocks checked and dropped blind codes; no per-arm results while blinded |
 | `fieldtrial unblind DIR [--yes]` | Reveal the blind codes (logged) |
 | `fieldtrial check-runners DIR [--api-key KEY]` | Check the study's runner: commands found, policy servers answering with identical metadata (blind codes only) |
 | `fieldtrial rig-check DIR [PHOTO \| --camera] [--set-reference]` | Compare a rig photo with the reference photo, or set the reference ([guide](guides/capture.md)) |

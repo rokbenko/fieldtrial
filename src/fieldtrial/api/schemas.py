@@ -66,6 +66,17 @@ class InterimStatusOut(_Out):
     stopped_at: int | None
 
 
+class AdaptiveStatusOut(_Out):
+    """An anytime or best-arm selection study, checked after every block. Blind codes only."""
+
+    rule: str
+    complete_blocks: int
+    min_blocks: int
+    stopped: bool
+    dropped: list[str]
+    remaining: int
+
+
 class InterimOut(_Out):
     """The outcome of an interim look: ``continue`` or ``stop``, nothing else."""
 

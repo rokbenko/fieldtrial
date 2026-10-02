@@ -114,6 +114,30 @@
 </section>
 {% endif %}
 
+{% if r.anytime %}
+{% set a = r.anytime %}
+<section>
+  <h2>Anytime-valid test</h2>
+  <p>Checked after every complete block from block {{ a.min_blocks }}; {{ a.blocks }} of {{ a.planned_blocks }} planned blocks complete.{% if a.stopped_at %} Stopped after block {{ a.stopped_at }}.{% elif a.rejected_at %} The data reject the null from block {{ a.rejected_at }}.{% endif %} Largest capital against the null: {{ "%.3g" | format(a.capital) }}.</p>
+  {% if charts.confseq %}<figure>{{ charts.confseq }}<figcaption>The grey band holds every difference still compatible with the data; the study may stop as soon as it excludes 0.</figcaption></figure>{% endif %}
+</section>
+{% endif %}
+
+{% if r.selection %}
+{% set sel = r.selection %}
+<section>
+  <h2>Best-arm selection</h2>
+  <p>Successive elimination with δ = {{ "%g" | format(sel.delta) }}, checked after every complete block from block {{ sel.min_blocks }}; {{ sel.blocks }} of {{ sel.planned_blocks }} planned blocks complete. Surviving: {{ sel.survivors | join(", ") }}.{% if sel.stopped %} The study stopped when one arm remained.{% endif %}</p>
+  {% if sel.eliminations %}
+  <div class="table"><table>
+    <thead><tr><th>Dropped arm</th><th class="num">After block</th><th>Beaten by</th></tr></thead>
+    <tbody>{% for e in sel.eliminations %}<tr><td>{{ e.arm }}</td><td class="num">{{ e.block }}</td><td>{{ e.by }}</td></tr>{% endfor %}</tbody>
+  </table></div>
+  {% endif %}
+  {% if charts.pairs %}<figure>{{ charts.pairs }}<figcaption>Each bar bounds the difference between two arms on the blocks that ran both; an arm is dropped once another arm's bar over it lies entirely above 0.</figcaption></figure>{% endif %}
+</section>
+{% endif %}
+
 {% if r.crossover %}
 {% set c = r.crossover %}
 <section>

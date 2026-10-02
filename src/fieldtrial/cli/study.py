@@ -20,6 +20,7 @@ from fieldtrial.design import StudyValidationError
 from fieldtrial.io.csv import CsvImportError, parse_mapping
 from fieldtrial.report import render_html, render_markdown
 from fieldtrial.services import ServiceError, open_study
+from fieldtrial.services.adaptive import adaptive_status
 from fieldtrial.services.analysis import analyze_study
 from fieldtrial.services.dataset import link_episodes, plan_links
 from fieldtrial.services.interim import run_interim
@@ -213,6 +214,9 @@ def status(folder: FolderArg, as_json: JsonOption = False) -> None:
         payload = _jsonable(report)
         for key in ("locked_at", "unblinded_at"):
             payload[key] = None if payload[key] is None else payload[key].isoformat()
+        with open_study(folder) as ctx:
+            found = adaptive_status(ctx)
+        payload["adaptive"] = None if found is None else _jsonable(found)
         _print_json(payload)
         return
     _console.print(f"[bold]{report.name}[/bold]  {report.status}  design {report.design_hash[:12]}")
@@ -221,11 +225,28 @@ def status(folder: FolderArg, as_json: JsonOption = False) -> None:
         f"{report.invalid_trials} invalid, {report.sessions} sessions, "
         f"{report.amendments} amendments"
     )
+    adaptive = _adaptive(folder)
+    if adaptive is not None:
+        _console.print(adaptive)
     if report.blinded:
         _console.print("Blinded: per-arm results are hidden until `fieldtrial unblind`.")
     elif report.per_arm:
         for arm, (k, n) in report.per_arm.items():
             _console.print(f"  {arm:<16} {k}/{n}" + (f" = {fmt_rate(k / n)}" if n else ""))
+
+
+def _adaptive(folder: Path) -> str | None:
+    """One line on an anytime or selection study (blind codes only)."""
+    with open_study(folder) as ctx:
+        found = adaptive_status(ctx)
+    if found is None:
+        return None
+    if found.rule == "anytime":
+        state = "stopped by the anytime-valid test" if found.stopped else "running"
+        return f"Anytime-valid stopping: {found.complete_blocks} complete blocks, {state}."
+    dropped = f"; dropped {', '.join(found.dropped)}" if found.dropped else ""
+    state = "complete (one arm remains)" if found.stopped else f"{found.remaining} arms running"
+    return f"Best-arm selection: {found.complete_blocks} complete blocks, {state}{dropped}."
 
 
 @_errors
@@ -283,9 +304,11 @@ def simulate(
         f"Simulated {result.completed} completed and {result.invalid} invalid trials "
         f"in {result.sessions} sessions"
     )
+    if result.dropped:
+        _console.print(f"Dropped arms (blind codes): {', '.join(result.dropped)}")
     if result.interim_looks:
         stop = f"; stopped at look {result.stopped_at}" if result.stopped_at else ""
-        _console.print(f"Ran {result.interim_looks} interim look(s){stop}")
+        _console.print(f"Ran {result.interim_looks} look(s){stop}")
 
 
 @_errors
