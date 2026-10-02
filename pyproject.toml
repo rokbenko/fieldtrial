@@ -205,7 +205,7 @@ ignore_missing_imports = true
 [[tool.mypy.overrides]]
 # pyarrow ships no type hints; only fieldtrial.io.lerobot uses it (lerobot extra). LeRobot
 # and torch are never installed in the dev environment (rewards and lerobot-runner extras).
-module = ["pyarrow", "pyarrow.*", "lerobot", "lerobot.*", "torch", "torch.*"]
+module = ["pyarrow", "pyarrow.*", "lerobot", "lerobot.*", "torch", "torch.*", "draccus"]
 ignore_missing_imports = true
 
 # --- tests -----------------------------------------------------------------
@@ -363,6 +363,7 @@ forbidden_modules = [
     "av",
     "click",
     "cv2",
+    "draccus",
     "lerobot",
     "openpi",
     "openpi_client",
@@ -383,4 +384,7 @@ ignore_imports = [
     # The rewards extra, imported inside the reward-model scorers only.
     "fieldtrial.rewards.lerobot_models -> lerobot",
     "fieldtrial.rewards.lerobot_models -> torch",
+    # The lerobot-runner extra, imported inside the in-process runner's functions only.
+    "fieldtrial.runners.lerobot_inprocess -> lerobot",
+    "fieldtrial.runners.lerobot_inprocess -> draccus",
 ]

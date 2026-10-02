@@ -430,6 +430,11 @@ class RunnerSummary(_Model):
     ``latency_ms_median`` is the median of the per-trial median request latencies and
     ``latency_ms_p95`` the largest per-trial 95th percentile. ``abnormal_exits`` counts
     command-runner trials that ended with a non-zero exit code before the stop.
+
+    For the ``lerobot`` runner: ``policy_loads`` counts the trials that had to load the
+    arm's policy first (``load_s_median`` is their median load time), ``record_hz_median``
+    is the median rate at which frames were recorded, ``overruns`` counts control ticks
+    slower than the target rate and ``loop_errors`` trials whose control loop failed.
     """
 
     arm: str
@@ -439,6 +444,11 @@ class RunnerSummary(_Model):
     latency_ms_median: float | None = None
     latency_ms_p95: float | None = None
     abnormal_exits: int | None = None
+    policy_loads: int | None = None
+    load_s_median: float | None = None
+    record_hz_median: float | None = None
+    overruns: int | None = None
+    loop_errors: int | None = None
 
 
 class RigCheckRow(_Model):

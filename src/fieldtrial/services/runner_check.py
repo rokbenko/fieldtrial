@@ -65,6 +65,11 @@ def check_runners(folder: str | Path, *, api_key: str | None = None) -> list[Run
                     checks.append(
                         RunnerCheck(code, True, f"runs {exe} ({len(argv) - 1} arguments)")
                     )
+        if "lerobot" in kinds:
+            from fieldtrial.runners.lerobot_inprocess import probe as probe_lerobot
+
+            probed = probe_lerobot([(codes.get(a.id, "?"), dict(a.policy)) for a in spec.arms])
+            checks.extend(RunnerCheck(subject, ok, message) for subject, ok, message in probed)
         if "openpi_router" in kinds:
             from fieldtrial.runners.openpi_router import probe
 

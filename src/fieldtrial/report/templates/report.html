@@ -204,10 +204,20 @@
 <section>
   <h2>Runner</h2>
   <p>What the runner measured, per arm. Descriptive only: no test is run on it.</p>
+  {% set served = r.runner | selectattr("policy_loads", "none") | list %}
+  {% set in_process = r.runner | rejectattr("policy_loads", "none") | list %}
+  {% if served %}
   <div class="table"><table>
     <thead><tr><th>Arm</th><th class="num">Trials</th><th class="num">Requests</th><th class="num">Errors</th><th class="num">Median latency (ms)</th><th class="num">Max p95 latency (ms)</th><th class="num">Abnormal exits</th></tr></thead>
-    <tbody>{% for u in r.runner %}<tr><td>{{ u.arm }}</td><td class="num">{{ u.trials }}</td><td class="num">{{ "–" if u.requests is none else u.requests }}</td><td class="num">{{ "–" if u.errors is none else u.errors }}</td><td class="num">{{ "–" if u.latency_ms_median is none else "%.1f" | format(u.latency_ms_median) }}</td><td class="num">{{ "–" if u.latency_ms_p95 is none else "%.1f" | format(u.latency_ms_p95) }}</td><td class="num">{{ "–" if u.abnormal_exits is none else u.abnormal_exits }}</td></tr>{% endfor %}</tbody>
+    <tbody>{% for u in served %}<tr><td>{{ u.arm }}</td><td class="num">{{ u.trials }}</td><td class="num">{{ "–" if u.requests is none else u.requests }}</td><td class="num">{{ "–" if u.errors is none else u.errors }}</td><td class="num">{{ "–" if u.latency_ms_median is none else "%.1f" | format(u.latency_ms_median) }}</td><td class="num">{{ "–" if u.latency_ms_p95 is none else "%.1f" | format(u.latency_ms_p95) }}</td><td class="num">{{ "–" if u.abnormal_exits is none else u.abnormal_exits }}</td></tr>{% endfor %}</tbody>
   </table></div>
+  {% endif %}
+  {% if in_process %}
+  <div class="table"><table>
+    <thead><tr><th>Arm</th><th class="num">Trials</th><th class="num">Policy loads</th><th class="num">Median load (s)</th><th class="num">Median recording rate (Hz)</th><th class="num">Overruns</th><th class="num">Control-loop errors</th></tr></thead>
+    <tbody>{% for u in in_process %}<tr><td>{{ u.arm }}</td><td class="num">{{ u.trials }}</td><td class="num">{{ u.policy_loads }}</td><td class="num">{{ "–" if u.load_s_median is none else "%.1f" | format(u.load_s_median) }}</td><td class="num">{{ "–" if u.record_hz_median is none else "%.1f" | format(u.record_hz_median) }}</td><td class="num">{{ u.overruns }}</td><td class="num">{{ u.loop_errors }}</td></tr>{% endfor %}</tbody>
+  </table></div>
+  {% endif %}
 </section>
 {% endif %}
 

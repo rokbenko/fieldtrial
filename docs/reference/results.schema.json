@@ -1452,7 +1452,7 @@
     },
     "RunnerSummary": {
       "additionalProperties": false,
-      "description": "What the runner measured for one arm (descriptive; not a test).\n\n``latency_ms_median`` is the median of the per-trial median request latencies and\n``latency_ms_p95`` the largest per-trial 95th percentile. ``abnormal_exits`` counts\ncommand-runner trials that ended with a non-zero exit code before the stop.",
+      "description": "What the runner measured for one arm (descriptive; not a test).\n\n``latency_ms_median`` is the median of the per-trial median request latencies and\n``latency_ms_p95`` the largest per-trial 95th percentile. ``abnormal_exits`` counts\ncommand-runner trials that ended with a non-zero exit code before the stop.\n\nFor the ``lerobot`` runner: ``policy_loads`` counts the trials that had to load the\narm's policy first (``load_s_median`` is their median load time), ``record_hz_median``\nis the median rate at which frames were recorded, ``overruns`` counts control ticks\nslower than the target rate and ``loop_errors`` trials whose control loop failed.",
       "properties": {
         "arm": {
           "title": "Arm",
@@ -1521,6 +1521,66 @@
           ],
           "default": null,
           "title": "Abnormal Exits"
+        },
+        "policy_loads": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Policy Loads"
+        },
+        "load_s_median": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Load S Median"
+        },
+        "record_hz_median": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Record Hz Median"
+        },
+        "overruns": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Overruns"
+        },
+        "loop_errors": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Loop Errors"
         }
       },
       "required": [

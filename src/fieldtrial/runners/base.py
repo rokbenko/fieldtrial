@@ -45,13 +45,24 @@ class TrialContext:
 
 
 @dataclass(frozen=True, slots=True)
+class EpisodeRef:
+    """The dataset episode a runner recorded for a trial (linked to it automatically)."""
+
+    root: str
+    codebase_version: str
+    episode_index: int
+    length: int
+
+
+@dataclass(frozen=True, slots=True)
 class RunArtifacts:
     """What a runner reports when a trial stops.
 
     Runners that cannot judge the outcome leave ``stage_index`` as None; the operator then
     labels it. ``invalid_reason`` marks a trial that must be voided and rescheduled.
     ``metrics`` holds runner measurements (exit code, request latency); ``log`` is the path
-    of the trial's log file, if the runner wrote one.
+    of the trial's log file, if the runner wrote one; ``episode`` is the dataset episode it
+    recorded, if any.
     """
 
     duration_s: float
@@ -62,6 +73,7 @@ class RunArtifacts:
     invalid_reason: str | None = None
     metrics: dict[str, float] = field(default_factory=dict)
     log: str | None = None
+    episode: EpisodeRef | None = None
 
 
 @dataclass(frozen=True, slots=True)
