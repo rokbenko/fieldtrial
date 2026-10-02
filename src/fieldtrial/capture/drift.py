@@ -119,7 +119,8 @@ def _box_mean(x: Gray, k: int) -> Gray:
     """Mean over every k × k window (valid positions only), via summed-area tables."""
     s = np.pad(x, ((1, 0), (1, 0))).cumsum(axis=0).cumsum(axis=1)
     total = s[k:, k:] - s[:-k, k:] - s[k:, :-k] + s[:-k, :-k]
-    return total / (k * k)
+    mean: Gray = total / (k * k)
+    return mean
 
 
 def ssim(a: Gray, b: Gray, window: int = WINDOW) -> float:
