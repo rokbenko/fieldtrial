@@ -4,6 +4,7 @@ Every write takes an optional ``idempotency_key`` (a retried request is applied 
 where a trial already exists, an optional ``expected_version`` (optimistic concurrency).
 """
 
+import contextlib
 import dataclasses
 import re
 from collections.abc import Sequence
@@ -325,7 +326,20 @@ def complete_trial(
             )
             return view
 
-    return idempotent(ctx, idempotency_key, "trial_completed", _decode_view, write)
+    view = idempotent(ctx, idempotency_key, "trial_completed", _decode_view, write)
+    _after_completion(ctx)
+    return view
+
+
+def _after_completion(ctx: StudyContext) -> None:
+    """Run the automatic look of an anytime or selection study (services/adaptive.py)."""
+    if ctx.spec.analysis.selection is None and ctx.spec.analysis.stopping.rule != "anytime":
+        return
+    from fieldtrial.services.adaptive import check_after_block  # imports this module
+
+    # A concurrent look may win the race; the next completion checks again.
+    with contextlib.suppress(ServiceError):
+        check_after_block(ctx)
 
 
 def stop_trial(
@@ -933,6 +947,9 @@ def collect_records(ctx: StudyContext) -> tuple[list[TrialRecord], StudyContextI
             ),
             edits_after_unblinding=late_edits,
             interim_looks=tuple(e.payload for e in list_events(db, ctx.study_id, "interim_look")),
+            selection_looks=tuple(
+                e.payload for e in list_events(db, ctx.study_id, "selection_look")
+            ),
             rig_checks=tuple(
                 {"ts": e.ts, **dict(e.payload)} for e in list_events(db, ctx.study_id, "rig_check")
             ),

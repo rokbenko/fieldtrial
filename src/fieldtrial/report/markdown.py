@@ -27,7 +27,17 @@ METHOD_LABELS = {
     "crossover": "Crossover rounds, randomization test",
     "ladder": "Mantel test of association with training step",
     "group_sequential": "Group-sequential McNemar, repeated CI",
+    "anytime": "Anytime-valid betting test, confidence sequence",
+    "selection": "Best-arm selection by successive elimination",
 }
+
+
+def thin(n: int, most: int = 12) -> list[int]:
+    """Up to ``most`` evenly spread 1-based positions out of ``n``, always the last."""
+    if n <= most:
+        return list(range(1, n + 1))
+    step = (n - 1) / (most - 1)
+    return sorted({1 + round(i * step) for i in range(most)})
 
 
 def _table(header: Sequence[str], rows: Iterable[Sequence[object]]) -> list[str]:
@@ -54,12 +64,16 @@ def _diff_ci(ci: CI | None) -> str:
     return _DASH if ci is None else f"{fmt_signed(ci.low)} to {fmt_signed(ci.high)} pp"
 
 
+def _bound(low: float, high: float) -> str:
+    return f"{fmt_signed(low)} to {fmt_signed(high)} pp"
+
+
 def _section(title: str, body: list[str]) -> list[str]:
     return [f"## {title}", "", *body, ""]
 
 
 def _design_sections(r: Results) -> list[str]:
-    """Sections for group-sequential stopping, crossover rounds and checkpoint ladders."""
+    """Sections for sequential designs, best-arm selection, crossover rounds and ladders."""
     lines: list[str] = []
     if r.sequential is not None:
         q = r.sequential
@@ -88,6 +102,55 @@ def _design_sections(r: Results) -> list[str]:
             ),
         ]
         lines += _section("Group-sequential looks", body)
+    if r.anytime is not None:
+        av = r.anytime
+        status = ""
+        if av.stopped_at:
+            status = f" Stopped after block {av.stopped_at}."
+        elif av.rejected_at:
+            status = f" The data reject the null from block {av.rejected_at}."
+        thinned = [av.sequence[i - 1] for i in thin(len(av.sequence))]
+        body = [
+            f"Checked after every complete block from block {av.min_blocks}; {av.blocks} of "
+            f"{av.planned_blocks} planned blocks complete.{status} Largest capital against the "
+            f"null: {av.capital:.3g}.",
+            "",
+            *_table(
+                ["Blocks", "Confidence sequence for the difference"],
+                ([row.blocks, _bound(row.low, row.high)] for row in thinned),
+            ),
+        ]
+        lines += _section("Anytime-valid test", body)
+    if r.selection is not None:
+        sel = r.selection
+        body = [
+            f"Successive elimination with δ = {sel.delta:g}, checked after every complete block "
+            f"from block {sel.min_blocks}; {sel.blocks} of {sel.planned_blocks} planned blocks "
+            f"complete. Surviving: {', '.join(sel.survivors)}."
+            + (" The study stopped when one arm remained." if sel.stopped else ""),
+            "",
+        ]
+        if sel.eliminations:
+            body += [
+                *_table(
+                    ["Dropped arm", "After block", "Beaten by"],
+                    ([e.arm, e.block, e.by] for e in sel.eliminations),
+                ),
+                "",
+            ]
+        body += _table(
+            ["Pair", "Shared blocks", "Difference", "Confidence sequence"],
+            (
+                [
+                    f"{q.first} − {q.second}",
+                    q.blocks,
+                    _DASH if q.estimate is None else fmt_pp(q.estimate),
+                    _bound(q.low, q.high),
+                ]
+                for q in sel.pairs
+            ),
+        )
+        lines += _section("Best-arm selection", body)
     if r.crossover is not None:
         c = r.crossover
         effect = _DASH if c.period_effect is None else fmt_pp(c.period_effect)

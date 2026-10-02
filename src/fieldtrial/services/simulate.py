@@ -8,6 +8,7 @@ from pathlib import Path
 from fieldtrial.runners.base import ArmSpec, TrialContext
 from fieldtrial.runners.sim import SimArm, SimRunner
 from fieldtrial.services._context import ServiceError, StudyContext, open_study
+from fieldtrial.services.adaptive import check_after_block
 from fieldtrial.services.interim import interim_status, run_interim_in
 from fieldtrial.services.session import end_session, start_session
 from fieldtrial.services.study import init_study, lock_study
@@ -24,6 +25,7 @@ class SimulationResult:
     sessions: int
     interim_looks: int = 0
     stopped_at: int | None = None  # interim look that stopped the study
+    dropped: tuple[str, ...] = ()  # blind codes of arms dropped by best-arm selection
 
 
 RESET_S = 20.0  # simulated time between trials
@@ -72,7 +74,8 @@ def simulate_study(
     ``trials_per_session`` trials with a simulated clock, so the report's drift checks have
     something to look at. ``max_trials`` stops early (for partially filled studies). With
     ``interim``, planned interim looks of a group-sequential study run as they come due,
-    as the protocol asks of an operator.
+    as the protocol asks of an operator, and anytime or selection studies check after every
+    block as they would live.
     """
     with open_study(folder) as ctx:
         arm_ids = [a.id for a in ctx.spec.arms]
@@ -105,6 +108,10 @@ def simulate_study(
         in_session = completed = invalid = sessions = looks = 0
         stopped_at: int | None = None
         sequential = interim and ctx.spec.analysis.stopping.rule == "group_sequential"
+        adaptive = interim and (
+            ctx.spec.analysis.stopping.rule == "anytime" or ctx.spec.analysis.selection is not None
+        )
+        dropped: list[str] = []
         while max_trials is None or completed + invalid < max_trials:
             slot = next_slot(ctx)
             if slot is None:
@@ -159,6 +166,13 @@ def simulate_study(
                     looks += 1
                     if look.decision == "stop":
                         stopped_at = look.look
+            if adaptive and not artifacts.invalid_reason:
+                outcome = check_after_block(ctx, actor="sim-operator")
+                if outcome is not None:
+                    looks += 1
+                    dropped.extend(outcome.dropped)
+                    if outcome.decision == "stop":
+                        stopped_at = looks
         if session_id is not None:
             end_session(ctx, session_id, ended_at=clock)
         runner.close()
@@ -168,6 +182,7 @@ def simulate_study(
             sessions=sessions,
             interim_looks=looks,
             stopped_at=stopped_at,
+            dropped=tuple(dropped),
         )
 
 

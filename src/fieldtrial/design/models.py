@@ -171,22 +171,27 @@ class Primary(_Strict):
 
 
 class Stopping(_Strict):
-    """Stopping rule: a fixed sample size, or group-sequential looks with error spending.
+    """Stopping rule: a fixed sample size, group-sequential looks, or anytime-valid looks.
 
-    ``looks`` interim and final analyses happen after equal shares of the planned blocks,
-    unless ``at`` lists the information fractions (increasing, ending at 1).
+    ``group_sequential``: ``looks`` interim and final analyses happen after equal shares of
+    the planned blocks, unless ``at`` lists the information fractions (increasing, ending
+    at 1). ``anytime``: the study is checked after every complete block, from
+    ``min_blocks`` on, with an anytime-valid test (docs/stats/anytime.md).
     """
 
-    rule: Literal["fixed", "group_sequential"] = "fixed"
+    rule: Literal["fixed", "group_sequential", "anytime"] = "fixed"
     looks: int | None = Field(default=None, ge=2, le=10)
     spending: Literal["obrien_fleming", "pocock"] = "obrien_fleming"
     at: list[float] | None = None
+    min_blocks: int | None = Field(default=None, ge=1)
 
     @model_validator(mode="after")
     def _check(self) -> "Stopping":
-        if self.rule == "fixed":
-            if self.looks is not None or self.at is not None:
-                raise ValueError("looks and at are only for rule: group_sequential")
+        if self.rule != "group_sequential" and (self.looks is not None or self.at is not None):
+            raise ValueError("looks and at are only for rule: group_sequential")
+        if self.rule != "anytime" and self.min_blocks is not None:
+            raise ValueError("min_blocks is only for rule: anytime")
+        if self.rule != "group_sequential":
             return self
         if self.looks is None:
             raise ValueError("rule: group_sequential needs looks (2 to 10)")
@@ -241,6 +246,19 @@ class Ladder(_Strict):
         return [float(i) for i in range(len(self.arms))]
 
 
+class Selection(_Strict):
+    """Best-arm selection by successive elimination (docs/stats/selection.md).
+
+    After every complete block (from ``min_blocks`` on), an arm is dropped when another arm
+    beats it with confidence; its remaining trials are cancelled. With probability at least
+    ``1 - delta`` a best arm is never dropped.
+    """
+
+    rule: Literal["elimination"] = "elimination"
+    delta: float = Field(default=0.05, gt=0, le=0.5)
+    min_blocks: int = Field(default=1, ge=1)
+
+
 class Analysis(_Strict):
     """Pre-registered analysis settings."""
 
@@ -250,6 +268,7 @@ class Analysis(_Strict):
     secondary: list[Literal["stage_reached", "time_to_success"]] = Field(default_factory=list)
     stopping: Stopping = Field(default_factory=Stopping)
     ladder: Ladder | None = None
+    selection: Selection | None = None
 
 
 class StudySpec(_Strict):
@@ -284,6 +303,7 @@ class StudySpec(_Strict):
         design = self.design
         ladder = self.analysis.ladder
         stopping = self.analysis.stopping
+        selection = self.analysis.selection
         if self.limits.reset == "carry_over" and design.type != "crossover_rounds":
             raise ValueError(
                 "limits.reset: carry_over needs design.type: crossover_rounds, where an arm "
@@ -296,10 +316,11 @@ class StudySpec(_Strict):
         if design.type == "randomized_block":
             if len(self.arms) < 2:
                 raise ValueError("design.type randomized_block needs at least 2 arms")
-            if primary.comparison is None and ladder is None:
+            if primary.comparison is None and ladder is None and selection is None:
                 raise ValueError(
                     "analysis.primary.comparison is required for a comparative design "
-                    "(or analysis.ladder, whose trend test is then the primary analysis)"
+                    "(or analysis.ladder, whose trend test is then the primary analysis, "
+                    "or analysis.selection, to select the best arm)"
                 )
         elif design.type == "crossover_rounds":
             if len(self.arms) != 2:
@@ -330,20 +351,30 @@ class StudySpec(_Strict):
                     raise ValueError(
                         f"analysis.ladder arm {arm!r} is not an arm; arms are {arm_ids}"
                     )
-        if stopping.rule == "group_sequential":
+        if stopping.rule != "fixed":
+            kind = stopping.rule.replace("_", "-")
             if design.type != "randomized_block" or primary.comparison is None:
                 raise ValueError(
-                    "group-sequential stopping needs design.type randomized_block "
-                    "with a primary comparison"
+                    f"{kind} stopping needs design.type randomized_block with a primary comparison"
                 )
             if len(self.arms) != 2:
+                raise ValueError(f"{kind} stopping supports exactly 2 arms in this version")
+            if self.conditions.replicates != 1:
+                raise ValueError(f"{kind} stopping needs conditions.replicates: 1 in this version")
+        if selection is not None:
+            if design.type != "randomized_block":
+                raise ValueError("analysis.selection needs design.type randomized_block")
+            if primary.comparison is not None or ladder is not None:
                 raise ValueError(
-                    "group-sequential stopping supports exactly 2 arms in this version"
+                    "analysis.selection is the primary analysis; remove "
+                    "analysis.primary.comparison and analysis.ladder"
+                )
+            if stopping.rule != "fixed":
+                raise ValueError(
+                    "analysis.selection stops by itself; leave analysis.stopping at fixed"
                 )
             if self.conditions.replicates != 1:
-                raise ValueError(
-                    "group-sequential stopping needs conditions.replicates: 1 in this version"
-                )
+                raise ValueError("analysis.selection needs conditions.replicates: 1")
         if primary.comparison is not None:
             for role in ("treatment", "control"):
                 arm = getattr(primary.comparison, role)
