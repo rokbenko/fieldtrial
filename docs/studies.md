@@ -94,6 +94,16 @@ After every complete block, an arm that another arm beats with confidence is
 one arm remains. The console names dropped arms by blind code only. The `best-arm`
 template sets this up for four serving configurations.
 
+**Reward-model estimates.** To report [proxy-assisted estimates](stats/ppi.md) from
+reward-model scores, pre-register them before locking:
+
+```yaml
+analysis:
+  proxy: {threshold: 0.5}   # scores from 0.5 up count as suggested successes
+```
+
+See [reward models and blind review](guides/reward-models.md) for the workflow.
+
 ## 2. Lock
 
 ```console

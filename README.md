@@ -89,6 +89,8 @@ local and works offline; fieldtrial sends no telemetry.
 - **Evidence:** an evaluation camera that records every trial, rig checks against a
   reference photo, and links from trials to LeRobot dataset episodes (with DAgger
   interventions).
+- **Reward models:** Robometer or TOPReward scores as suggestions only, blind human review
+  of a random sample in the console, Cohen's κ, and proxy-assisted (PPI++) estimates.
 - **Analysis:** the primary test follows from the locked design:
   - exact McNemar with a Tango interval, Cochran–Mantel–Haenszel, or Cochran's Q with Holm
   - group-sequential boundaries, and anytime-valid confidence sequences

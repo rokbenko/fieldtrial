@@ -51,6 +51,17 @@ which it stopped. A best-arm selection lists the dropped arms, the block after w
 was dropped and the arm that beat it, and the confidence sequence of every pair. If edited
 labels no longer reproduce a recorded stop or elimination, that is listed as a deviation.
 
+## Reward models
+
+When episodes have reward-model scores ([guide](guides/reward-models.md)), the report adds
+**Reward-model agreement**: Cohen's κ between the model's suggestions and the blind human
+labels (linked trials, and the first labels of reviewed episodes). It is descriptive. With
+a pre-registered `analysis.proxy` section it also adds **Proxy-assisted estimates**: a
+[PPI++](stats/ppi.md) interval per arm and scored source, next to the interval from the
+human labels alone, and the difference between the compared arms when both were scored
+from the same source. These are secondary analyses; the primary analysis never uses
+scores.
+
 ## Sensitivity analysis
 
 Each arm is also compared with the control as if all trials were independent:

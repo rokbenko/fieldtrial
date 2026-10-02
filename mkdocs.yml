@@ -68,6 +68,7 @@ nav:
       - Real blinding with runners: guides/runners.md
       - Evaluation camera and rig checks: guides/capture.md
       - Using fieldtrial with LeRobot: guides/lerobot.md
+      - Reward models and blind review: guides/reward-models.md
       - Using fieldtrial with openpi: guides/openpi.md
       - Custom runtimes via REST: guides/custom-runtimes.md
       - Testing the console on a phone: guides/console-checklist.md

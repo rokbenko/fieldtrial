@@ -75,6 +75,14 @@ finishes a block runs the check. A line above the trial says how many blocks are
 and, in a selection study, which blind codes have been dropped. When the study stops, the
 console says so and points to the report.
 
+## Reviewing episodes
+
+When a study has a review sample ([reward models](guides/reward-models.md)), the study
+page links to **Review episodes**. Each sampled episode plays from the dataset video. Label
+it **Success** or **Failure** first; only then does the page show the reward model's
+suggestion and whether it agrees. You can still change the label afterwards, with a
+reason; the change is logged, and agreement is computed from the first label.
+
 ## Keys and foot pedals
 
 | Action | Default key |
