@@ -1,8 +1,8 @@
 """The server's runners: one per study, driven by trial starts and stops.
 
 The console and the REST API both call :class:`Runners` when a trial starts, stops or is
-voided, so a study whose arms use the ``command`` or ``openpi_router`` runner runs the
-policy itself, whichever client the operator uses. Simulated arms produce a suggested
+voided, so a study whose arms use the ``command``, ``openpi_router`` or ``lerobot`` runner
+runs the policy itself, whichever client the operator uses. Simulated arms produce a suggested
 outcome at once; switching runners report one when they can judge the outcome (a
 command's exit code).
 
@@ -28,6 +28,7 @@ from fieldtrial.runners.base import (
 from fieldtrial.runners.manual import ManualRunner
 from fieldtrial.runners.sim import SimArm, SimRunner
 from fieldtrial.services import ServiceError, StudyContext
+from fieldtrial.services.dataset import record_episode_link
 from fieldtrial.services.registry import StudyRegistry
 from fieldtrial.services.rig import RigCheck, check_rig, has_reference
 from fieldtrial.services.trial import (
@@ -39,11 +40,11 @@ from fieldtrial.services.trial import (
 )
 
 log = logging.getLogger("fieldtrial.runners")
-SWITCHING = ("command", "openpi_router")
+SWITCHING = ("command", "openpi_router", "lerobot")
 
 
 def runner_kind(ctx: StudyContext) -> str:
-    """``command``, ``openpi_router``, ``sim`` or ``manual``."""
+    """``command``, ``openpi_router``, ``lerobot``, ``sim`` or ``manual``."""
     kinds = {a.runner for a in ctx.spec.arms}
     for kind in (*SWITCHING, "sim"):
         if kind in kinds:
@@ -65,6 +66,17 @@ def build_runner(ctx: StudyContext) -> Runner:
             study=spec.name,
             folder=Path(ctx.folder),
             success_index=spec.rubric.success_index,
+        )
+    if kind == "lerobot":
+        from fieldtrial.runners.lerobot_inprocess import LeRobotRunner
+
+        assert spec.runners is not None
+        assert spec.runners.lerobot is not None
+        return LeRobotRunner(
+            spec.runners.lerobot,
+            study=spec.name,
+            folder=Path(ctx.folder),
+            instruction=spec.task.instruction,
         )
     if kind == "openpi_router":
         from fieldtrial.runners.openpi_router import OpenpiRouter
@@ -219,6 +231,16 @@ class Runners:
                 self._suggested[trial_id] = artifacts
         if artifacts.metrics or artifacts.log:
             record_runner_output(ctx, trial_id, metrics=artifacts.metrics, log=artifacts.log)
+        episode = artifacts.episode
+        if episode is not None:
+            record_episode_link(
+                ctx,
+                trial_id,
+                root=episode.root,
+                codebase_version=episode.codebase_version,
+                episode_index=episode.episode_index,
+                length=episode.length,
+            )
 
     # --- camera ---------------------------------------------------------------------------
 
@@ -296,13 +318,13 @@ class Runners:
         self.forget(trial_id)
 
     def status(self, slug: str) -> RunnerStatus | None:
-        """The runner's state for the console, or None for manual and simulated studies."""
-        with self._lock:
-            runner = self._runners.get(slug)
-            error = "; ".join(
-                e for e in (self._errors.get(slug), self._camera_errors.get(slug)) if e
-            )
-            camera = slug in self._recording
+        """The runner's state for the console, or None for manual and simulated studies.
+
+        Reads without the lock, so the console stays live while a runner loads a policy.
+        """
+        runner = self._runners.get(slug)
+        error = "; ".join(e for e in (self._errors.get(slug), self._camera_errors.get(slug)) if e)
+        camera = slug in self._recording
         note = "camera recording" if camera else ""
         if runner is None or isinstance(runner, ManualRunner | SimRunner):
             message = "; ".join(x for x in (note, error) if x)

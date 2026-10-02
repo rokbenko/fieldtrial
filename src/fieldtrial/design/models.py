@@ -14,6 +14,7 @@ from fieldtrial.design.capture_config import CaptureConfig
 from fieldtrial.design.runner_config import (
     RunnersConfig,
     TemplateError,
+    lerobot_arm_error,
     render_command,
     sample_values,
 )
@@ -85,7 +86,7 @@ class Arm(_Strict):
 
     id: Identifier
     label: str | None = None
-    runner: Literal["manual", "sim", "command", "openpi_router"] = "manual"
+    runner: Literal["manual", "sim", "command", "openpi_router", "lerobot"] = "manual"
     policy: dict[str, Any] = Field(default_factory=dict)
     serving: dict[str, Any] = Field(default_factory=dict)
 
@@ -401,11 +402,11 @@ class StudySpec(_Strict):
     @model_validator(mode="after")
     def _check_runners(self) -> "StudySpec":
         kinds = {a.runner for a in self.arms}
-        switching = kinds & {"command", "openpi_router"}
+        switching = kinds & {"command", "openpi_router", "lerobot"}
         if switching and len(kinds) > 1:
             raise ValueError(
                 f"arms use different runners ({', '.join(sorted(kinds))}); a switching "
-                "runner (command or openpi_router) must run every arm"
+                "runner (command, openpi_router or lerobot) must run every arm"
             )
         config = self.runners or RunnersConfig()
         if "command" in kinds:
@@ -428,6 +429,13 @@ class StudySpec(_Strict):
                         f"arm {arm.id!r} uses runner: openpi_router and needs "
                         "policy.url: ws://host:port (its policy server)"
                     )
+        if "lerobot" in kinds:
+            if config.lerobot is None:
+                raise ValueError("arms use runner: lerobot; add runners.lerobot.robot")
+            for arm in self.arms:
+                error = lerobot_arm_error(arm.policy, arm.serving)
+                if error:
+                    raise ValueError(f"arm {arm.id!r} uses runner: lerobot and {error}")
         return self
 
     def arm(self, arm_id: str) -> Arm:

@@ -10,6 +10,18 @@ minor releases may contain breaking changes.
 
 ### Added
 
+- The `lerobot` runner (`fieldtrial[lerobot-runner]`, Python 3.12+): LeRobot policies run
+  inside fieldtrial. The robot is connected once; each arm's checkpoint is loaded with
+  LeRobot and driven by its inference engines (`sync` or `rtc`, from the arm's `serving`),
+  with `keep_loaded` checkpoints kept in memory and shared between arms. Every trial is
+  recorded as one episode of a LeRobot v3.0 dataset with the study's instruction as task,
+  listed in `fieldtrial_episodes.json` and linked to the trial automatically.
+  `fieldtrial check-runners` checks LeRobot and every arm's policy configuration.
+- Runners can report the dataset episode they recorded (`RunArtifacts.episode`); the server
+  links it to the trial with a `dataset_link` event.
+- The report's **Runner** section shows, for the `lerobot` runner, policy loads, median load
+  time, recording rate, late control ticks and control-loop errors per arm. `RunnerSummary`
+  gains the matching optional fields.
 - Reward models (`fieldtrial[rewards]`, Python 3.12+: LeRobot's Robometer and TOPReward,
   or your own scorer):
   - `fieldtrial score-episodes` scores every episode of a LeRobot dataset; scores are
@@ -51,6 +63,8 @@ minor releases may contain breaking changes.
 
 ### Changed
 
+- The console's runner status no longer waits while a runner prepares an arm, so it shows
+  "loading" while a policy loads.
 - The development tools are a PEP 735 `dev` dependency group instead of a `dev` extra, and
   the new `rewards` and `lerobot-runner` extras are resolved apart from it, so
   `uv sync --extra openpi --extra capture --extra lerobot --extra docs` is the development

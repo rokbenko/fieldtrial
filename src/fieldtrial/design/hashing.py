@@ -26,6 +26,13 @@ def normalized_design(spec: StudySpec) -> dict[str, Any]:
     data.pop("capture", None)
     if data.get("runners") is None:
         data.pop("runners", None)
+    else:
+        runners = data["runners"]
+        if runners.get("lerobot") is None:
+            runners.pop("lerobot", None)
+        else:
+            for setup in ("robot", "dataset", "device", "keep_loaded"):
+                runners["lerobot"].pop(setup, None)
     if data["design"].get("rounds") is None:
         data["design"].pop("rounds", None)
     analysis = data["analysis"]

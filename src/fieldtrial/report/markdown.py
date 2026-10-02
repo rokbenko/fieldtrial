@@ -295,33 +295,64 @@ def _design_sections(r: Results) -> list[str]:
         ]
         lines += _section("Rig checks", body)
     if r.runner:
-        body = [
-            "What the runner measured, per arm. Descriptive only: no test is run on it.",
-            "",
-            *_table(
-                [
-                    "Arm",
-                    "Trials",
-                    "Requests",
-                    "Errors",
-                    "Median latency (ms)",
-                    "Max p95 latency (ms)",
-                    "Abnormal exits",
-                ],
-                (
+        # A study has one runner: the lerobot runner reports loads, the others requests.
+        served = [u for u in r.runner if u.policy_loads is None]
+        in_process = [u for u in r.runner if u.policy_loads is not None]
+        body = ["What the runner measured, per arm. Descriptive only: no test is run on it."]
+        if served:
+            body += [
+                "",
+                *_table(
                     [
-                        u.arm,
-                        u.trials,
-                        _DASH if u.requests is None else u.requests,
-                        _DASH if u.errors is None else u.errors,
-                        _DASH if u.latency_ms_median is None else f"{u.latency_ms_median:.1f}",
-                        _DASH if u.latency_ms_p95 is None else f"{u.latency_ms_p95:.1f}",
-                        _DASH if u.abnormal_exits is None else u.abnormal_exits,
-                    ]
-                    for u in r.runner
+                        "Arm",
+                        "Trials",
+                        "Requests",
+                        "Errors",
+                        "Median latency (ms)",
+                        "Max p95 latency (ms)",
+                        "Abnormal exits",
+                    ],
+                    (
+                        [
+                            u.arm,
+                            u.trials,
+                            _DASH if u.requests is None else u.requests,
+                            _DASH if u.errors is None else u.errors,
+                            _DASH if u.latency_ms_median is None else f"{u.latency_ms_median:.1f}",
+                            _DASH if u.latency_ms_p95 is None else f"{u.latency_ms_p95:.1f}",
+                            _DASH if u.abnormal_exits is None else u.abnormal_exits,
+                        ]
+                        for u in served
+                    ),
                 ),
-            ),
-        ]
+            ]
+        if in_process:
+            body += [
+                "",
+                *_table(
+                    [
+                        "Arm",
+                        "Trials",
+                        "Policy loads",
+                        "Median load (s)",
+                        "Median recording rate (Hz)",
+                        "Overruns",
+                        "Control-loop errors",
+                    ],
+                    (
+                        [
+                            u.arm,
+                            u.trials,
+                            u.policy_loads,
+                            _DASH if u.load_s_median is None else f"{u.load_s_median:.1f}",
+                            _DASH if u.record_hz_median is None else f"{u.record_hz_median:.1f}",
+                            u.overruns,
+                            u.loop_errors,
+                        ]
+                        for u in in_process
+                    ),
+                ),
+            ]
         lines += _section("Runner", body)
     if r.ladder is not None:
         lad = r.ladder

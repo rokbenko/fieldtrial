@@ -8,6 +8,7 @@ sees blind codes:
 |---|---|---|
 | `command` | Any policy you start with a command (`lerobot-rollout`, your own script) | Runs a command template for each trial, filled with the arm's `policy` and `serving` values |
 | `openpi_router` | openpi-style websocket policy servers | Sits between the robot's client and one policy server per arm, and forwards each trial's frames to that trial's arm |
+| `lerobot` | LeRobot policies (Python 3.12+, `fieldtrial[lerobot-runner]`) | Runs each arm's LeRobot policy inside fieldtrial on a robot connected once, and records each trial as a dataset episode; see [Using fieldtrial with LeRobot](lerobot.md#real-blinding-the-in-process-runner) |
 
 Either way, every arm uses the same runner. The console and the REST API both drive it:
 **Start** starts the arm, **Stop** stops it, and **Invalid trial** stops it too. If a

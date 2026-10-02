@@ -150,3 +150,37 @@ def link_episodes(ctx: StudyContext, plan: LinkPlan, *, actor: str = "fieldtrial
             },
         )
     return len(plan.rows)
+
+
+def record_episode_link(
+    ctx: StudyContext,
+    trial_id: str,
+    *,
+    root: str,
+    codebase_version: str,
+    episode_index: int,
+    length: int,
+    actor: str = "runner",
+) -> None:
+    """Link a trial to the episode a runner recorded for it (one ``dataset_link`` event)."""
+    with ctx.db() as db, db.begin():
+        append_event(
+            db,
+            ctx.study_id,
+            "dataset_link",
+            actor,
+            {
+                "dataset": root,
+                "root": root,
+                "codebase_version": codebase_version,
+                "source": "runner",
+                "links": [
+                    {
+                        "trial_id": trial_id,
+                        "episode_index": episode_index,
+                        "length": length,
+                        "intervention_frames": None,
+                    }
+                ],
+            },
+        )

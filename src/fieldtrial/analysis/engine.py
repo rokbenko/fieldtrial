@@ -985,6 +985,9 @@ def _runner(data: _Data) -> list[RunnerSummary]:
         p95s = [m["latency_ms_p95"] for m in rows if "latency_ms_p95" in m]
         has_requests = any("requests" in m for m in rows)
         has_exit = any("exit_code" in m for m in rows)
+        in_process = [m for m in rows if "arm_load_s" in m]
+        loads = [m["arm_load_s"] for m in in_process if m.get("policy_loaded")]
+        rates = [m["record_hz"] for m in in_process if "record_hz" in m]
         out.append(
             RunnerSummary(
                 arm=arm,
@@ -1001,6 +1004,13 @@ def _runner(data: _Data) -> list[RunnerSummary]:
                     )
                     if has_exit
                     else None
+                ),
+                policy_loads=len(loads) if in_process else None,
+                load_s_median=float(np.median(loads)) if loads else None,
+                record_hz_median=float(np.median(rates)) if rates else None,
+                overruns=int(sum(m.get("overruns", 0) for m in in_process)) if in_process else None,
+                loop_errors=(
+                    int(sum(m.get("loop_error", 0) for m in in_process)) if in_process else None
                 ),
             )
         )

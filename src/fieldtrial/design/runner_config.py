@@ -80,11 +80,64 @@ class RouterConfig(_Strict):
     metadata: Literal["identical", "first"] = "identical"
 
 
+class LeRobotDatasetConfig(_Strict):
+    """Where the ``lerobot`` runner records its episodes (a LeRobot v3.0 dataset).
+
+    ``root`` is relative to the study folder; by default ``lerobot/<name>``, where ``name``
+    is the part of ``repo_id`` after the slash. The dataset is reused across sessions.
+    """
+
+    repo_id: str | None = Field(default=None, pattern=r"^[\w.-]+/[\w.-]+$")
+    root: str | None = None
+    video: bool = True
+    streaming_encoding: bool = False
+
+
+class LeRobotRunnerConfig(_Strict):
+    """The ``lerobot`` runner: LeRobot policies run inside fieldtrial (Python 3.12+).
+
+    The robot is connected once and every trial is recorded as one episode. ``robot`` is
+    LeRobot's robot configuration (as for ``lerobot-rollout --robot.*``), with its
+    ``type``. ``keep_loaded`` is how many policies stay in memory (``all`` keeps every
+    arm's policy loaded after its first trial). ``reset_to_initial_position`` moves the
+    robot back to the pose it had when connected after each trial; ``return_to_initial_position``
+    does so before disconnecting.
+
+    ``robot``, ``dataset``, ``device`` and ``keep_loaded`` describe the setup and are left
+    out of the design hash, so the robot's port can change after locking.
+    """
+
+    robot: dict[str, Any]
+    fps: int = Field(default=30, gt=0, le=1000)
+    device: str | None = None
+    dataset: LeRobotDatasetConfig = Field(default_factory=LeRobotDatasetConfig)
+    keep_loaded: int | Literal["all"] = 1
+    rename_map: dict[str, str] = Field(default_factory=dict)
+    reset_to_initial_position: bool = True
+    reset_s: float = Field(default=2.0, gt=0, le=60)
+    return_to_initial_position: bool = True
+
+    @field_validator("robot")
+    @classmethod
+    def _robot_type(cls, robot: dict[str, Any]) -> dict[str, Any]:
+        if not isinstance(robot.get("type"), str) or not robot["type"]:
+            raise ValueError("runners.lerobot.robot needs a type, for example so101_follower")
+        return robot
+
+    @field_validator("keep_loaded")
+    @classmethod
+    def _keep(cls, keep: int | str) -> int | str:
+        if isinstance(keep, int) and keep < 1:
+            raise ValueError("keep_loaded must be at least 1, or all")
+        return keep
+
+
 class RunnersConfig(_Strict):
     """Settings for the runners that need them."""
 
     command: CommandRunnerConfig | None = None
     openpi_router: RouterConfig | None = None
+    lerobot: LeRobotRunnerConfig | None = None
 
 
 def split_template(template: str) -> list[str]:
@@ -169,3 +222,27 @@ def sample_values(
         "timeout_s": "",
         "study": "study",
     }
+
+
+def lerobot_arm_error(policy: Mapping[str, Any], serving: Mapping[str, Any]) -> str | None:
+    """What is wrong with an arm of the ``lerobot`` runner, or None.
+
+    ``policy.path`` is a checkpoint folder or Hub repo id (``policy.revision`` optional).
+    ``serving.inference`` is LeRobot's inference configuration (``type: sync`` or ``rtc``
+    with its options) and ``serving.interpolation_multiplier`` a whole number from 1.
+    """
+    path = policy.get("path")
+    if not isinstance(path, str) or not path.strip():
+        return "needs policy.path: a checkpoint folder or Hub repo id"
+    revision = policy.get("revision")
+    if revision is not None and not isinstance(revision, str):
+        return "policy.revision must be text"
+    inference = serving.get("inference")
+    if inference is not None and (
+        not isinstance(inference, dict) or inference.get("type", "sync") not in ("sync", "rtc")
+    ):
+        return "serving.inference needs type: sync or rtc"
+    multiplier = serving.get("interpolation_multiplier", 1)
+    if isinstance(multiplier, bool) or not isinstance(multiplier, int) or multiplier < 1:
+        return "serving.interpolation_multiplier must be a whole number from 1"
+    return None

@@ -68,7 +68,7 @@ These notes come from reading the LeRobot 0.6.1 source; nothing was measured on 
 |---|---|---|
 | M8 | Anytime-valid comparisons and best-arm selection for serving sweeps; STEP evaluation | done |
 | M9 | Reward-model pre-labels with blind human review, Cohen's κ, proxy-assisted (PPI++) intervals | done |
-| M10 | In-process LeRobot runner (release 0.3.0) | planned |
+| M10 | In-process LeRobot runner (release 0.3.0) | done |
 
 Limits of M8, to revisit later:
 
@@ -92,6 +92,20 @@ Limits of M9, to revisit later:
   success rate of those episodes, not of the scheduled trials. The intervals are
   large-sample (normal) intervals; a betting-based, nonasymptotic version could follow.
 - The review page plays the dataset's first camera.
+
+Limits of M10, to revisit later:
+
+- The `lerobot` runner was run against LeRobot 0.6.1 with a simulated robot and small ACT
+  checkpoints on a CPU, but not on a real robot, with a GPU, or with RTC inference on a
+  policy that supports it.
+- It mirrors `build_rollout_context` instead of calling it, because that function loads
+  one policy and connects the robot each time; PEFT adapters, `torch.compile`, teleoperated
+  resets and DAgger interventions are not supported.
+- Preparing an arm loads its policy when the operator presses Start, so the first trial of
+  each arm waits for the load. Preloading every arm when the session opens would hide it.
+- A candidate upstream proposal: a strategy registry in `lerobot.rollout` (instead of the
+  if-chain in `create_strategy`) and a `build_rollout_context` that takes an already
+  connected robot, so tools like fieldtrial can reuse it without mirroring it.
 
 ## Deferred to the milestone that needs them
 
