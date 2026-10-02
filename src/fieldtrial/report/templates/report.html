@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="generator" content="fieldtrial {{ r.provenance.fieldtrial_version }}">
+<title>{{ s.title or s.name }} · fieldtrial report</title>
+<style>{{ css }}</style>
+</head>
+<body>
+<main>
+<header>
+  <p class="kicker">fieldtrial report</p>
+  <h1>{{ s.title or s.name }}</h1>
+  <p class="meta">
+    Study <code>{{ s.name }}</code> · design <code>{{ s.design_hash[:12] }}</code> ·
+    {{ s.design_type | replace("_", " ") }} · {{ s.n_conditions }} conditions × {{ s.replicates }} replicate{{ "s" if s.replicates != 1 }} ·
+    seed {{ s.seed }} · generated {{ r.provenance.generated_at.strftime("%Y-%m-%d %H:%M") }} UTC
+  </p>
+</header>
+
+<section class="summary">
+  <h2>Summary</h2>
+  <ul>
+  {% for sentence in r.summary %}
+    <li>{{ sentence }}</li>
+  {% else %}
+    <li>–</li>
+  {% endfor %}
+  </ul>
+</section>
+
+<section>
+  <h2>Deviations from the plan</h2>
+  {% if r.deviations %}
+  <ul class="deviations">
+    {% for d in r.deviations %}<li><strong>{{ d.kind | replace("_", " ") }}</strong>: {{ d.message }}</li>{% endfor %}
+  </ul>
+  {% else %}
+  <p>None.</p>
+  {% endif %}
+</section>
+
+<section>
+  <h2>Success rate per arm</h2>
+  {% if charts.rates %}<figure>{{ charts.rates }}</figure>{% endif %}
+  <div class="table"><table>
+    <thead><tr><th>Arm</th><th>Label</th><th>Code</th><th class="num">Successes</th><th class="num">Completed</th><th class="num">Rate</th><th>95% CI</th><th class="num">Invalid</th></tr></thead>
+    <tbody>
+    {% for a in r.arms %}
+      <tr{% if a.arm == s.treatment %} class="treatment"{% endif %}>
+        <td>{{ a.arm }}</td><td>{{ a.label or "" }}</td><td><code>{{ a.blind_code }}</code></td>
+        <td class="num">{{ a.successes }}</td><td class="num">{{ a.completed }}</td>
+        <td class="num">{{ a.rate | rate }}</td><td>{{ a.ci | rate_ci }}</td><td class="num">{{ a.invalid }}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+</section>
+
+<section>
+  <h2>Primary analysis</h2>
+  {% set p = r.primary %}
+  <p>{{ p.description }}</p>
+  <div class="table"><table>
+    <thead><tr><th>Method</th><th class="num">Used</th><th>Estimate</th><th>95% CI</th><th class="num">p</th><th class="num">α</th><th>Alternative</th><th>H0</th></tr></thead>
+    <tbody><tr>
+      <td>{{ method_label }}</td>
+      <td class="num">{{ p.n_used }}</td>
+      <td>
+        {% if p.estimate is none %}–
+        {% elif p.estimate_kind == "difference" %}{{ p.estimate | pp }}
+        {% elif p.estimate_kind == "odds_ratio" %}odds ratio {{ "%.2f" | format(p.estimate) }}
+        {% else %}{{ p.estimate | rate }}{% endif %}
+      </td>
+      <td>
+        {% if p.ci is none %}–
+        {% elif p.estimate_kind == "difference" %}{{ p.ci | diff_ci }}
+        {% elif p.estimate_kind == "odds_ratio" %}{{ "%.2f" | format(p.ci.low) }} to {{ "%.2f" | format(p.ci.high) }}
+        {% else %}{{ p.ci | rate_ci }}{% endif %}
+      </td>
+      <td class="num">{{ p.pvalue | p }}</td>
+      <td class="num">{{ p.alpha }}</td>
+      <td>{{ p.alternative }}</td>
+      <td class="{{ 'reject' if p.rejected else '' }}">{{ "rejected" if p.rejected else "not rejected" }}</td>
+    </tr></tbody>
+  </table></div>
+  {% if p.pairwise | length > 1 %}
+  <div class="table"><table>
+    <thead><tr><th>Arm</th><th>vs</th><th class="num">Pairs</th><th class="num">b</th><th class="num">c</th><th>Difference</th><th>95% CI</th><th class="num">p</th><th class="num">Adjusted p</th></tr></thead>
+    <tbody>
+    {% for w in p.pairwise %}
+      <tr><td>{{ w.treatment }}</td><td>{{ w.control }}</td><td class="num">{{ w.n_pairs }}</td><td class="num">{{ w.b }}</td><td class="num">{{ w.c }}</td>
+      <td>{{ w.difference | pp }}</td><td>{{ w.ci | diff_ci }}</td><td class="num">{{ w.pvalue | p }}</td><td class="num">{{ w.adjusted_pvalue | p }}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+  {% elif p.pairwise %}
+  {% set w = p.pairwise[0] %}
+  <p>Discordant blocks: {{ w.b }} where only {{ w.treatment }} succeeded, {{ w.c }} where only {{ w.control }} did, out of {{ w.n_pairs }}.</p>
+  {% endif %}
+  {% if charts.forest %}<figure>{{ charts.forest }}<figcaption>Black: the paired primary analysis. Grey: arms treated as independent samples (sensitivity analysis).</figcaption></figure>{% endif %}
+</section>
+
+{% if r.sensitivity %}
+<section>
+  <h2>Sensitivity analysis: arms as independent samples</h2>
+  <div class="table"><table>
+    <thead><tr><th>Comparison</th><th>Counts</th><th>Difference</th><th>Newcombe 95% CI</th><th class="num">Boschloo p</th><th class="num">Fisher p</th></tr></thead>
+    <tbody>
+    {% for c in r.sensitivity %}
+      <tr><td>{{ c.treatment }} vs {{ c.control }}</td><td>{{ c.k1 }}/{{ c.n1 }} vs {{ c.k2 }}/{{ c.n2 }}</td><td>{{ c.difference | pp }}</td>
+      <td>{{ c.ci | diff_ci }}</td><td class="num">{{ c.boschloo_p | p }}</td><td class="num">{{ c.fisher_p | p }}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+</section>
+{% endif %}
+
+{% set staged = r.stages | selectattr("n") | list %}
+{% if staged %}
+<section>
+  <h2>Progress stages</h2>
+  <p>Furthest stage reached. Success means reaching <code>{{ s.success_stage }}</code>.</p>
+  {% if charts.stages %}<figure>{{ charts.stages }}</figure>{% endif %}
+  {% if charts.funnel %}<figure>{{ charts.funnel }}<figcaption>Share of all trials that reached each stage. The dotted line marks the success stage.</figcaption></figure>{% endif %}
+  <div class="table"><table>
+    <thead><tr><th>Stage</th>{% for st in staged %}<th>{{ st.arm }}: reached / entered</th>{% endfor %}</tr></thead>
+    <tbody>
+    {% for name in s.stages %}
+      {% set i = loop.index0 %}
+      <tr><td>{{ name }}</td>{% for st in staged %}{% set step = st.funnel[i] %}<td>{{ step.reached }}/{{ step.entered }} ({{ step.conversion | rate }})</td>{% endfor %}</tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+  {% if r.stage_comparisons %}
+  <div class="table"><table>
+    <thead><tr><th>Brunner–Munzel on stage</th><th class="num">p</th><th>Pre-registered</th></tr></thead>
+    <tbody>{% for c in r.stage_comparisons %}<tr><td>{{ c.treatment }} vs {{ c.control }}</td><td class="num">{{ c.pvalue | p }}</td><td>{{ "yes" if c.preregistered else "no" }}</td></tr>{% endfor %}</tbody>
+  </table></div>
+  {% endif %}
+</section>
+{% endif %}
+
+<section>
+  <h2>Time to success</h2>
+  {% if charts.timing %}<figure>{{ charts.timing }}<figcaption>Share of all trials that had succeeded by each time. Every trial is observed until it ends, so there is no censoring.</figcaption></figure>{% endif %}
+  <div class="table"><table>
+    <thead><tr><th>Arm</th><th class="num">Successes</th><th class="num">Median (s)</th><th>95% CI (bootstrap)</th></tr></thead>
+    <tbody>
+    {% for t in r.timing %}
+      <tr><td>{{ t.arm }}</td><td class="num">{{ t.n_successes }}</td><td class="num">{{ "%.1f" | format(t.median_s) if t.median_s is not none else "–" }}</td>
+      <td>{{ ("%.1f–%.1f" | format(t.ci.low, t.ci.high)) if t.ci else "–" }}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+</section>
+
+<section>
+  <h2>Outcomes per condition</h2>
+  {% if charts.conditions %}<figure>{{ charts.conditions }}<figcaption>Success rate per condition and arm; grey cells have no completed trial.</figcaption></figure>{% endif %}
+  <details>
+    <summary>Successes / completed trials per condition and arm</summary>
+    <div class="table"><table>
+      <thead><tr><th>Condition</th>{% for arm in s.arms %}<th class="num">{{ arm }}</th>{% endfor %}</tr></thead>
+      <tbody>{% for row in r.conditions %}<tr><td>{{ row.condition }}</td>{% for c in row.cells %}<td class="num">{{ c.successes }}/{{ c.completed }}</td>{% endfor %}</tr>{% endfor %}</tbody>
+    </table></div>
+  </details>
+</section>
+
+<section>
+  <h2>Sessions and validity checks</h2>
+  {% if charts.sessions %}<figure>{{ charts.sessions }}</figure>{% endif %}
+  <div class="table"><table>
+    <thead><tr><th>Started (UTC)</th><th>Operator</th><th>Rig</th>{% for arm in s.arms %}<th class="num">{{ arm }}</th>{% endfor %}</tr></thead>
+    <tbody>{% for row in r.sessions %}<tr><td>{{ row.started_at.strftime("%Y-%m-%d %H:%M") }}</td><td>{{ row.operator }}</td><td>{{ row.rig }}</td>{% for c in row.cells %}<td class="num">{{ c.successes }}/{{ c.completed }}</td>{% endfor %}</tr>{% endfor %}</tbody>
+  </table></div>
+  {% if r.drift %}
+  <div class="table"><table>
+    <thead><tr><th>Check</th><th>Arm</th><th class="num">Groups</th><th>Method</th><th class="num">p</th><th>Flag</th></tr></thead>
+    <tbody>{% for d in r.drift %}<tr><td>across {{ d.grouping }}s</td><td>{{ d.arm }}</td><td class="num">{{ d.groups }}</td><td>{{ d.method }}</td><td class="num">{{ d.pvalue | p }}</td><td class="{{ 'flag' if d.flagged else '' }}">{{ "flagged" if d.flagged else "" }}</td></tr>{% endfor %}</tbody>
+  </table></div>
+  {% else %}
+  <p>Drift checks need at least two sessions.</p>
+  {% endif %}
+  {% set inv = r.invalid %}
+  <p>Invalid trials (invalid/attempts): {% for a, n in inv.per_arm.items() %}{{ a }} {{ n }}/{{ inv.attempts[a] }}{{ ", " if not loop.last }}{% endfor %}{% if inv.method %}; {{ inv.method }} p = {{ inv.pvalue | p }}{% endif %}{% if inv.flagged %} <strong class="flag">(flagged)</strong>{% endif %}.</p>
+</section>
+
+<section class="provenance">
+  <h2>Provenance</h2>
+  {% set pv = r.provenance %}
+  <ul>
+    <li>Design hash <code>{{ pv.design_hash }}</code> (seed {{ pv.seed }})</li>
+    <li>Locked with fieldtrial {{ pv.locked_with_version }}; analyzed with {{ pv.fieldtrial_version }} (Python {{ pv.python }}, numpy {{ pv.numpy }}, scipy {{ pv.scipy }})</li>
+    <li>Arm fingerprints: {% for a, h in pv.policy_fingerprints.items() %}{{ a }} <code>{{ h }}</code>{{ ", " if not loop.last }}{% endfor %}</li>
+    <li>{{ pv.sessions }} sessions; operators: {{ pv.operators | join(", ") or "–" }}; rigs: {{ pv.rigs | join(", ") or "–" }}</li>
+    <li>Results schema version {{ r.schema_version }}</li>
+  </ul>
+</section>
+</main>
+</body>
+</html>

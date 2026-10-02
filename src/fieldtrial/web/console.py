@@ -17,7 +17,7 @@ from fastapi.responses import HTMLResponse, PlainTextResponse, RedirectResponse,
 from fastapi.templating import Jinja2Templates
 
 from fieldtrial.analysis.wording import fmt_rate
-from fieldtrial.report import render_markdown
+from fieldtrial.report import render_html, render_markdown
 from fieldtrial.runners.base import ArmSpec, RunArtifacts, Runner, TrialContext
 from fieldtrial.runners.manual import ManualRunner
 from fieldtrial.runners.sim import SimArm, SimRunner
@@ -508,6 +508,22 @@ def report_markdown(request: Request, slug: str) -> Response:
         media_type="text/markdown; charset=utf-8",
         headers={"Content-Disposition": f'attachment; filename="{slug}-report.md"'},
     )
+
+
+REPORT_CSP = (
+    "default-src 'none'; style-src 'unsafe-inline'; img-src data:; "
+    "base-uri 'none'; form-action 'none'; frame-ancestors 'none'"
+)
+
+
+@router.get("/studies/{slug}/report.html", response_class=HTMLResponse)
+def report_html(request: Request, slug: str, download: bool = False) -> Response:
+    """The self-contained HTML report (no scripts; inline styles and charts only)."""
+    ctx = _registry(request).get(slug)
+    headers = {"Content-Security-Policy": REPORT_CSP}
+    if download:
+        headers["Content-Disposition"] = f'attachment; filename="{slug}-report.html"'
+    return HTMLResponse(render_html(analyze_study(ctx.folder)), headers=headers)
 
 
 @router.get("/studies/{slug}/results.json")

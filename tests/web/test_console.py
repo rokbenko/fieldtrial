@@ -431,3 +431,20 @@ def test_redirects_for_htmx_and_plain_forms(client: TestClient) -> None:
     )
     assert plain.status_code == 303
     assert plain.headers["location"].startswith(f"{STUDY}/sessions/")
+
+
+def test_html_report_route(client: TestClient) -> None:
+    console = Console(client)
+    url = console.session()
+    run_trial(console, url)
+    run_trial(console, url, stage="0", termination="stuck")
+    console.post(f"{STUDY}/unblind", {"confirm": "yes"})
+    assert f'href="{STUDY}/report.html"' in client.get(f"{STUDY}/report").text
+    r = client.get(f"{STUDY}/report.html")
+    assert r.status_code == 200
+    csp = r.headers["content-security-policy"]
+    assert "default-src 'none'" in csp
+    assert "script-src" not in csp
+    assert "<svg" in r.text
+    download = client.get(f"{STUDY}/report.html", params={"download": True})
+    assert download.headers["content-disposition"].endswith('-report.html"')

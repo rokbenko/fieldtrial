@@ -8,7 +8,7 @@ trial and an append-only event log.
 my-study/
 ├── study.yaml        # the design (editable; changes after locking need `amend`)
 ├── fieldtrial.db     # created by `lock`: design, schedule, trials, events
-├── media/            # clips and photos (used from v0.1.0)
+├── media/            # clips and photos attached to trials
 └── reports/          # report.md and results.json
 ```
 
@@ -108,7 +108,8 @@ Unblinding is logged. If trials were still pending, every report flags it.
 ```console
 $ fieldtrial analyze my-study           # summary in the terminal
 $ fieldtrial analyze my-study --json    # the full Results model
-$ fieldtrial report my-study            # reports/report.md
+$ fieldtrial report my-study            # reports/report.html, with charts
+$ fieldtrial report my-study --format md
 $ fieldtrial report my-study --format json
 $ fieldtrial export my-study --format csv
 ```

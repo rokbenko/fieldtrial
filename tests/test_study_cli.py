@@ -34,7 +34,7 @@ def golden(tmp_path: Path) -> Path:
 
 
 def test_golden_report(golden: Path) -> None:
-    code, out = run("report", golden)
+    code, out = run("report", golden, "--format", "md")
     assert code == 0, out
     report = (golden / "reports" / "report.md").read_text(encoding="utf-8")
     # The section 15 golden numbers, from the independent-samples analysis.
@@ -134,3 +134,13 @@ def test_amend_export_and_errors(tmp_path: Path) -> None:
     assert code == 0
     assert "deviation:" in out
     assert "two more slots" in out
+
+
+def test_html_report_is_the_default(golden: Path) -> None:
+    code, out = run("report", golden)
+    assert code == 0, out
+    html = (golden / "reports" / "report.html").read_text(encoding="utf-8")
+    assert html.startswith("<!doctype html>")
+    assert "Boschloo p = 0.0020" in html
+    assert html.count("<svg") >= 5
+    assert run("report", golden, "--format", "pdf")[0] == 2

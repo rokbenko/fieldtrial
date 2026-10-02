@@ -49,8 +49,8 @@ Holm by default.
 
 ## Several replicates per condition
 
-The Cochran–Mantel–Haenszel test, stratified by condition, comes with the analysis engine
-in 0.1.0.
+With several replicates per condition, the study's primary analysis is the
+[Cochran–Mantel–Haenszel test](stratified.md), stratified by condition.
 
 ## References
 

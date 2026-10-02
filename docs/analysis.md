@@ -1,7 +1,7 @@
 # Analysis and reports
 
 `fieldtrial analyze` turns a study's trials into a versioned `Results` model. Reports
-(`report.md`, `results.json`) are rendered from it. The analysis plan comes from the locked
+(`report.html`, `report.md`, `results.json`) are rendered from it. The analysis plan comes from the locked
 design, and nothing is chosen after seeing the data.
 
 ## Primary analysis
@@ -80,6 +80,24 @@ The detectable difference uses the [independent-samples formula](stats/planning.
 the observed control rate, so it is conservative for paired designs. Report text never says
 "better", "worse", "trend toward significance" or "almost significant"; the wording module
 rejects these.
+
+## Charts
+
+`report.html` is one self-contained file: inline CSS and SVG charts, no scripts, nothing
+loaded from other hosts, so it opens offline and can be attached anywhere. Colors follow
+the Okabe–Ito palette, which stays distinguishable with the common forms of color
+blindness. The charts:
+
+- success rate per arm with its confidence interval
+- a forest plot of the differences against the control: the paired primary analysis and
+  the independent-samples sensitivity analysis
+- the furthest stage reached, as stacked bars per arm
+- the stage funnel: the share of trials reaching each stage
+- cumulative success over time
+- success per condition and arm, as a heatmap
+- success per session, in time order (drift)
+
+`report.md` has the same tables without charts, for GitHub and pull requests.
 
 ## Results schema
 

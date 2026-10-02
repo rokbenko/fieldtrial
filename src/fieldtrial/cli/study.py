@@ -17,7 +17,7 @@ from fieldtrial.analysis.wording import fmt_pp, fmt_rate
 from fieldtrial.cli.calc import JsonOption, _jsonable, _print_json
 from fieldtrial.design import StudyValidationError
 from fieldtrial.io.csv import CsvImportError, parse_mapping
-from fieldtrial.report import render_markdown
+from fieldtrial.report import render_html, render_markdown
 from fieldtrial.services import ServiceError
 from fieldtrial.services.analysis import analyze_study
 from fieldtrial.services.simulate import simulate_study
@@ -327,19 +327,20 @@ def analyze(folder: FolderArg, as_json: JsonOption = False) -> None:
 @_errors
 def report(
     folder: FolderArg,
-    fmt: Annotated[
-        str, typer.Option("--format", help="md or json (html arrives in v0.1.0).")
-    ] = "md",
+    fmt: Annotated[str, typer.Option("--format", help="html, md or json.")] = "html",
     out: Annotated[Path | None, typer.Option("--out", help="Output file.")] = None,
 ) -> None:
     """Write the report to the study's reports/ folder (or --out)."""
-    if fmt not in ("md", "json"):
-        raise typer.BadParameter("must be md or json", param_hint="--format")
+    if fmt not in ("html", "md", "json"):
+        raise typer.BadParameter("must be html, md or json", param_hint="--format")
     results = analyze_study(folder)
     root = Path(folder).parent if Path(folder).name == "study.yaml" else Path(folder)
-    target = out or root / "reports" / ("report.md" if fmt == "md" else "results.json")
+    names = {"html": "report.html", "md": "report.md", "json": "results.json"}
+    target = out or root / "reports" / names[fmt]
     target.parent.mkdir(parents=True, exist_ok=True)
-    if fmt == "md":
+    if fmt == "html":
+        target.write_text(render_html(results), encoding="utf-8")
+    elif fmt == "md":
         target.write_text(render_markdown(results), encoding="utf-8")
     else:
         target.write_text(

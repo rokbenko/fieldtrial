@@ -43,9 +43,10 @@
   <section>
     <h2>Primary analysis</h2>
     <p>{{ results.primary.description }}</p>
-    <p class="muted">The full report with stages, timing, drift checks and provenance is in the Markdown download. Charts arrive in v0.1.0.</p>
   </section>
   <nav class="links">
+    <a class="button primary" href="/studies/{{ slug }}/report.html" target="_blank" rel="noopener">Full report with charts</a>
+    <a class="button" href="/studies/{{ slug }}/report.html?download=true">Download report.html</a>
     <a class="button" href="/studies/{{ slug }}/report.md" download>Download report.md</a>
     <a class="button" href="/studies/{{ slug }}/results.json" download>Download results.json</a>
   </nav>

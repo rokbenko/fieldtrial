@@ -10,7 +10,7 @@ from fieldtrial.analysis.results import CI, Results
 from fieldtrial.analysis.wording import fmt_p, fmt_pp, fmt_range, fmt_rate, fmt_signed
 
 _DASH = "–"
-_LABELS = {
+METHOD_LABELS = {
     "mcnemar_tango": "Exact McNemar test, Tango score interval",
     "cochran_q": "Cochran's Q, pairwise exact McNemar",
     "cmh": "Cochran–Mantel–Haenszel test",
@@ -111,7 +111,7 @@ def render_markdown(results: Results) -> str:
             ["Method", "Used", "Estimate", f"{level} CI", "p", "α", "Alternative", "H0"],
             [
                 [
-                    _LABELS[p.method],
+                    METHOD_LABELS[p.method],
                     p.n_used,
                     estimate,
                     interval,

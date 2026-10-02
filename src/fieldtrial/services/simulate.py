@@ -2,15 +2,15 @@
 
 import math
 from dataclasses import dataclass
-from datetime import timedelta
+from datetime import datetime, timedelta
 from pathlib import Path
 
 from fieldtrial.runners.base import ArmSpec, TrialContext
 from fieldtrial.runners.sim import SimArm, SimRunner
-from fieldtrial.services._context import ServiceError, open_study
+from fieldtrial.services._context import ServiceError, StudyContext, open_study
 from fieldtrial.services.session import end_session, start_session
 from fieldtrial.services.study import init_study, lock_study
-from fieldtrial.services.trial import next_slot, pending_slots, record_trial
+from fieldtrial.services.trial import collect_records, next_slot, pending_slots, record_trial
 from fieldtrial.store.models import utcnow
 
 
@@ -45,6 +45,12 @@ def _span_bound(
     sessions = trials // max(trials_per_session, 1) + 1
     per_trial = (timeout_s or MAX_TRIAL_S) + RESET_S
     return timedelta(seconds=trials * per_trial + sessions * BREAK_S)
+
+
+def _latest_end(ctx: StudyContext) -> datetime | None:
+    records, _info = collect_records(ctx)
+    ends = [r.started_at + timedelta(seconds=r.duration_s or 0.0) for r in records]
+    return max(ends, default=None)
 
 
 def simulate_study(
@@ -85,6 +91,10 @@ def simulate_study(
             timeout_s=ctx.spec.limits.timeout_s,
             trials_per_session=trials_per_session,
         )
+        # Continue after trials already recorded, so a second run stays in run order.
+        last_end = _latest_end(ctx)
+        if last_end is not None and last_end + timedelta(seconds=BREAK_S) > clock:
+            clock = last_end + timedelta(seconds=BREAK_S)
         session_id: str | None = None
         in_session = completed = invalid = sessions = 0
         while max_trials is None or completed + invalid < max_trials:

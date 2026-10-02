@@ -141,3 +141,13 @@ def test_simulated_trials_end_before_now(locked_study: Path) -> None:
     assert max(ends) <= now
     starts = [r.started_at for r in records]
     assert starts == sorted(starts)
+
+
+def test_second_simulation_continues_in_order(locked_study: Path) -> None:
+    rates = {"baseline": 0.5, "q50": 0.9}
+    simulate_study(locked_study, rates, seed=1, max_trials=3)
+    simulate_study(locked_study, rates, seed=2)
+    with open_study(locked_study) as ctx:
+        records, _ = collect_records(ctx)
+    seqs = [r.seq for r in sorted(records, key=lambda r: r.started_at)]
+    assert seqs == sorted(seqs)
