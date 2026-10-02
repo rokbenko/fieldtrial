@@ -22,7 +22,7 @@ from fieldtrial.report import render_html, render_markdown
 from fieldtrial.services import ServiceError, open_study
 from fieldtrial.services.analysis import analyze_study
 from fieldtrial.services.interim import run_interim
-from fieldtrial.services.rig import check_rig, set_reference
+from fieldtrial.services.rig import check_rig, grab_camera_frame, set_reference
 from fieldtrial.services.runner_check import check_runners
 from fieldtrial.services.simulate import simulate_study
 from fieldtrial.services.study import (
@@ -371,9 +371,12 @@ def check_runners_cmd(
 @_errors
 def rig_check(
     folder: FolderArg,
-    photo: Annotated[Path, typer.Argument(help="A photo of the rig (PNG or JPEG).")],
+    photo: Annotated[Path | None, typer.Argument(help="A photo of the rig (PNG or JPEG).")] = None,
     set_ref: Annotated[
         bool, typer.Option("--set-reference", help="Use this photo as the reference.")
+    ] = False,
+    camera: Annotated[
+        bool, typer.Option("--camera", help="Take the photo with the study's capture.camera.")
     ] = False,
     as_json: JsonOption = False,
 ) -> None:
@@ -381,15 +384,20 @@ def rig_check(
 
     Flagged checks are listed as deviations in every report.
     """
+    if (photo is None) == (not camera):
+        raise typer.BadParameter("give a PHOTO or --camera (not both)", param_hint="PHOTO")
     with open_study(folder) as ctx:
+        image: Any = photo
+        if camera:
+            image = grab_camera_frame(ctx.spec.capture)
         if set_ref:
-            target = set_reference(ctx, photo)
+            target = set_reference(ctx, image)
             if as_json:
                 _print_json({"reference": str(target)})
             else:
                 _console.print(f"Reference photo saved to {target}")
             return
-        result = check_rig(ctx, photo, source="cli")
+        result = check_rig(ctx, image, source="camera" if camera else "cli")
     d = result.drift
     if as_json:
         _print_json(result)

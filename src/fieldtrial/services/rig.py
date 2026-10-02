@@ -13,6 +13,7 @@ from typing import Any, Literal
 
 from fieldtrial.capture.drift import DriftResult, DriftThresholds, compare
 from fieldtrial.capture.images import load_image, save_png
+from fieldtrial.design.capture_config import CaptureConfig
 from fieldtrial.services._context import ServiceError, StudyContext
 from fieldtrial.services.events import append_event, list_events
 
@@ -65,11 +66,12 @@ def _decode(image: bytes | str | Path) -> Any:
         raise ServiceError(str(exc)) from exc
 
 
-def set_reference(
-    ctx: StudyContext, image: bytes | str | Path, *, actor: str = "fieldtrial"
-) -> Path:
-    """Store the reference photo (the previous one is kept with a timestamp)."""
-    pixels = _decode(image)
+def set_reference(ctx: StudyContext, image: Any, *, actor: str = "fieldtrial") -> Path:
+    """Store the reference photo: a file, its bytes or an RGB array (a camera frame).
+
+    The previous reference is kept with a timestamp.
+    """
+    pixels = image if hasattr(image, "shape") else _decode(image)
     target = reference_path(ctx)
     if target.exists():
         stamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%S")
@@ -131,6 +133,29 @@ def check_rig(
             },
         )
     return check
+
+
+def grab_camera_frame(config: CaptureConfig | None) -> Any:
+    """One frame from the study's ``capture.camera`` (needs the capture extra)."""
+    if config is None or config.camera is None:
+        raise ServiceError("this study has no capture.camera in study.yaml")
+    from fieldtrial.capture.recorder import CameraSource, CaptureError, TrialRecorder
+
+    recorder = TrialRecorder(
+        lambda: CameraSource(
+            config.camera,  # type: ignore[arg-type]
+            width=config.width,
+            height=config.height,
+            fps=config.fps,
+        ),
+        fps=config.fps,
+    )
+    try:
+        return recorder.grab()
+    except CaptureError as exc:
+        raise ServiceError(str(exc)) from exc
+    finally:
+        recorder.close()
 
 
 def rig_checks(ctx: StudyContext) -> list[dict[str, Any]]:

@@ -165,6 +165,8 @@ async def create_session(request: Request, slug: str) -> Response:
     )
     if photo_bytes and has_reference(ctx):
         check_rig(ctx, photo_bytes, session_id=session_id, source="upload", actor="console")
+    elif not photo_bytes:
+        runners(request).camera_rig_check(slug, ctx, session_id=session_id)
     return _redirect(request, f"/studies/{slug}/sessions/{session_id}")
 
 

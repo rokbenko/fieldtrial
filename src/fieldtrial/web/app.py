@@ -1,6 +1,6 @@
 """The ASGI application: operator console, REST API v1 and static files."""
 
-from collections.abc import AsyncIterator, Iterable
+from collections.abc import AsyncIterator, Callable, Iterable
 from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any
@@ -13,6 +13,8 @@ from fastapi.staticfiles import StaticFiles
 
 from fieldtrial.api.schemas import API_VERSION
 from fieldtrial.api.v1 import router as api_router
+from fieldtrial.capture.recorder import FrameSource
+from fieldtrial.design.capture_config import CaptureConfig
 from fieldtrial.services import ConcurrencyError, ServiceError
 from fieldtrial.services.registry import StudyRegistry, UnknownStudyError
 from fieldtrial.web import console
@@ -45,11 +47,15 @@ def create_app(
     *,
     lan_token: str | None = None,
     allowed_hosts: Iterable[str] | None = None,
+    open_camera: Callable[[CaptureConfig], FrameSource] | None = None,
 ) -> FastAPI:
-    """Build the app for the study (or folder of studies) at ``root``."""
+    """Build the app for the study (or folder of studies) at ``root``.
+
+    ``open_camera`` replaces the OpenCV camera of studies with ``capture.camera`` (tests).
+    """
     registry = StudyRegistry(root)
 
-    runners = Runners()
+    runners = Runners(open_camera)
 
     @asynccontextmanager
     async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
