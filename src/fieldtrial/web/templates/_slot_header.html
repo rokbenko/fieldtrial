@@ -1,8 +1,11 @@
+{%- set crossover = spec.design.type == "crossover_rounds" -%}
 <header class="trial-head">
-  <p class="where">Trial {{ slot.seq }}/{{ slot.total }} · block {{ slot.block }} · {{ slot.condition }}</p>
+  <p class="where">Trial {{ slot.seq }}/{{ slot.total }} · {% if crossover %}round {{ slot.block }} of {{ spec.design.rounds }}{% else %}block {{ slot.block }}{% endif %} · {{ slot.condition }}</p>
   <p class="code" aria-label="Arm to load">{{ slot.blind_code }}{% if not blinded %} <span class="arm">{{ slot.arm }}</span>{% endif %}</p>
   <ul class="instructions">
-    {% if spec.limits.reset == "independent" %}<li>Reset the scene to {{ slot.condition }} before starting.</li>{% endif %}
+    {% if spec.limits.reset == "independent" %}<li>Reset the scene to {{ slot.condition }} before starting.</li>
+    {% elif slot.position == 1 %}<li><strong>New round:</strong> reset the whole scene and load {{ slot.blind_code }} before starting.</li>
+    {% else %}<li>Do not reset: the scene carries over within the round.</li>{% endif %}
     {% if spec.task.instruction %}<li>Instruction: {{ spec.task.instruction }}</li>{% endif %}
     {% if spec.limits.timeout_s %}<li>Timeout {{ spec.limits.timeout_s | duration }}{% if spec.limits.no_progress_s %}; call it stuck after {{ spec.limits.no_progress_s | int }} s without progress{% endif %}.</li>{% endif %}
   </ul>

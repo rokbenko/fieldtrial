@@ -11,6 +11,9 @@ design, and nothing is chosen after seeing the data.
 | `randomized_block`, 2 arms, 1 replicate | [Exact McNemar test](stats/paired.md) with a Tango score interval, on blocks where both arms have a completed trial |
 | `randomized_block`, 2 arms, several replicates | [Cochran–Mantel–Haenszel test](stats/stratified.md) stratified by condition; reports the Mantel–Haenszel odds ratio |
 | `randomized_block`, more than 2 arms | [Cochran's Q](stats/paired.md) on complete blocks, then each arm vs the control with exact McNemar tests and the pre-registered `multiplicity` adjustment (Holm by default) |
+| `randomized_block`, 2 arms, `stopping: group_sequential` | [Group-sequential](stats/sequential.md) McNemar score statistic at the planned looks; stage-wise p-value and a repeated confidence interval |
+| `randomized_block` with `analysis.ladder` and no `comparison` | [Mantel's test](stats/ladders.md) of a linear association between training step and success, stratified by condition |
+| `crossover_rounds` | [Period-adjusted difference](stats/crossover.md) over cycles of whole rounds, exact randomization test and interval |
 | `single_arm` with `threshold` | [Exact binomial test](stats/intervals.md) against the threshold |
 | `single_arm` without `threshold` | Success rate and interval only |
 
@@ -22,6 +25,14 @@ McNemar p-value. Cochran's Q is reported as the omnibus test.
 
 With a one-sided `alternative`, the CMH p-value is halved in the hypothesized direction,
 and set to 1 − p/2 in the other.
+
+A pre-registered `analysis.ladder` is always analyzed: the association with step and,
+with a `margin`, the plateau. It is the primary analysis without a `comparison`, and a
+pre-registered secondary analysis alongside one.
+
+In a group-sequential study, the report lists every look with its information fraction,
+statistic and boundary. Looks that were planned but not run, and interim decisions that
+no longer reproduce because labels were edited later, are listed as deviations.
 
 ## Sensitivity analysis
 

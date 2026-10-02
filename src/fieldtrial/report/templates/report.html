@@ -99,8 +99,52 @@
   {% set w = p.pairwise[0] %}
   <p>Discordant blocks: {{ w.b }} where only {{ w.treatment }} succeeded, {{ w.c }} where only {{ w.control }} did, out of {{ w.n_pairs }}.</p>
   {% endif %}
-  {% if charts.forest %}<figure>{{ charts.forest }}<figcaption>Black: the paired primary analysis. Grey: arms treated as independent samples (sensitivity analysis).</figcaption></figure>{% endif %}
+  {% if charts.forest %}<figure>{{ charts.forest }}<figcaption>Black: the primary analysis. Grey: arms treated as independent samples (sensitivity analysis).</figcaption></figure>{% endif %}
 </section>
+
+{% if r.sequential %}
+{% set q = r.sequential %}
+<section>
+  <h2>Group-sequential looks</h2>
+  <p>{{ q.planned_looks }} planned looks at {% for t in q.planned_fractions %}{{ "%.0f" | format(t * 100) }}%{{ ", " if not loop.last }}{% endfor %} of {{ q.planned_blocks }} blocks, {{ spending_labels.get(q.spending, q.spending) }} error spending.{% if q.stopped_at %} Stopped at look {{ q.stopped_at }}.{% endif %}</p>
+  <div class="table"><table>
+    <thead><tr><th class="num">Look</th><th>Kind</th><th class="num">Information</th><th class="num">Blocks</th><th class="num">Z</th><th class="num">Boundary</th><th>Crossed</th><th>Recorded</th></tr></thead>
+    <tbody>{% for k in q.looks %}<tr><td class="num">{{ k.look }}</td><td>{{ k.kind }}</td><td class="num">{{ "%.0f" | format(k.fraction * 100) }}%</td><td class="num">{{ k.blocks }}</td><td class="num">{{ "–" if k.z is none else "%.2f" | format(k.z) }}</td><td class="num">{{ "%.3f" | format(k.boundary) }}</td><td>{{ "yes" if k.crossed else "no" }}</td><td>{{ k.recorded_decision or "–" }}</td></tr>{% endfor %}</tbody>
+  </table></div>
+</section>
+{% endif %}
+
+{% if r.crossover %}
+{% set c = r.crossover %}
+<section>
+  <h2>Crossover rounds</h2>
+  <p>{{ c.cycles }} cycles ({{ c.ab }} with {{ c.treatment }} first, {{ c.ba }} with {{ c.control }} first); {{ c.cycles_used }} complete. Period effect (second round minus first): {{ c.period_effect | pp }}.</p>
+  {% if charts.rounds %}<figure>{{ charts.rounds }}</figure>{% endif %}
+  <details><summary>Rounds</summary>
+  <div class="table"><table>
+    <thead><tr><th class="num">Round</th><th class="num">Cycle</th><th class="num">Period</th><th>Arm</th><th class="num">Successes</th><th class="num">Completed</th><th class="num">Rate</th></tr></thead>
+    <tbody>{% for w in c.rounds %}<tr><td class="num">{{ w.round }}</td><td class="num">{{ w.cycle }}</td><td class="num">{{ w.period }}</td><td>{{ w.arm }}</td><td class="num">{{ w.successes }}</td><td class="num">{{ w.completed }}</td><td class="num">{{ w.rate | rate }}</td></tr>{% endfor %}</tbody>
+  </table></div>
+  </details>
+</section>
+{% endif %}
+
+{% if r.ladder %}
+{% set lad = r.ladder %}
+{% set a = lad.association %}
+<section>
+  <h2>Checkpoint ladder</h2>
+  <p>Mantel test of a linear association between training step and success: Z = {{ "–" if a.statistic is none else "%.2f" | format(a.statistic) }}, {{ a.pvalue | p_eq }} ({{ "primary" if a.primary else "pre-registered secondary" }} analysis).</p>
+  {% if charts.ladder %}<figure>{{ charts.ladder }}{% if lad.plateau_arm %}<figcaption>Shaded: checkpoints shown to be within {{ "%.1f" | format(lad.margin * 100) }} pp of the final one.</figcaption>{% endif %}</figure>{% endif %}
+  {% if lad.margin is not none and lad.plateau %}
+  <p>Plateau: each checkpoint against {{ lad.arms[-1] }}, non-inferiority margin {{ "%.1f" | format(lad.margin * 100) }} pp ({{ lad.plateau_method }}), tested from the latest checkpoint backwards. Plateau from: {{ lad.plateau_arm or "–" }}.</p>
+  <div class="table"><table>
+    <thead><tr><th>Checkpoint</th><th>{{ lad.arms[-1] }} minus it</th><th>Interval</th><th>Tested</th><th>Within margin</th></tr></thead>
+    <tbody>{% for row in lad.plateau %}<tr><td>{{ row.arm }}</td><td>{{ row.difference | pp }}</td><td>{{ row.ci | diff_ci }}</td><td>{{ "yes" if row.tested else "no" }}</td><td>{{ "yes" if row.noninferior else "no" }}</td></tr>{% endfor %}</tbody>
+  </table></div>
+  {% endif %}
+</section>
+{% endif %}
 
 {% if r.sensitivity %}
 <section>

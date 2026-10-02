@@ -225,11 +225,23 @@ def time_curves(results: Results) -> str | None:
 
 def forest(results: Results) -> str | None:
     """Differences against the control with confidence intervals (primary and sensitivity)."""
+    primary = results.primary
+    kind = "repeated CI" if primary.method == "group_sequential" else "paired"
     rows: list[tuple[str, float, float, float, str]] = [
-        (f"{w.treatment} vs {w.control} (paired)", w.difference, w.ci.low, w.ci.high, INK)
-        for w in results.primary.pairwise
+        (f"{w.treatment} vs {w.control} ({kind})", w.difference, w.ci.low, w.ci.high, INK)
+        for w in primary.pairwise
         if w.difference is not None and w.ci is not None
     ]
+    if primary.method == "crossover" and primary.estimate is not None and primary.ci is not None:
+        rows.append(
+            (
+                f"{primary.treatment} vs {primary.control} (crossover)",
+                primary.estimate,
+                primary.ci.low,
+                primary.ci.high,
+                INK,
+            )
+        )
     rows += [
         (
             f"{c.treatment} vs {c.control} (independent)",
@@ -340,9 +352,98 @@ def session_trend(results: Results) -> str | None:
     return _svg(fig, "Success rate per session over time")
 
 
+def ladder_rates(results: Results) -> str | None:
+    """Success rate with its interval at each checkpoint of a ladder, in step order."""
+    ladder = results.ladder
+    if ladder is None:
+        return None
+    by_arm = {a.arm: a for a in results.arms}
+    points = [
+        (i, by_arm[arm])
+        for i, arm in enumerate(ladder.arms)
+        if by_arm[arm].rate is not None and by_arm[arm].ci is not None
+    ]
+    if len(points) < 2:
+        return None
+    fig = _figure(2.8)
+    ax = fig.add_subplot()
+    _style(ax)
+    xs = [i for i, _ in points]
+    rates = [float(a.rate or 0.0) for _, a in points]
+    ax.plot(xs, rates, color=OKABE_ITO[0], linewidth=1.5, zorder=1)
+    for i, arm in points:
+        assert arm.rate is not None
+        assert arm.ci is not None
+        ax.errorbar(
+            i,
+            arm.rate,
+            yerr=[[arm.rate - arm.ci.low], [arm.ci.high - arm.rate]],
+            fmt="o",
+            color=OKABE_ITO[0],
+            elinewidth=2.5,
+            capsize=4,
+            markersize=7,
+            zorder=2,
+        )
+    if ladder.plateau_arm is not None:
+        start = ladder.arms.index(ladder.plateau_arm)
+        ax.axvspan(start - 0.3, len(ladder.arms) - 0.7, color=GRID, alpha=0.5, zorder=0)
+    labels = [f"{arm}\n{step:g}" for arm, step in zip(ladder.arms, ladder.steps, strict=True)]
+    ax.set_xticks(range(len(ladder.arms)), labels, fontsize=8)
+    ax.set_xlim(-0.5, len(ladder.arms) - 0.5)
+    ax.set_ylim(-0.03, 1.03)
+    _pct(ax, "y")
+    ax.set_ylabel("Success rate (95% CI)")
+    ax.grid(axis="x", visible=False)
+    return _svg(fig, "Success rate at each checkpoint in training-step order")
+
+
+def crossover_rounds(results: Results) -> str | None:
+    """Success rate of every crossover round, colored by arm."""
+    crossover = results.crossover
+    if crossover is None:
+        return None
+    rounds = [r for r in crossover.rounds if r.rate is not None]
+    if not rounds:
+        return None
+    colors = arm_colors(results.study.arms)
+    fig = _figure(2.6)
+    ax = fig.add_subplot()
+    _style(ax)
+    for arm in (crossover.treatment, crossover.control):
+        pts = [r for r in rounds if r.arm == arm]
+        ax.plot(
+            [r.round for r in pts],
+            [float(r.rate or 0.0) for r in pts],
+            marker="o",
+            linestyle="none",
+            color=colors[arm],
+            markersize=7,
+            label=arm,
+        )
+    for cycle in range(1, crossover.cycles + 1):
+        pair = [r for r in rounds if r.cycle == cycle]
+        if len(pair) == 2:
+            ax.plot(
+                [p.round for p in pair],
+                [float(p.rate or 0.0) for p in pair],
+                color=GRID,
+                zorder=0,
+            )
+    ax.set_xticks(range(1, 2 * crossover.cycles + 1))
+    ax.set_ylim(-0.03, 1.03)
+    _pct(ax, "y")
+    ax.set_xlabel("Round (lines join the two rounds of a cycle)")
+    ax.set_ylabel("Success rate in the round")
+    ax.legend(frameon=False, fontsize=9)
+    return _svg(fig, "Success rate per crossover round")
+
+
 CHARTS: tuple[tuple[str, str, Any], ...] = (
     ("rates", "Success rate per arm", success_rates),
     ("forest", "Differences against the control", forest),
+    ("ladder", "Success by training step", ladder_rates),
+    ("rounds", "Success per crossover round", crossover_rounds),
     ("stages", "Furthest stage reached", stage_stacks),
     ("funnel", "Stage funnel", stage_funnel),
     ("timing", "Time to success", time_curves),

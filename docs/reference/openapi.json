@@ -207,6 +207,152 @@
         }
       }
     },
+    "/api/v1/studies/{slug}/interim": {
+      "get": {
+        "summary": "Interim",
+        "description": "Interim-look status, or null when the study has no group-sequential rule.",
+        "operationId": "interim_api_v1_studies__slug__interim_get",
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Slug"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/InterimStatusOut"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "title": "Response Interim Api V1 Studies  Slug  Interim Get"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Run Interim",
+        "description": "Run the interim look that is due. A stop cancels the remaining trials.",
+        "operationId": "run_interim_api_v1_studies__slug__interim_post",
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Slug"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InterimOut"
+                }
+              }
+            }
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/studies/{slug}/sessions": {
       "post": {
         "summary": "Create Session",
@@ -1778,6 +1924,110 @@
         },
         "type": "object",
         "title": "HTTPValidationError"
+      },
+      "InterimOut": {
+        "properties": {
+          "look": {
+            "type": "integer",
+            "title": "Look"
+          },
+          "planned_looks": {
+            "type": "integer",
+            "title": "Planned Looks"
+          },
+          "decision": {
+            "type": "string",
+            "title": "Decision"
+          },
+          "complete_blocks": {
+            "type": "integer",
+            "title": "Complete Blocks"
+          },
+          "voided_slots": {
+            "type": "integer",
+            "title": "Voided Slots"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message"
+          }
+        },
+        "type": "object",
+        "required": [
+          "look",
+          "planned_looks",
+          "decision",
+          "complete_blocks",
+          "voided_slots",
+          "message"
+        ],
+        "title": "InterimOut",
+        "description": "The outcome of an interim look: ``continue`` or ``stop``, nothing else."
+      },
+      "InterimStatusOut": {
+        "properties": {
+          "planned_looks": {
+            "type": "integer",
+            "title": "Planned Looks"
+          },
+          "looks_done": {
+            "type": "integer",
+            "title": "Looks Done"
+          },
+          "complete_blocks": {
+            "type": "integer",
+            "title": "Complete Blocks"
+          },
+          "next_look": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Look"
+          },
+          "blocks_needed": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Blocks Needed"
+          },
+          "due": {
+            "type": "boolean",
+            "title": "Due"
+          },
+          "stopped_at": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Stopped At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "planned_looks",
+          "looks_done",
+          "complete_blocks",
+          "next_look",
+          "blocks_needed",
+          "due",
+          "stopped_at"
+        ],
+        "title": "InterimStatusOut",
+        "description": "Interim looks of a group-sequential study. Counts only, nothing per arm."
       },
       "InvalidateIn": {
         "properties": {

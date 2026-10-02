@@ -1,4 +1,4 @@
-# fieldtrial study: compare checkpoints from one training run against the earliest one.
+# fieldtrial study: checkpoints from one training run, in order of training step.
 fieldtrial: 1
 name: __NAME__
 title: "Checkpoint ladder"
@@ -39,3 +39,7 @@ analysis:
     alpha: 0.05
   multiplicity: holm
   secondary: [stage_reached]
+  ladder:                        # pre-registered: trend across steps and plateau detection
+    arms: [step-010k, step-020k, step-030k, step-040k]
+    steps: [10000, 20000, 30000, 40000]
+    margin: 0.10                 # "levelled off" = within 10 points of the last checkpoint

@@ -50,6 +50,14 @@ end of its block.
 its label, and give your name and a reason. The event log keeps the old and new label.
 Corrections made after unblinding are listed as deviations in every report.
 
+**Crossover rounds** show "round r of R" instead of the block. The first trial of a round
+says to reset the whole scene and load the round's arm; the other trials say not to reset.
+
+**Interim looks.** In a group-sequential study, a banner appears between trials when a
+planned interim look is due. **Run interim look** shows only "continue" or "stop", so the
+study stays blinded. After a stop, the remaining trials are cancelled and the console
+points to the report.
+
 ## Keys and foot pedals
 
 | Action | Default key |

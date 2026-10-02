@@ -83,9 +83,13 @@ def build_schedule(spec: StudySpec) -> list[Slot]:
       shuffled (or kept with ``order: fixed``). Arm orders cycle through a shuffled Williams
       design, reshuffled for every full cycle, with arms randomly mapped to its symbols.
     - ``single_arm``: one trial per condition and replicate, in shuffled or fixed order.
+    - ``crossover_rounds``: see :func:`crossover_orders`; each round (a block) is one arm on
+      every condition.
     """
     rng = StableRng(spec.design.seed, STREAM_SCHEDULE)
     conds = conditions(spec)
+    if spec.design.type == "crossover_rounds":
+        return _crossover_schedule(spec, rng, conds)
     arm_ids = [a.id for a in spec.arms]
 
     blocks: list[tuple[int, Condition]] = []
@@ -119,4 +123,48 @@ def build_schedule(spec: StudySpec) -> list[Slot]:
                     arm=symbols[symbol],
                 )
             )
+    return slots
+
+
+def crossover_orders(spec: StudySpec, rng: StableRng) -> list[tuple[str, str]]:
+    """Arm order of each crossover cycle: ``(first, second)``.
+
+    Half of the cycles run the treatment first and half the control first (with an odd
+    number of cycles, a fair coin decides which order gets the extra cycle). Which cycles
+    get which order is randomized, so the exact randomization test in
+    :func:`fieldtrial.stats.crossover_test` matches how the orders were assigned.
+    """
+    comparison = spec.analysis.primary.comparison
+    assert comparison is not None
+    a, b = comparison.treatment, comparison.control
+    cycles = spec.design.cycles
+    first_a = cycles // 2 + (rng.below(2) if cycles % 2 else 0)
+    orders = [(a, b)] * first_a + [(b, a)] * (cycles - first_a)
+    rng.shuffle(orders)
+    return orders
+
+
+def _crossover_schedule(spec: StudySpec, rng: StableRng, conds: list[Condition]) -> list[Slot]:
+    """Rounds as blocks: round ``2c - 1`` and ``2c`` form cycle ``c``."""
+    slots: list[Slot] = []
+    seq = 0
+    round_number = 0
+    for first, second in crossover_orders(spec, rng):
+        for arm in (first, second):
+            round_number += 1
+            round_conditions = list(conds)
+            if spec.design.order == "random":
+                rng.shuffle(round_conditions)
+            for position, cond in enumerate(round_conditions, start=1):
+                seq += 1
+                slots.append(
+                    Slot(
+                        seq=seq,
+                        block=round_number,
+                        replicate=1,
+                        position=position,
+                        condition=cond.key,
+                        arm=arm,
+                    )
+                )
     return slots

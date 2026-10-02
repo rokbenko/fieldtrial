@@ -127,12 +127,22 @@ class Conditions(_Strict):
 
 
 class Design(_Strict):
-    """How trials are scheduled and blinded."""
+    """How trials are scheduled and blinded.
 
-    type: Literal["randomized_block", "single_arm"]
+    ``rounds`` is the number of rounds of a ``crossover_rounds`` design: an even number,
+    since rounds come in cycles of two (one per arm).
+    """
+
+    type: Literal["randomized_block", "single_arm", "crossover_rounds"]
     order: Literal["random", "fixed"] = "random"
     blinding: Literal["none", "operator"] = "none"
     seed: int = Field(ge=0, le=2**63 - 1)
+    rounds: int | None = Field(default=None, ge=4, le=200)
+
+    @property
+    def cycles(self) -> int:
+        """Number of crossover cycles (0 for other designs)."""
+        return (self.rounds or 0) // 2
 
 
 class Comparison(_Strict):
@@ -153,9 +163,74 @@ class Primary(_Strict):
 
 
 class Stopping(_Strict):
-    """Stopping rule. Only a fixed sample size is supported in v0.1."""
+    """Stopping rule: a fixed sample size, or group-sequential looks with error spending.
 
-    rule: Literal["fixed"] = "fixed"
+    ``looks`` interim and final analyses happen after equal shares of the planned blocks,
+    unless ``at`` lists the information fractions (increasing, ending at 1).
+    """
+
+    rule: Literal["fixed", "group_sequential"] = "fixed"
+    looks: int | None = Field(default=None, ge=2, le=10)
+    spending: Literal["obrien_fleming", "pocock"] = "obrien_fleming"
+    at: list[float] | None = None
+
+    @model_validator(mode="after")
+    def _check(self) -> "Stopping":
+        if self.rule == "fixed":
+            if self.looks is not None or self.at is not None:
+                raise ValueError("looks and at are only for rule: group_sequential")
+            return self
+        if self.looks is None:
+            raise ValueError("rule: group_sequential needs looks (2 to 10)")
+        if self.at is not None:
+            if len(self.at) != self.looks:
+                raise ValueError(f"at lists {len(self.at)} fractions but looks is {self.looks}")
+            prev = 0.0
+            for t in self.at:
+                if not prev < t <= 1.0:
+                    raise ValueError("at must be strictly increasing fractions in (0, 1]")
+                prev = t
+            if self.at[-1] != 1.0:
+                raise ValueError("the last look in at must be 1 (the full study)")
+        return self
+
+    def fractions(self) -> list[float]:
+        """Information fraction of each planned look."""
+        if self.at is not None:
+            return list(self.at)
+        assert self.looks is not None
+        return [k / self.looks for k in range(1, self.looks + 1)]
+
+
+class Ladder(_Strict):
+    """A checkpoint ladder: arms in training order, their steps, and a plateau margin.
+
+    The trend test uses ``steps`` as scores (0, 1, 2, ... when omitted). ``margin`` is the
+    non-inferiority margin for plateau detection, on the success-rate scale.
+    """
+
+    arms: list[Identifier] = Field(min_length=3)
+    steps: list[float] | None = None
+    margin: float | None = Field(default=None, gt=0, lt=1)
+
+    @model_validator(mode="after")
+    def _check(self) -> "Ladder":
+        if len(set(self.arms)) != len(self.arms):
+            raise ValueError("ladder arms must be unique")
+        if self.steps is not None:
+            if len(self.steps) != len(self.arms):
+                raise ValueError(
+                    f"ladder steps lists {len(self.steps)} values for {len(self.arms)} arms"
+                )
+            if any(b <= a for a, b in itertools.pairwise(self.steps)):
+                raise ValueError("ladder steps must be strictly increasing")
+        return self
+
+    def scores(self) -> list[float]:
+        """Trend-test scores, one per ladder arm."""
+        if self.steps is not None:
+            return list(self.steps)
+        return [float(i) for i in range(len(self.arms))]
 
 
 class Analysis(_Strict):
@@ -166,6 +241,7 @@ class Analysis(_Strict):
     multiplicity: Literal["holm", "bonferroni", "bh"] = "holm"
     secondary: list[Literal["stage_reached", "time_to_success"]] = Field(default_factory=list)
     stopping: Stopping = Field(default_factory=Stopping)
+    ladder: Ladder | None = None
 
 
 class StudySpec(_Strict):
@@ -195,22 +271,69 @@ class StudySpec(_Strict):
     def _check_design(self) -> "StudySpec":
         arm_ids = [a.id for a in self.arms]
         primary = self.analysis.primary
-        if self.limits.reset == "carry_over":
+        design = self.design
+        ladder = self.analysis.ladder
+        stopping = self.analysis.stopping
+        if self.limits.reset == "carry_over" and design.type != "crossover_rounds":
             raise ValueError(
-                "limits.reset: carry_over needs design.type: crossover_rounds (arrives in v0.2)"
+                "limits.reset: carry_over needs design.type: crossover_rounds, where an arm "
+                "runs a whole round before the scene is reset"
             )
-        if self.design.type == "randomized_block":
+        if design.rounds is not None and design.type != "crossover_rounds":
+            raise ValueError("design.rounds is only for design.type crossover_rounds")
+        if design.type != "single_arm" and primary.threshold is not None:
+            raise ValueError("analysis.primary.threshold is only for design.type single_arm")
+        if design.type == "randomized_block":
             if len(self.arms) < 2:
                 raise ValueError("design.type randomized_block needs at least 2 arms")
+            if primary.comparison is None and ladder is None:
+                raise ValueError(
+                    "analysis.primary.comparison is required for a comparative design "
+                    "(or analysis.ladder, whose trend test is then the primary analysis)"
+                )
+        elif design.type == "crossover_rounds":
+            if len(self.arms) != 2:
+                raise ValueError("design.type crossover_rounds compares exactly 2 arms")
+            if design.rounds is None:
+                raise ValueError("design.type crossover_rounds needs design.rounds (4 or more)")
+            if design.rounds % 2:
+                raise ValueError(
+                    f"design.rounds must be even (cycles of two rounds), got {design.rounds}"
+                )
+            if self.conditions.replicates != 1:
+                raise ValueError(
+                    "design.type crossover_rounds repeats conditions through rounds; "
+                    "set conditions.replicates to 1"
+                )
             if primary.comparison is None:
                 raise ValueError("analysis.primary.comparison is required for a comparative design")
-            if primary.threshold is not None:
-                raise ValueError("analysis.primary.threshold is only for design.type single_arm")
         else:
             if len(self.arms) != 1:
                 raise ValueError("design.type single_arm takes exactly 1 arm")
             if primary.comparison is not None:
                 raise ValueError("design.type single_arm has no comparison; use threshold")
+        if ladder is not None:
+            if design.type != "randomized_block":
+                raise ValueError("analysis.ladder needs design.type randomized_block")
+            for arm in ladder.arms:
+                if arm not in arm_ids:
+                    raise ValueError(
+                        f"analysis.ladder arm {arm!r} is not an arm; arms are {arm_ids}"
+                    )
+        if stopping.rule == "group_sequential":
+            if design.type != "randomized_block" or primary.comparison is None:
+                raise ValueError(
+                    "group-sequential stopping needs design.type randomized_block "
+                    "with a primary comparison"
+                )
+            if len(self.arms) != 2:
+                raise ValueError(
+                    "group-sequential stopping supports exactly 2 arms in this version"
+                )
+            if self.conditions.replicates != 1:
+                raise ValueError(
+                    "group-sequential stopping needs conditions.replicates: 1 in this version"
+                )
         if primary.comparison is not None:
             for role in ("treatment", "control"):
                 arm = getattr(primary.comparison, role)

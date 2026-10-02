@@ -7,7 +7,15 @@ only lays out tables and headings.
 from collections.abc import Iterable, Sequence
 
 from fieldtrial.analysis.results import CI, Results
-from fieldtrial.analysis.wording import fmt_p, fmt_pp, fmt_range, fmt_rate, fmt_signed
+from fieldtrial.analysis.wording import (
+    SPENDING_LABELS,
+    fmt_p,
+    fmt_p_eq,
+    fmt_pp,
+    fmt_range,
+    fmt_rate,
+    fmt_signed,
+)
 
 _DASH = "–"
 METHOD_LABELS = {
@@ -16,6 +24,9 @@ METHOD_LABELS = {
     "cmh": "Cochran–Mantel–Haenszel test",
     "threshold": "Exact binomial test against a threshold",
     "descriptive": "Descriptive only",
+    "crossover": "Crossover rounds, randomization test",
+    "ladder": "Mantel test of association with training step",
+    "group_sequential": "Group-sequential McNemar, repeated CI",
 }
 
 
@@ -45,6 +56,98 @@ def _diff_ci(ci: CI | None) -> str:
 
 def _section(title: str, body: list[str]) -> list[str]:
     return [f"## {title}", "", *body, ""]
+
+
+def _design_sections(r: Results) -> list[str]:
+    """Sections for group-sequential stopping, crossover rounds and checkpoint ladders."""
+    lines: list[str] = []
+    if r.sequential is not None:
+        q = r.sequential
+        at = ", ".join(f"{t:.0%}" for t in q.planned_fractions)
+        spending = SPENDING_LABELS.get(q.spending, q.spending)
+        body = [
+            f"{q.planned_looks} planned looks at {at} of {q.planned_blocks} blocks, "
+            f"{spending} error spending."
+            + (f" Stopped at look {q.stopped_at}." if q.stopped_at else ""),
+            "",
+            *_table(
+                ["Look", "Kind", "Information", "Blocks", "Z", "Boundary", "Crossed", "Recorded"],
+                (
+                    [
+                        k.look,
+                        k.kind,
+                        f"{k.fraction:.0%}",
+                        k.blocks,
+                        _DASH if k.z is None else f"{k.z:.2f}",
+                        f"{k.boundary:.3f}",
+                        "yes" if k.crossed else "no",
+                        k.recorded_decision or _DASH,
+                    ]
+                    for k in q.looks
+                ),
+            ),
+        ]
+        lines += _section("Group-sequential looks", body)
+    if r.crossover is not None:
+        c = r.crossover
+        effect = _DASH if c.period_effect is None else fmt_pp(c.period_effect)
+        body = [
+            f"{c.cycles} cycles ({c.ab} with {c.treatment} first, {c.ba} with {c.control} "
+            f"first); {c.cycles_used} complete. Period effect (second round minus first): "
+            f"{effect}.",
+            "",
+            *_table(
+                ["Round", "Cycle", "Period", "Arm", "Successes", "Completed", "Rate"],
+                (
+                    [
+                        w.round,
+                        w.cycle,
+                        w.period,
+                        w.arm,
+                        w.successes,
+                        w.completed,
+                        _DASH if w.rate is None else fmt_rate(w.rate),
+                    ]
+                    for w in c.rounds
+                ),
+            ),
+        ]
+        lines += _section("Crossover rounds", body)
+    if r.ladder is not None:
+        lad = r.ladder
+        a = lad.association
+        body = [
+            f"Checkpoints in order: {', '.join(lad.arms)} (steps "
+            f"{', '.join(f'{x:g}' for x in lad.steps)}). Mantel test of a linear association "
+            f"between step and success: Z = "
+            f"{_DASH if a.statistic is None else f'{a.statistic:.2f}'}, "
+            f"{_DASH if a.pvalue is None else fmt_p_eq(a.pvalue)} "
+            f"({'primary' if a.primary else 'pre-registered secondary'} analysis).",
+        ]
+        if lad.margin is not None and lad.plateau:
+            final = lad.arms[-1]
+            body += [
+                "",
+                f"Plateau: each checkpoint against {final}, non-inferiority margin "
+                f"{lad.margin * 100:.1f} pp ({lad.plateau_method}). Plateau from: "
+                f"{lad.plateau_arm or _DASH}.",
+                "",
+                *_table(
+                    ["Checkpoint", f"{final} minus it", "Interval", "Tested", "Within margin"],
+                    (
+                        [
+                            row.arm,
+                            fmt_pp(row.difference),
+                            _diff_ci(row.ci),
+                            "yes" if row.tested else "no",
+                            "yes" if row.noninferior else "no",
+                        ]
+                        for row in lad.plateau
+                    ),
+                ),
+            ]
+        lines += _section("Checkpoint ladder", body)
+    return lines
 
 
 def render_markdown(results: Results) -> str:
@@ -152,6 +255,7 @@ def render_markdown(results: Results) -> str:
             f"{w.control} did, out of {w.n_pairs}.",
         ]
     lines += _section("Primary analysis", body)
+    lines += _design_sections(r)
 
     if r.sensitivity:
         lines += _section(

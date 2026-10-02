@@ -8,6 +8,7 @@ from pathlib import Path
 from fieldtrial.runners.base import ArmSpec, TrialContext
 from fieldtrial.runners.sim import SimArm, SimRunner
 from fieldtrial.services._context import ServiceError, StudyContext, open_study
+from fieldtrial.services.interim import interim_status, run_interim_in
 from fieldtrial.services.session import end_session, start_session
 from fieldtrial.services.study import init_study, lock_study
 from fieldtrial.services.trial import collect_records, next_slot, pending_slots, record_trial
@@ -21,6 +22,8 @@ class SimulationResult:
     completed: int
     invalid: int
     sessions: int
+    interim_looks: int = 0
+    stopped_at: int | None = None  # interim look that stopped the study
 
 
 RESET_S = 20.0  # simulated time between trials
@@ -61,12 +64,15 @@ def simulate_study(
     invalid_rate: float = 0.0,
     trials_per_session: int = 40,
     max_trials: int | None = None,
+    interim: bool = True,
 ) -> SimulationResult:
     """Run every pending slot with the sim runner and record the outcomes.
 
     ``rates`` gives the true success rate of every arm. Trials are spread over sessions of
     ``trials_per_session`` trials with a simulated clock, so the report's drift checks have
-    something to look at. ``max_trials`` stops early (for partially filled studies).
+    something to look at. ``max_trials`` stops early (for partially filled studies). With
+    ``interim``, planned interim looks of a group-sequential study run as they come due,
+    as the protocol asks of an operator.
     """
     with open_study(folder) as ctx:
         arm_ids = [a.id for a in ctx.spec.arms]
@@ -96,7 +102,9 @@ def simulate_study(
         if last_end is not None and last_end + timedelta(seconds=BREAK_S) > clock:
             clock = last_end + timedelta(seconds=BREAK_S)
         session_id: str | None = None
-        in_session = completed = invalid = sessions = 0
+        in_session = completed = invalid = sessions = looks = 0
+        stopped_at: int | None = None
+        sequential = interim and ctx.spec.analysis.stopping.rule == "group_sequential"
         while max_trials is None or completed + invalid < max_trials:
             slot = next_slot(ctx)
             if slot is None:
@@ -144,10 +152,23 @@ def simulate_study(
                 invalid += 1
             else:
                 completed += 1
+            if sequential:
+                status = interim_status(ctx)
+                if status is not None and status.due:
+                    look = run_interim_in(ctx, actor="sim-operator")
+                    looks += 1
+                    if look.decision == "stop":
+                        stopped_at = look.look
         if session_id is not None:
             end_session(ctx, session_id, ended_at=clock)
         runner.close()
-        return SimulationResult(completed=completed, invalid=invalid, sessions=sessions)
+        return SimulationResult(
+            completed=completed,
+            invalid=invalid,
+            sessions=sessions,
+            interim_looks=looks,
+            stopped_at=stopped_at,
+        )
 
 
 def sim_rates(folder: str | Path) -> dict[str, float]:

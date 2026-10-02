@@ -9,7 +9,17 @@ The primary analysis follows from the locked design, never from the data:
 - ``randomized_block`` with more than 2 arms: Cochran's Q on complete blocks, then each arm
   against the control with exact McNemar tests and the pre-registered multiplicity
   adjustment. The primary claim for the treatment arm uses its adjusted p-value.
+- ``randomized_block`` with 2 arms and ``stopping: group_sequential``: the McNemar score
+  statistic at the planned looks, against Lan–DeMets boundaries; stage-wise p-value and a
+  repeated confidence interval.
+- ``randomized_block`` with ``analysis.ladder`` and no comparison: Mantel's test of a
+  linear association between training step and success, stratified by condition.
+- ``crossover_rounds``: period-adjusted difference over crossover cycles with an exact
+  randomization test.
 - ``single_arm``: exact binomial test against ``threshold`` (descriptive without one).
+
+A pre-registered ladder is always analyzed (association with step and plateau), as the
+primary analysis or alongside a primary comparison.
 
 The independent-samples analysis (Boschloo test, Newcombe interval) is always reported as a
 sensitivity check. Drift and invalid-trial checks screen at a fixed 0.05 level; they are
@@ -21,29 +31,37 @@ import json
 import math
 import platform
 from collections import defaultdict
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
+from dataclasses import dataclass, field
 from datetime import UTC, datetime
 
 import numpy as np
 import scipy
+from scipy import stats as sp_stats
 
 from fieldtrial import __version__
 from fieldtrial.analysis import wording
+from fieldtrial.analysis.common import LEVEL, ci_model, num
+from fieldtrial.analysis.crossover import crossover_analysis
+from fieldtrial.analysis.ladder import ladder_analysis
 from fieldtrial.analysis.records import StudyContextInfo, TrialRecord
 from fieldtrial.analysis.results import (
     CI,
     ArmSummary,
     ConditionCell,
     ConditionRow,
+    CrossoverSummary,
     Deviation,
     DriftCheck,
     FunnelStep,
     IndependentComparison,
     InvalidCheck,
+    LadderResult,
     Pairwise,
     PrimaryResult,
     Provenance,
     Results,
+    SequentialSummary,
     SessionRow,
     StageComparison,
     StageShare,
@@ -51,10 +69,10 @@ from fieldtrial.analysis.results import (
     StudyInfo,
     TimingSummary,
 )
+from fieldtrial.analysis.sequential import final_analysis
 from fieldtrial.design import StudySpec
 from fieldtrial.design import conditions as design_conditions
 from fieldtrial.stats import (
-    Interval,
     adjust_pvalues,
     cmh_test,
     cochran_q,
@@ -72,19 +90,20 @@ from fieldtrial.stats import (
 )
 from fieldtrial.stats._types import Alternative
 
-LEVEL = 0.95
 FLAG_ALPHA = 0.05
 _TIMING_BOOT = 2000
+_ci = ci_model
+_num = num
 
 
-def _ci(interval: Interval | None) -> CI | None:
-    if interval is None or math.isnan(interval.low) or math.isnan(interval.high):
-        return None
-    return CI(low=interval.low, high=interval.high, level=interval.level, method=interval.method)
+@dataclass
+class _Extras:
+    """Design-specific results collected while the primary analysis runs."""
 
-
-def _num(x: float) -> float | None:
-    return None if math.isnan(x) else float(x)
+    ladder: LadderResult | None = None
+    crossover: CrossoverSummary | None = None
+    sequential: SequentialSummary | None = None
+    notes: list[str] = field(default_factory=list)
 
 
 def _fingerprint(data: object) -> str:
@@ -153,7 +172,9 @@ def _mde_pp(
     return result.effect
 
 
-def _primary(data: _Data, summary: list[str]) -> PrimaryResult:
+def _primary(
+    data: _Data, info: StudyContextInfo, summary: list[str], extras: _Extras
+) -> PrimaryResult:
     spec = data.spec
     primary = spec.analysis.primary
     alternative: Alternative = primary.alternative
@@ -220,7 +241,10 @@ def _primary(data: _Data, summary: list[str]) -> PrimaryResult:
             **base,  # type: ignore[arg-type]
         )
 
-    assert primary.comparison is not None
+    if spec.design.type == "crossover_rounds":
+        return _primary_crossover(data, summary, extras)
+    if primary.comparison is None:
+        return _primary_ladder(data, summary, extras)
     treatment, control = primary.comparison.treatment, primary.comparison.control
 
     def rate_ci(k: int, n: int) -> tuple[float, float]:
@@ -332,6 +356,8 @@ def _primary(data: _Data, summary: list[str]) -> PrimaryResult:
             f"{control} with exact McNemar tests, {spec.analysis.multiplicity}-adjusted."
         )
         method = "cochran_q"
+    if spec.analysis.stopping.rule == "group_sequential":
+        return _primary_sequential(data, info, summary, extras, blocks, excluded, rate_ci)
     if not blocks:
         summary.append(wording.no_data("the paired comparison"))
         return PrimaryResult(
@@ -441,6 +467,292 @@ def _primary(data: _Data, summary: list[str]) -> PrimaryResult:
         pairwise=pairwise,
         mde_pp=mde_pp,
         **base,  # type: ignore[arg-type]
+    )
+
+
+def _primary_sequential(
+    data: _Data,
+    info: StudyContextInfo,
+    summary: list[str],
+    extras: _Extras,
+    blocks: list[dict[str, bool]],
+    excluded: int,
+    rate_ci: Callable[[int, int], tuple[float, float]],
+) -> PrimaryResult:
+    spec = data.spec
+    primary = spec.analysis.primary
+    assert primary.comparison is not None
+    treatment, control = primary.comparison.treatment, primary.comparison.control
+    stopping = spec.analysis.stopping
+    label = wording.SPENDING_LABELS.get(stopping.spending, stopping.spending)
+    description = (
+        f"Group-sequential comparison of {treatment} vs {control} on complete blocks: McNemar "
+        f"score statistic at {stopping.looks} planned looks against {label} error-spending "
+        "boundaries, with a stage-wise p-value and a repeated confidence interval."
+    )
+    base: dict[str, object] = {"alternative": primary.alternative, "alpha": primary.alpha}
+    outcome = final_analysis(spec, data.records, info.interim_looks)
+    if outcome is None:
+        summary.append(wording.no_data("the group-sequential comparison"))
+        return PrimaryResult(
+            method="group_sequential",
+            test="group_sequential",
+            description=description,
+            treatment=treatment,
+            control=control,
+            n_used=0,
+            blocks_excluded=excluded,
+            estimate=None,
+            estimate_kind="difference",
+            ci=None,
+            statistic=None,
+            pvalue=None,
+            rejected=False,
+            **base,  # type: ignore[arg-type]
+        )
+    extras.sequential = outcome.summary
+    extras.notes.extend(outcome.notes)
+    seq = outcome.summary
+    deciding = seq.looks[(seq.stopped_at or len(seq.looks)) - 1]
+    if seq.stopped_at is not None:
+        summary.append(
+            wording.sequential_stop(
+                look=seq.stopped_at,
+                looks=seq.planned_looks,
+                blocks=deciding.blocks,
+                planned=seq.planned_blocks,
+                spending=seq.spending,
+            )
+        )
+    n, b, c = outcome.pairs, outcome.b, outcome.c
+    pairs_used = blocks if seq.stopped_at is None else None
+    kt = kc = 0
+    if pairs_used is not None:
+        kt = sum(o[treatment] for o in pairs_used)
+        kc = sum(o[control] for o in pairs_used)
+    else:
+        # Counts at the stopping look: concordant successes plus the discordant pairs.
+        both = _both_succeeded(data, info, seq.stopped_at or 0, treatment, control)
+        kt, kc = both + b, both + c
+    diff = (b - c) / n
+    ci = _ci(outcome.interval)
+    pvalue = outcome.pvalue
+    rejected = outcome.rejected
+    mde_pp = None if rejected else _mde_pp(data, treatment, control, diff, primary.alpha)
+    if pvalue is not None and ci is not None:
+        summary.append(
+            wording.difference(
+                treatment=treatment,
+                control=control,
+                k1=kt,
+                n1=n,
+                ci1=rate_ci(kt, n),
+                k2=kc,
+                n2=n,
+                diff=diff,
+                ci=(ci.low, ci.high),
+                test="group_sequential",
+                pvalue=pvalue,
+                rejected=rejected,
+                mde_pp=mde_pp,
+                level=ci.level,
+            )
+        )
+    summary.append(
+        wording.sequential_note(
+            looks_run=len(seq.looks), looks=seq.planned_looks, spending=seq.spending
+        )
+    )
+    pair = Pairwise(
+        treatment=treatment,
+        control=control,
+        n_pairs=n,
+        b=b,
+        c=c,
+        difference=diff,
+        ci=ci,
+        pvalue=pvalue if pvalue is not None else math.nan,
+        adjusted_pvalue=pvalue if pvalue is not None else math.nan,
+        rejected=rejected,
+    )
+    return PrimaryResult(
+        method="group_sequential",
+        test="group_sequential",
+        description=description,
+        treatment=treatment,
+        control=control,
+        n_used=n,
+        blocks_excluded=excluded,
+        estimate=diff,
+        estimate_kind="difference",
+        ci=ci,
+        statistic=deciding.z,
+        pvalue=pvalue,
+        rejected=rejected,
+        pairwise=[pair],
+        mde_pp=mde_pp,
+        **base,  # type: ignore[arg-type]
+    )
+
+
+def _both_succeeded(
+    data: _Data, info: StudyContextInfo, look: int, treatment: str, control: str
+) -> int:
+    recorded = next(x for x in info.interim_looks if int(x["look"]) == look)
+    wanted = set(recorded.get("blocks", []))
+    return sum(
+        1
+        for block, outcome in data.blocks.items()
+        if block in wanted and outcome.get(treatment) and outcome.get(control)
+    )
+
+
+def _primary_crossover(data: _Data, summary: list[str], extras: _Extras) -> PrimaryResult:
+    spec = data.spec
+    primary = spec.analysis.primary
+    assert primary.comparison is not None
+    treatment, control = primary.comparison.treatment, primary.comparison.control
+    outcome = crossover_analysis(spec, data.records)
+    extras.crossover = outcome.summary
+    base: dict[str, object] = {"alternative": primary.alternative, "alpha": primary.alpha}
+    description = (
+        f"Crossover rounds: {treatment} vs {control}, each arm running whole rounds in "
+        "cycles of two with randomized order. Period-adjusted difference of round success "
+        "rates (Hills–Armitage) with an exact randomization test over the cycle orders."
+    )
+    res = outcome.result
+    if res is None:
+        summary.append(wording.no_data("the crossover comparison (both orders are needed)"))
+        return PrimaryResult(
+            method="crossover",
+            test=None,
+            description=description,
+            treatment=treatment,
+            control=control,
+            n_used=outcome.summary.cycles_used,
+            blocks_excluded=0,
+            estimate=None,
+            estimate_kind="difference",
+            ci=None,
+            statistic=None,
+            pvalue=None,
+            rejected=False,
+            **base,  # type: ignore[arg-type]
+        )
+    rejected = res.test.rejects(primary.alpha)
+    ci = _ci(res.interval)
+    mde_pp = None
+    if not rejected and res.standard_error and res.cycles > 2:
+        # Smallest difference with 80% power, given the observed round-to-round variation.
+        df = res.cycles - 2
+        tail = primary.alpha / 2 if primary.alternative == "two-sided" else primary.alpha
+        crit = sp_stats.t.isf(tail, df) + sp_stats.t.isf(0.2, df)
+        mde_pp = float(crit * res.standard_error)
+    rate = {
+        arm: outcome.successes[arm] / outcome.completed[arm] if outcome.completed[arm] else 0.0
+        for arm in (treatment, control)
+    }
+    summary.append(
+        wording.crossover(
+            treatment=treatment,
+            control=control,
+            cycles=res.cycles,
+            rate_t=rate[treatment],
+            rate_c=rate[control],
+            diff=res.difference,
+            ci=(ci.low, ci.high) if ci else None,
+            test=res.test.test,
+            pvalue=res.test.pvalue,
+            rejected=rejected,
+            mde_pp=mde_pp,
+            level=LEVEL,
+        )
+    )
+    return PrimaryResult(
+        method="crossover",
+        test=res.test.test,
+        description=description,
+        treatment=treatment,
+        control=control,
+        n_used=res.cycles,
+        blocks_excluded=0,
+        estimate=res.difference,
+        estimate_kind="difference",
+        ci=ci,
+        statistic=_num(res.test.statistic),
+        pvalue=_num(res.test.pvalue),
+        rejected=rejected,
+        mde_pp=mde_pp,
+        **base,  # type: ignore[arg-type]
+    )
+
+
+def _ladder_sentences(data: _Data, ladder: LadderResult, summary: list[str]) -> None:
+    a = ladder.association
+    summary.append(
+        wording.step_association(
+            test=a.test,
+            statistic=a.statistic,
+            pvalue=a.pvalue,
+            rejected=a.rejected,
+            checkpoints=len(ladder.arms),
+        )
+    )
+    first, last = ladder.arms[0], ladder.arms[-1]
+    if a.primary and a.pvalue is not None and not a.rejected:
+        k1, n1 = data.counts(last)
+        k2, n2 = data.counts(first)
+        if n1 and n2:
+            observed = k1 / n1 - k2 / n2
+            mde_pp = _mde_pp(data, last, first, observed, data.spec.analysis.primary.alpha)
+            summary.append(
+                wording.check(
+                    "Between the first and last checkpoint: "
+                    + wording.no_difference_power(n1, n2, mde_pp)
+                )
+            )
+    if ladder.margin is not None and ladder.plateau:
+        summary.append(
+            wording.plateau(
+                plateau_arm=ladder.plateau_arm,
+                final_arm=last,
+                margin=ladder.margin,
+                alpha=data.spec.analysis.primary.alpha,
+            )
+        )
+
+
+def _primary_ladder(data: _Data, summary: list[str], extras: _Extras) -> PrimaryResult:
+    spec = data.spec
+    primary = spec.analysis.primary
+    ladder = ladder_analysis(spec, data.records, primary=True)
+    assert ladder is not None
+    extras.ladder = ladder
+    _ladder_sentences(data, ladder, summary)
+    first, last = ladder.arms[0], ladder.arms[-1]
+    k1, n1 = data.counts(last)
+    k2, n2 = data.counts(first)
+    a = ladder.association
+    return PrimaryResult(
+        method="ladder",
+        test=a.test,
+        description=(
+            f"Mantel's test of a linear association between training step and success "
+            f"across {len(ladder.arms)} checkpoints, stratified by condition, with the "
+            "pre-registered steps as scores."
+        ),
+        treatment=last,
+        control=first,
+        n_used=len({r.condition for r in data.completed if r.arm in ladder.arms}),
+        blocks_excluded=0,
+        estimate=k1 / n1 - k2 / n2 if n1 and n2 else None,
+        estimate_kind="difference",
+        ci=None,
+        statistic=a.statistic,
+        pvalue=a.pvalue,
+        rejected=a.rejected,
+        alternative=a.alternative,
+        alpha=primary.alpha,
     )
 
 
@@ -752,12 +1064,18 @@ def analyze(
     data = _Data(spec, records)
     codes = blind_codes or {r.arm: r.blind_code for r in records}
     summary: list[str] = []
-    primary = _primary(data, summary)
+    extras = _Extras()
+    primary = _primary(data, info, summary, extras)
+    if spec.analysis.ladder is not None and extras.ladder is None:
+        extras.ladder = ladder_analysis(spec, records, primary=False)
+        assert extras.ladder is not None
+        _ladder_sentences(data, extras.ladder, summary)
     sensitivity = _sensitivity(data, summary)
     stages, stage_comparisons = _stages(data)
     drift = _drift(data, summary)
     invalid = _invalid(data, summary)
     deviations = _deviations(data, info, primary.blocks_excluded, primary.n_used)
+    deviations += [Deviation(kind="interim", message=note) for note in extras.notes]
     comparison = spec.analysis.primary.comparison
     sessions = _sessions(data)
     study = StudyInfo(
@@ -814,4 +1132,7 @@ def analyze(
         deviations=deviations,
         provenance=provenance,
         summary=summary,
+        ladder=extras.ladder,
+        crossover=extras.crossover,
+        sequential=extras.sequential,
     )

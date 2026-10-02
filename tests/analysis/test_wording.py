@@ -169,3 +169,42 @@ def test_other_templates() -> None:
         rejected=False,
         mde_pp=0.25,
     ).startswith("No significant difference detected: Mantel–Haenszel odds ratio 1.20")
+
+
+def test_v02_sentences() -> None:
+    assert "rises with training step" in wording.step_association(
+        test="mantel", statistic=3.1, pvalue=0.002, rejected=True, checkpoints=4
+    )
+    flat = wording.step_association(
+        test="mantel", statistic=0.4, pvalue=0.6, rejected=False, checkpoints=4
+    )
+    assert flat.startswith("No significant association")
+    assert "Not enough data" in wording.step_association(
+        test="mantel", statistic=None, pvalue=None, rejected=False, checkpoints=4
+    )
+    assert "From s2 on" in wording.plateau(plateau_arm="s2", final_arm="s4", margin=0.1, alpha=0.05)
+    assert "No earlier checkpoint" in wording.plateau(
+        plateau_arm=None, final_arm="s4", margin=0.1, alpha=0.05
+    )
+    common = {
+        "treatment": "b",
+        "control": "a",
+        "cycles": 8,
+        "rate_t": 0.9,
+        "rate_c": 0.6,
+        "diff": 0.3,
+        "ci": (0.1, 0.5),
+        "test": "crossover_randomization",
+        "level": 0.95,
+    }
+    yes = wording.crossover(pvalue=0.01, rejected=True, mde_pp=None, **common)  # type: ignore[arg-type]
+    assert "period-adjusted difference +30.0 pp" in yes
+    assert "randomization test p = 0.010" in yes
+    no = wording.crossover(pvalue=0.2, rejected=False, mde_pp=0.25, **common)  # type: ignore[arg-type]
+    assert no.startswith("No significant difference detected")
+    assert "at least 25.0 pp" in no
+    assert "O'Brien–Fleming" in wording.sequential_stop(
+        look=2, looks=4, blocks=20, planned=40, spending="obrien_fleming"
+    )
+    assert "continue" in wording.interim("continue", 1, 4)
+    assert "Stop the study" in wording.interim("stop", 2, 4)

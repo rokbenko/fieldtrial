@@ -158,3 +158,75 @@ def test_cosmetic_edits_keep_the_hash(old: str, new: str) -> None:
 def test_substantive_edits_change_the_hash(old: str, new: str) -> None:
     base = design_hash(parse_study(BASIC).spec)
     assert design_hash(parse_study(BASIC.replace(old, new, 1)).spec) != base
+
+
+# Design hashes of the 0.1 templates. New optional fields must not change them, or studies
+# locked with 0.1 would no longer match their design.
+V01_HASHES = {
+    "basic": "804b16d558373272e80ac1a51537596fe393303bfb9d6369709fd268a1bc6b46",
+    "serving-sweep": "82e251dd307d25d342be28c30cceb89afd8688b5f38759198ce042a5f29a7740",
+}
+
+
+@pytest.mark.parametrize(("template", "expected"), V01_HASHES.items())
+def test_v01_design_hashes_are_unchanged(template: str, expected: str) -> None:
+    # YAML comments do not count; the basic template gained one in 0.2.
+    text = template_text(template, "s")
+    assert design_hash(parse_study(text).spec) == expected
+
+
+def test_new_fields_change_the_hash() -> None:
+    base = design_hash(parse_study(BASIC).spec)
+    sequential = BASIC.replace(
+        "stopping: {rule: fixed}", "stopping: {rule: group_sequential, looks: 3}", 1
+    )
+    assert design_hash(parse_study(sequential).spec) != base
+    explicit = BASIC.replace(
+        "stopping: {rule: fixed}", "stopping: {rule: fixed, spending: obrien_fleming}", 1
+    )
+    assert design_hash(parse_study(explicit).spec) == base
+
+
+def _crossover(cycles: int, n_cond: int, seed: int, order: str = "random") -> object:
+    return parse_study(
+        f"""
+fieldtrial: 1
+name: s
+rubric: {{stages: [{{id: done, label: Done}}], success: done}}
+limits: {{reset: carry_over}}
+arms: [{{id: a}}, {{id: b}}]
+conditions: {{factors: {{c: {{range: [1, {n_cond}]}}}}}}
+design: {{type: crossover_rounds, rounds: {2 * cycles}, order: {order}, seed: {seed}}}
+analysis: {{primary: {{comparison: {{treatment: b, control: a}}}}}}
+"""
+    ).spec
+
+
+@settings(max_examples=60, deadline=None)
+@given(st.integers(2, 12), st.integers(1, 15), st.integers(0, 10**9))
+def test_crossover_rounds_structure(cycles: int, n_cond: int, seed: int) -> None:
+    slots = build_schedule(_crossover(cycles, n_cond, seed))  # type: ignore[arg-type]
+    assert len(slots) == 2 * cycles * n_cond
+    assert [s.seq for s in slots] == list(range(1, len(slots) + 1))
+    rounds: dict[int, list[tuple[str, str]]] = {}
+    for s in slots:
+        rounds.setdefault(s.block, []).append((s.arm, s.condition))
+    assert sorted(rounds) == list(range(1, 2 * cycles + 1))
+    firsts = []
+    for r, trials in rounds.items():
+        arms = {a for a, _ in trials}
+        assert len(arms) == 1  # one arm per round
+        assert sorted(c for _, c in trials) == sorted(f"c={i}" for i in range(1, n_cond + 1))
+        if r % 2 == 1:
+            first = trials[0][0]
+            second = rounds[r + 1][0][0]
+            assert first != second  # each cycle runs both arms
+            firsts.append(first)
+    # Orders are balanced: equal counts, or one apart for an odd number of cycles.
+    assert abs(firsts.count("a") - firsts.count("b")) == cycles % 2
+
+
+def test_crossover_fixed_order_keeps_condition_order() -> None:
+    slots = build_schedule(_crossover(3, 4, seed=1, order="fixed"))  # type: ignore[arg-type]
+    for r in range(1, 7):
+        assert [s.condition for s in slots if s.block == r] == ["c=1", "c=2", "c=3", "c=4"]

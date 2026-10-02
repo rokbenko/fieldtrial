@@ -16,6 +16,9 @@ closed forms or brute-force enumeration).
 | How fast do arms succeed? | Cumulative success curve, median time with bootstrap CI | [Time to success](timing.md) |
 | Several replicates per condition? | Cochran–Mantel–Haenszel | [Stratified (CMH)](stratified.md) |
 | Did results change across sessions? | Fisher / chi-square homogeneity | [Drift checks](drift.md) |
+| Does success change with training step? Where does it level off? | Cochran–Armitage / Mantel trend, fixed-sequence non-inferiority | [Checkpoint ladders](ladders.md) |
+| The scene carries over between trials? | Two-period crossover of whole rounds, exact randomization test | [Crossover rounds](crossover.md) |
+| Can I stop early? | Lan–DeMets error spending, stage-wise p-values | [Group-sequential stopping](sequential.md) |
 | How many rollouts do I need? What can I detect? | Sample size, power, MDE, exact power | [Planning](planning.md) |
 | How sure am I that B beats A? | Posterior probability (descriptive only) | [Bayesian summaries](bayes.md) |
 

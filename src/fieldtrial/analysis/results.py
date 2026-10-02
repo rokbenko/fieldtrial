@@ -18,6 +18,9 @@ PrimaryMethod = Literal[
     "cmh",  # 2 arms with replicates, stratified by condition
     "threshold",  # single arm against a fixed threshold
     "descriptive",  # single arm without a threshold: no test
+    "crossover",  # crossover rounds: period-adjusted difference, randomization test
+    "ladder",  # checkpoint ladder without a comparison: association with training step
+    "group_sequential",  # 2 arms, complete blocks, McNemar score at planned looks
 ]
 
 
@@ -232,8 +235,91 @@ class Deviation(_Model):
         "incomplete",
         "out_of_order",
         "excluded_blocks",
+        "interim",
     ]
     message: str
+
+
+class StepAssociation(_Model):
+    """Test of a linear association between training step and success (ladders)."""
+
+    test: str  # "mantel" (stratified by condition) or "cochran_armitage"
+    statistic: float | None
+    pvalue: float | None
+    alternative: str
+    rejected: bool
+    primary: bool  # True when this is the pre-registered primary analysis
+
+
+class PlateauRow(_Model):
+    """One checkpoint tested for non-inferiority against the final checkpoint."""
+
+    arm: str
+    difference: float  # final minus this checkpoint
+    ci: CI
+    tested: bool
+    noninferior: bool
+
+
+class LadderResult(_Model):
+    """A checkpoint ladder: association with step, and where success levels off."""
+
+    arms: list[str]
+    steps: list[float]
+    association: StepAssociation
+    margin: float | None
+    plateau_method: str | None
+    plateau: list[PlateauRow] = Field(default_factory=list)
+    plateau_arm: str | None = None
+
+
+class RoundRow(_Model):
+    """One round of a crossover design."""
+
+    round: int
+    cycle: int
+    period: int
+    arm: str
+    successes: int
+    completed: int
+    rate: float | None
+
+
+class CrossoverSummary(_Model):
+    """Crossover rounds: per-round results and the period effect."""
+
+    treatment: str
+    control: str
+    cycles: int
+    cycles_used: int
+    ab: int  # cycles where the treatment ran first
+    ba: int
+    rounds: list[RoundRow]
+    period_effect: float | None
+
+
+class LookRow(_Model):
+    """One look of a group-sequential design."""
+
+    look: int
+    kind: Literal["interim", "final"]
+    fraction: float
+    blocks: int
+    z: float | None
+    boundary: float
+    crossed: bool
+    recorded_decision: Literal["continue", "stop"] | None = None
+
+
+class SequentialSummary(_Model):
+    """Group-sequential stopping: planned and performed looks."""
+
+    spending: str
+    planned_looks: int
+    planned_fractions: list[float]
+    planned_blocks: int
+    looks: list[LookRow]
+    stopped_at: int | None
 
 
 class Provenance(_Model):
@@ -271,3 +357,6 @@ class Results(_Model):
     deviations: list[Deviation]
     provenance: Provenance
     summary: list[str]
+    ladder: LadderResult | None = None
+    crossover: CrossoverSummary | None = None
+    sequential: SequentialSummary | None = None

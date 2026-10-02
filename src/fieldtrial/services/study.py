@@ -238,6 +238,14 @@ def amend_study(folder: str | Path, reason: str, *, actor: str = SYSTEM_ACTOR) -
             raise ServiceError("study.yaml has not changed since it was locked")
         if new_spec.design.seed != ctx.spec.design.seed:
             raise ServiceError("design.seed cannot be amended; it defines the randomization")
+        if "crossover_rounds" in (new_spec.design.type, ctx.spec.design.type):
+            old_plan = [(s.block, s.condition, s.arm) for s in build_schedule(ctx.spec)]
+            new_plan = [(s.block, s.condition, s.arm) for s in build_schedule(new_spec)]
+            if old_plan != new_plan:
+                raise ServiceError(
+                    "a crossover design's rounds cannot be changed by amendment; only edits "
+                    "that keep the schedule (labels, analysis settings) are possible"
+                )
 
         arms = {a.key: a for a in db.scalars(select(m.Arm).where(m.Arm.study_id == study.id))}
         conds = {

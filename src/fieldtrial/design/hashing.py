@@ -16,8 +16,20 @@ _COSMETIC: dict[str, Any] = {
 
 
 def normalized_design(spec: StudySpec) -> dict[str, Any]:
-    """The study without cosmetic fields, with every default filled in."""
-    return spec.model_dump(mode="json", exclude=_COSMETIC)
+    """The study without cosmetic fields, with every default filled in.
+
+    Fields added after v0.1 are left out while they are unused, so that a study written
+    for 0.1 keeps its hash.
+    """
+    data: dict[str, Any] = spec.model_dump(mode="json", exclude=_COSMETIC)
+    if data["design"].get("rounds") is None:
+        data["design"].pop("rounds", None)
+    analysis = data["analysis"]
+    if analysis.get("ladder") is None:
+        analysis.pop("ladder", None)
+    if analysis["stopping"]["rule"] == "fixed":
+        analysis["stopping"] = {"rule": "fixed"}
+    return data
 
 
 def design_hash(spec: StudySpec) -> str:

@@ -6,6 +6,20 @@
     <span>{{ state.session.operator }} · {{ state.session.rig }}</span>
   </p>
 
+  {% if notice %}<p class="notice" role="status">{{ notice }}</p>{% endif %}
+  {% if interim and interim.due and not state.running %}
+  <div class="notice interim" role="status">
+    <p><strong>Interim look {{ interim.next_look }} of {{ interim.planned_looks }} is due</strong>
+      ({{ interim.complete_blocks }} complete blocks). It reports only "continue" or "stop".</p>
+    {% if not mirror %}
+    <form hx-post="/studies/{{ slug }}/sessions/{{ state.session.session_id }}/interim" hx-target="#panel"
+          hx-confirm="Run interim look {{ interim.next_look }} now?">
+      <button class="button primary" type="submit">Run interim look</button>
+    </form>
+    {% endif %}
+  </div>
+  {% endif %}
+
   {% if state.running %}
     {%- set t = state.running -%}
     {% include "_trial_header.html" %}
@@ -83,6 +97,10 @@
     <p class="waiting">Waiting to start</p>
     {% endif %}
 
+  {% elif interim and interim.stopped_at %}
+    <h2 class="done">The study stopped at interim look {{ interim.stopped_at }}.</h2>
+    <p>The pre-registered boundary was crossed, so the remaining trials were cancelled. Unblind on the report page to see the results.</p>
+    <p><a class="button primary" href="/studies/{{ slug }}/report">Go to the report</a></p>
   {% else %}
     <h2 class="done">All scheduled trials are done.</h2>
     <p><a class="button primary" href="/studies/{{ slug }}/report">Go to the report</a></p>
