@@ -8,6 +8,32 @@ minor releases may contain breaking changes.
 
 ## [Unreleased]
 
+## [0.2.0a2] - 2026-10-02
+
+Second v0.2 pre-release: real blinding with the command runner and the openpi router.
+
+### Added
+
+- Real blinding with switching runners. The console and the REST API start and stop them
+  with each trial. `fieldtrial check-runners` checks the setup and names arms by blind
+  code only.
+  - `command` runner: runs `runners.command.template` for each trial with the arm's
+    `policy` and `serving` values. The template is split like a shell would but never
+    runs in one, and placeholders are checked at validation.
+    - The command gets its own process group and is stopped with SIGINT, then SIGTERM,
+      then SIGKILL. Logs go to `logs/`, and the environment carries the blind code only.
+    - `launch: per_arm` keeps one process per arm and sends it start and stop lines.
+    - With `success_exit_code`, a successful exit preselects the success stage.
+  - `openpi_router` runner: a websocket proxy in front of one openpi policy server per
+    arm.
+    - It refuses arms whose metadata differ, passes `Api-Key` headers through and forwards
+      frames unchanged to the current trial's arm.
+    - It records request latency per trial. Install with `fieldtrial[openpi]`.
+- A runner that cannot start a trial marks it invalid with the reason, so the slot is
+  rescheduled.
+- Reports gain a descriptive runner table per arm: requests, errors, latency and abnormal
+  exits.
+
 ## [0.2.0a1] - 2026-10-02
 
 First v0.2 pre-release: crossover rounds, checkpoint ladders and group-sequential stopping.
@@ -116,7 +142,8 @@ First alpha: the statistics core and the calculator commands.
   reference.
 - Project skeleton: packaging, `fieldtrial --version`, CI and the documentation site.
 
-[Unreleased]: https://github.com/rokbenko/fieldtrial/compare/v0.2.0a1...HEAD
+[Unreleased]: https://github.com/rokbenko/fieldtrial/compare/v0.2.0a2...HEAD
+[0.2.0a2]: https://github.com/rokbenko/fieldtrial/compare/v0.2.0a1...v0.2.0a2
 [0.2.0a1]: https://github.com/rokbenko/fieldtrial/compare/v0.1.0...v0.2.0a1
 [0.1.0]: https://github.com/rokbenko/fieldtrial/compare/v0.1.0a1...v0.1.0
 [0.1.0rc1]: https://github.com/rokbenko/fieldtrial/compare/v0.1.0a1...v0.1.0rc1

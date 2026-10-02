@@ -10,6 +10,13 @@ from typing import Annotated, Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
+from fieldtrial.design.runner_config import (
+    RunnersConfig,
+    TemplateError,
+    render_command,
+    sample_values,
+)
+
 Identifier = Annotated[
     str,
     Field(pattern=r"^[A-Za-z0-9][A-Za-z0-9_.-]*$", min_length=1, max_length=64),
@@ -77,7 +84,7 @@ class Arm(_Strict):
 
     id: Identifier
     label: str | None = None
-    runner: Literal["manual", "sim"] = "manual"
+    runner: Literal["manual", "sim", "command", "openpi_router"] = "manual"
     policy: dict[str, Any] = Field(default_factory=dict)
     serving: dict[str, Any] = Field(default_factory=dict)
 
@@ -257,6 +264,7 @@ class StudySpec(_Strict):
     conditions: Conditions
     design: Design
     analysis: Analysis
+    runners: RunnersConfig | None = None
 
     @field_validator("arms")
     @classmethod
@@ -344,6 +352,38 @@ class StudySpec(_Strict):
                     )
             if primary.comparison.treatment == primary.comparison.control:
                 raise ValueError("treatment and control must be different arms")
+        return self
+
+    @model_validator(mode="after")
+    def _check_runners(self) -> "StudySpec":
+        kinds = {a.runner for a in self.arms}
+        switching = kinds & {"command", "openpi_router"}
+        if switching and len(kinds) > 1:
+            raise ValueError(
+                f"arms use different runners ({', '.join(sorted(kinds))}); a switching "
+                "runner (command or openpi_router) must run every arm"
+            )
+        config = self.runners or RunnersConfig()
+        if "command" in kinds:
+            if config.command is None:
+                raise ValueError("arms use runner: command; add runners.command.template")
+            factors = self.conditions.expand()[0]
+            for arm in self.arms:
+                try:
+                    render_command(
+                        config.command.template,
+                        sample_values(policy=arm.policy, serving=arm.serving, factors=factors),
+                    )
+                except TemplateError as exc:
+                    raise ValueError(f"runners.command.template for arm {arm.id!r}: {exc}") from exc
+        if "openpi_router" in kinds:
+            for arm in self.arms:
+                url = arm.policy.get("url")
+                if not isinstance(url, str) or not url.startswith(("ws://", "wss://")):
+                    raise ValueError(
+                        f"arm {arm.id!r} uses runner: openpi_router and needs "
+                        "policy.url: ws://host:port (its policy server)"
+                    )
         return self
 
     def arm(self, arm_id: str) -> Arm:

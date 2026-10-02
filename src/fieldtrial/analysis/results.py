@@ -322,6 +322,23 @@ class SequentialSummary(_Model):
     stopped_at: int | None
 
 
+class RunnerSummary(_Model):
+    """What the runner measured for one arm (descriptive; not a test).
+
+    ``latency_ms_median`` is the median of the per-trial median request latencies and
+    ``latency_ms_p95`` the largest per-trial 95th percentile. ``abnormal_exits`` counts
+    command-runner trials that ended with a non-zero exit code before the stop.
+    """
+
+    arm: str
+    trials: int
+    requests: int | None = None
+    errors: int | None = None
+    latency_ms_median: float | None = None
+    latency_ms_p95: float | None = None
+    abnormal_exits: int | None = None
+
+
 class Provenance(_Model):
     """Where the numbers came from."""
 
@@ -360,3 +377,4 @@ class Results(_Model):
     ladder: LadderResult | None = None
     crossover: CrossoverSummary | None = None
     sequential: SequentialSummary | None = None
+    runner: list[RunnerSummary] = Field(default_factory=list)

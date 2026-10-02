@@ -22,6 +22,7 @@ from fieldtrial.report import render_html, render_markdown
 from fieldtrial.services import ServiceError
 from fieldtrial.services.analysis import analyze_study
 from fieldtrial.services.interim import run_interim
+from fieldtrial.services.runner_check import check_runners
 from fieldtrial.services.simulate import simulate_study
 from fieldtrial.services.study import (
     amend_study,
@@ -341,6 +342,32 @@ def interim(folder: FolderArg, as_json: JsonOption = False) -> None:
 
 
 @_errors
+def check_runners_cmd(
+    folder: FolderArg,
+    api_key: Annotated[
+        str | None,
+        typer.Option("--api-key", envvar="OPENPI_API_KEY", help="Api-Key for the policy servers."),
+    ] = None,
+    as_json: JsonOption = False,
+) -> None:
+    """Check the study's runner: commands exist, policy servers answer with the same metadata.
+
+    Arms are named by blind code only, so checking does not unblind anyone.
+    """
+    checks = check_runners(folder, api_key=api_key)
+    if as_json:
+        _print_json(checks)
+    elif not checks:
+        _console.print("This study's arms use the manual or sim runner; nothing to check.")
+    for c in checks:
+        if not as_json:
+            mark = "[green]ok[/green]" if c.ok else "[red]failed[/red]"
+            _console.print(f"  {c.subject:8} {mark}  {c.message}")
+    if any(not c.ok for c in checks):
+        raise typer.Exit(1)
+
+
+@_errors
 def analyze(folder: FolderArg, as_json: JsonOption = False) -> None:
     """Run the pre-registered analysis and print the summary."""
     results = analyze_study(folder)
@@ -400,6 +427,7 @@ def register(app: typer.Typer) -> None:
             "import": import_cmd,
             "export": export,
             "interim": interim,
+            "check-runners": check_runners_cmd,
             "analyze": analyze,
             "report": report,
         },

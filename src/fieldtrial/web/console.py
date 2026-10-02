@@ -6,7 +6,6 @@ retried request is applied once.
 """
 
 import json
-import threading
 import uuid
 from datetime import UTC, datetime
 from pathlib import Path
@@ -19,10 +18,7 @@ from fastapi.templating import Jinja2Templates
 from fieldtrial.analysis import wording
 from fieldtrial.analysis.wording import fmt_rate
 from fieldtrial.report import render_html, render_markdown
-from fieldtrial.runners.base import ArmSpec, RunArtifacts, Runner, TrialContext
-from fieldtrial.runners.manual import ManualRunner
-from fieldtrial.runners.sim import SimArm, SimRunner
-from fieldtrial.services import ServiceError, StudyContext
+from fieldtrial.services import ServiceError
 from fieldtrial.services.analysis import analyze_study
 from fieldtrial.services.events import latest_event_id
 from fieldtrial.services.interim import interim_status, run_interim_in
@@ -36,7 +32,6 @@ from fieldtrial.services.session import (
 from fieldtrial.services.study import is_blinded, list_studies, status_of, unblind_study
 from fieldtrial.services.trial import (
     TERMINATIONS,
-    TrialDetail,
     complete_trial,
     edit_trial,
     get_trial,
@@ -46,6 +41,7 @@ from fieldtrial.services.trial import (
     start_trial,
     stop_trial,
 )
+from fieldtrial.web.runners import Runners
 from fieldtrial.web.security import csrf_token
 
 TEMPLATES = Path(__file__).parent / "templates"
@@ -90,66 +86,6 @@ def render(request: Request, name: str, status_code: int = 200, **context: Any) 
 
 
 # --- runners -----------------------------------------------------------------------------------
-
-
-class Runners:
-    """One runner per study, and the outcome a runner suggested for each running trial."""
-
-    def __init__(self) -> None:
-        self._runners: dict[str, Runner] = {}
-        self._suggested: dict[str, RunArtifacts] = {}
-        self._lock = threading.Lock()
-
-    def _runner(self, slug: str, ctx: StudyContext) -> Runner:
-        if slug not in self._runners:
-            spec = ctx.spec
-            sim_arms = {
-                a.id: SimArm(float(a.policy.get("sim_success_rate", 0.5)))
-                for a in spec.arms
-                if a.runner == "sim"
-            }
-            runner: Runner
-            if sim_arms:
-                runner = SimRunner(
-                    sim_arms,
-                    n_stages=len(spec.rubric.stages),
-                    success_index=spec.rubric.success_index,
-                    failure_tags=tuple(spec.rubric.failure_tags),
-                    seed=spec.design.seed,
-                )
-            else:
-                runner = ManualRunner()
-            self._runners[slug] = runner
-        return self._runners[slug]
-
-    def started(self, slug: str, ctx: StudyContext, trial: TrialDetail) -> None:
-        """Tell the study's runner a trial started; keep its suggested outcome, if any."""
-        arm = ctx.spec.arm(trial.slot.arm)
-        if arm.runner != "sim":
-            return
-        with self._lock:
-            runner = self._runner(slug, ctx)
-            runner.prepare(
-                ArmSpec(arm.id, trial.slot.blind_code, dict(arm.policy), dict(arm.serving))
-            )
-            runner.start(
-                TrialContext(
-                    seq=trial.slot.seq,
-                    condition=trial.slot.condition,
-                    factors=trial.slot.factors,
-                    instruction=ctx.spec.task.instruction,
-                    timeout_s=ctx.spec.limits.timeout_s,
-                )
-            )
-            self._suggested[trial.trial_id] = runner.stop("other")
-
-    def suggestion(self, trial_id: str) -> RunArtifacts | None:
-        """The runner's suggested outcome for a trial (simulated arms only)."""
-        return self._suggested.get(trial_id)
-
-    def forget(self, trial_id: str) -> None:
-        """Drop a trial's suggestion once it is labelled."""
-        self._suggested.pop(trial_id, None)
 
 
 def runners(request: Request) -> Runners:
@@ -242,6 +178,7 @@ def _panel_context(
         "idempotency_key": _key(),
         "interim": interim_status(ctx),
         "notice": notice,
+        "runner": runners(request).status(slug),
     }
 
 
@@ -303,6 +240,7 @@ def stop(
     """Stop the clock; the label form appears."""
     ctx = _registry(request).get(slug)
     stop_trial(ctx, trial_id, expected_version=version, idempotency_key=idempotency_key)
+    runners(request).stopped(slug, ctx, trial_id)
     return panel(request, slug, session_id)
 
 
@@ -356,7 +294,7 @@ def invalidate(
     invalidate_trial(
         ctx, trial_id, reason, expected_version=version, idempotency_key=idempotency_key
     )
-    runners(request).forget(trial_id)
+    runners(request).cancelled(slug, ctx, trial_id)
     return panel(request, slug, session_id)
 
 

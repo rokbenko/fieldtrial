@@ -39,6 +39,9 @@ for group-sequential studies `interim_status()` and `run_interim()`
 automatically, because a look is not idempotent.
 Errors raise `ApiError` with the HTTP `status` and a `detail` message.
 
+If the study's arms use a [switching runner](guides/runners.md), starting, stopping,
+completing and voiding trials through the API drives it exactly as the console does.
+
 ## Rules for any client
 
 - **Writes** need an `X-Fieldtrial-Client` header (any value); browsers cannot send it

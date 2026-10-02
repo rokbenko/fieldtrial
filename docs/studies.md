@@ -140,8 +140,7 @@ Unblinding is logged. If trials were still pending, every report flags it.
 
 !!! warning "Manual mode only half-blinds"
     With the `manual` runner, the operator loads the checkpoint, so they can know which
-    arm is running. Real blinding needs a runner that switches arms itself (planned for
-    v0.2).
+    arm is running. For real blinding, use a [switching runner](guides/runners.md).
 
 ## 5. Analyze
 

@@ -73,7 +73,8 @@ An operator who knows which arm is running may, without meaning to, reset the sc
 carefully or call a borderline outcome differently.
 
 With the `manual` runner, blinding is partial: the operator still loads the checkpoint.
-Real blinding needs a runner that switches arms itself (planned for v0.2).
+The `command` and `openpi_router` runners switch arms themselves, so the operator never
+learns which arm runs ([Real blinding with runners](guides/runners.md)).
 
 ## Pre-registration and locking
 

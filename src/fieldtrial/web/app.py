@@ -16,6 +16,7 @@ from fieldtrial.api.v1 import router as api_router
 from fieldtrial.services import ConcurrencyError, ServiceError
 from fieldtrial.services.registry import StudyRegistry, UnknownStudyError
 from fieldtrial.web import console
+from fieldtrial.web.runners import Runners
 from fieldtrial.web.security import SecurityMiddleware
 
 STATIC = Path(__file__).parent / "static"
@@ -48,9 +49,13 @@ def create_app(
     """Build the app for the study (or folder of studies) at ``root``."""
     registry = StudyRegistry(root)
 
+    runners = Runners()
+
     @asynccontextmanager
     async def lifespan(_app: FastAPI) -> AsyncIterator[None]:
+        runners.warm(registry)
         yield
+        runners.close()
         registry.close()
 
     app = FastAPI(
@@ -65,7 +70,7 @@ def create_app(
     )
     app.state.registry = registry
     app.state.lan = lan_token is not None
-    app.state.runners = console.Runners()
+    app.state.runners = runners
 
     @app.exception_handler(ServiceError)
     async def service_error(request: Request, exc: ServiceError) -> Response:

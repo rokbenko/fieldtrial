@@ -113,6 +113,35 @@ def _design_sections(r: Results) -> list[str]:
             ),
         ]
         lines += _section("Crossover rounds", body)
+    if r.runner:
+        body = [
+            "What the runner measured, per arm. Descriptive only: no test is run on it.",
+            "",
+            *_table(
+                [
+                    "Arm",
+                    "Trials",
+                    "Requests",
+                    "Errors",
+                    "Median latency (ms)",
+                    "Max p95 latency (ms)",
+                    "Abnormal exits",
+                ],
+                (
+                    [
+                        u.arm,
+                        u.trials,
+                        _DASH if u.requests is None else u.requests,
+                        _DASH if u.errors is None else u.errors,
+                        _DASH if u.latency_ms_median is None else f"{u.latency_ms_median:.1f}",
+                        _DASH if u.latency_ms_p95 is None else f"{u.latency_ms_p95:.1f}",
+                        _DASH if u.abnormal_exits is None else u.abnormal_exits,
+                    ]
+                    for u in r.runner
+                ),
+            ),
+        ]
+        lines += _section("Runner", body)
     if r.ladder is not None:
         lad = r.ladder
         a = lad.association

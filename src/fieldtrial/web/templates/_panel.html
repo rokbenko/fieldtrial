@@ -6,6 +6,7 @@
     <span>{{ state.session.operator }} · {{ state.session.rig }}</span>
   </p>
 
+  {% if runner and runner.message %}<p class="runner muted" role="status">Runner: {{ runner.message }}</p>{% endif %}
   {% if notice %}<p class="notice" role="status">{{ notice }}</p>{% endif %}
   {% if interim and interim.due and not state.running %}
   <div class="notice interim" role="status">

@@ -56,6 +56,8 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+# The openpi router; already present with uvicorn[standard], declared for clarity.
+openpi = ["websockets>=13"]
 docs = [
     "mkdocs>=1.6,<2",
     "mkdocs-material>=9.6",
@@ -343,3 +345,6 @@ forbidden_modules = [
     "torch",
     "websockets",
 ]
+# The openpi router is the one module that uses the openpi extra; it imports
+# websockets inside a function, only when a study asks for the router.
+ignore_imports = ["fieldtrial.runners.openpi_router -> websockets"]
