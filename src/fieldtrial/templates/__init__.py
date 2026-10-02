@@ -2,7 +2,7 @@
 
 from importlib.resources import files
 
-TEMPLATES = ("basic", "checkpoint-ladder", "serving-sweep")
+TEMPLATES = ("basic", "checkpoint-ladder", "crossover-rounds", "serving-sweep")
 HIDDEN_TEMPLATES = ("demo",)  # used by `fieldtrial demo`, not offered by `init`
 NAME_PLACEHOLDER = "__NAME__"
 

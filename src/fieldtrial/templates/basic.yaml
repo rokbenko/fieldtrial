@@ -55,4 +55,4 @@ analysis:
   interval: wilson
   multiplicity: holm             # only used when there are several comparisons
   secondary: [stage_reached, time_to_success]
-  stopping: {rule: fixed}
+  stopping: {rule: fixed}        # or: {rule: group_sequential, looks: 4, spending: obrien_fleming}

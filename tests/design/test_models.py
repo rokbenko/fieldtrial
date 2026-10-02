@@ -139,7 +139,122 @@ def test_many_conditions_warn() -> None:
 
 def test_carry_over_needs_crossover_design() -> None:
     [(_, message, _)] = issues_of(edit("reset: independent", "reset: carry_over"))
-    assert "v0.2" in message
+    assert "crossover_rounds" in message
+
+
+CROSSOVER = template_text("crossover-rounds", "tray")
+LADDER = template_text("checkpoint-ladder", "ladder")
+
+
+def test_crossover_template() -> None:
+    spec = parse_study(CROSSOVER).spec
+    assert spec.design.type == "crossover_rounds"
+    assert spec.design.rounds == 16
+    assert spec.design.cycles == 8
+    assert spec.limits.reset == "carry_over"
+
+
+@pytest.mark.parametrize(
+    ("old", "new", "fragment"),
+    [
+        ("  rounds: 16 ", "  rounds: 15 ", "must be even"),
+        ("  rounds: 16 ", "  rounds: 2 ", "greater than or equal to 4"),
+        ("  replicates: 1", "  replicates: 2", "replicates to 1"),
+        (
+            "  - {id: candidate,",
+            "  - {id: third}\n  - {id: candidate,",
+            "exactly 2 arms",
+        ),
+    ],
+)
+def test_crossover_validation(old: str, new: str, fragment: str) -> None:
+    messages = " ".join(m for _, m, _ in issues_of(edit(old, new, CROSSOVER)))
+    assert fragment in messages
+
+
+def test_crossover_rejects_group_sequential_stopping() -> None:
+    text = edit(
+        "  secondary: [stage_reached]\n",
+        "  secondary: [stage_reached]\n  stopping: {rule: group_sequential, looks: 2}\n",
+        CROSSOVER,
+    )
+    [(_, message, _)] = issues_of(text)
+    assert "randomized_block" in message
+
+
+def test_rounds_need_crossover_and_crossover_needs_rounds() -> None:
+    [(_, message, _)] = issues_of(edit("  seed: 20261001", "  seed: 20261001\n  rounds: 4"))
+    assert "only for design.type crossover_rounds" in message
+    [(_, message, _)] = issues_of(edit("  rounds: 16 ", "  ", CROSSOVER))
+    assert "needs design.rounds" in message
+
+
+def test_ladder_config() -> None:
+    ladder = parse_study(LADDER).spec.analysis.ladder
+    assert ladder is not None
+    assert ladder.scores() == [10000, 20000, 30000, 40000]
+    assert ladder.margin == 0.10
+    # Without a comparison, the ladder's trend test is the primary analysis.
+    text = edit("    comparison: {treatment: step-040k, control: step-010k}\n", "", LADDER)
+    assert parse_study(text).spec.analysis.primary.comparison is None
+
+
+@pytest.mark.parametrize(
+    ("old", "new", "fragment"),
+    [
+        (
+            "steps: [10000, 20000, 30000, 40000]",
+            "steps: [10000, 30000, 20000, 40000]",
+            "increasing",
+        ),
+        ("steps: [10000, 20000, 30000, 40000]", "steps: [1, 2]", "lists 2 values for 4 arms"),
+        ("arms: [step-010k, step-020k", "arms: [step-010k, step-099k", "step-099k"),
+        (
+            "arms: [step-010k, step-020k, step-030k, step-040k]",
+            "arms: [step-010k, step-020k]",
+            "at least 3",
+        ),
+        ("margin: 0.10", "margin: 1.5", "less than 1"),
+    ],
+)
+def test_ladder_validation(old: str, new: str, fragment: str) -> None:
+    messages = " ".join(m for _, m, _ in issues_of(edit(old, new, LADDER)))
+    assert fragment in messages
+
+
+@pytest.mark.parametrize(
+    ("stopping", "fragment"),
+    [
+        ("{rule: group_sequential}", "needs looks"),
+        ("{rule: group_sequential, looks: 3, at: [0.5, 1.0]}", "lists 2 fractions"),
+        ("{rule: group_sequential, looks: 2, at: [0.6, 0.5]}", "strictly increasing"),
+        ("{rule: group_sequential, looks: 2, at: [0.4, 0.8]}", "must be 1"),
+        ("{rule: fixed, looks: 3}", "only for rule: group_sequential"),
+        ("{rule: group_sequential, looks: 11}", "less than or equal to 10"),
+    ],
+)
+def test_stopping_validation(stopping: str, fragment: str) -> None:
+    text = edit("stopping: {rule: fixed}", f"stopping: {stopping}")
+    messages = " ".join(m for _, m, _ in issues_of(text))
+    assert fragment in messages
+
+
+def test_group_sequential_config() -> None:
+    text = edit("stopping: {rule: fixed}", "stopping: {rule: group_sequential, looks: 4}")
+    stopping = parse_study(text).spec.analysis.stopping
+    assert stopping.spending == "obrien_fleming"
+    assert stopping.fractions() == [0.25, 0.5, 0.75, 1.0]
+    uneven = edit(
+        "stopping: {rule: fixed}", "stopping: {rule: group_sequential, looks: 2, at: [0.4, 1]}"
+    )
+    assert parse_study(uneven).spec.analysis.stopping.fractions() == [0.4, 1.0]
+    three = edit(
+        "  secondary: [stage_reached]\n",
+        "  secondary: [stage_reached]\n  stopping: {rule: group_sequential, looks: 4}\n",
+        LADDER,
+    )
+    [(_, message, _)] = issues_of(three)
+    assert "exactly 2 arms" in message
 
 
 @pytest.mark.parametrize(

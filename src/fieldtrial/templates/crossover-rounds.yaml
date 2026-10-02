@@ -1,0 +1,43 @@
+# fieldtrial study: two policies on a task whose scene carries over between trials.
+# Each arm runs a whole round (every slot of the tray) before the tray is emptied.
+fieldtrial: 1
+name: __NAME__
+title: "Tray filling, crossover rounds"
+task:
+  instruction: "Put the next part into the next free slot of the tray"
+
+rubric:
+  stages:
+    - {id: grasp,  label: "Grasped a part"}
+    - {id: placed, label: "Part in the slot"}
+    - {id: seated, label: "Part fully seated, neighbours undisturbed"}
+  success: seated
+  failure_tags: [missed_grasp, dropped, wrong_slot, disturbed_neighbour, stuck]
+  rig_checklist: ["Tray empty and seated", "Parts bin full"]
+
+limits:
+  timeout_s: 30
+  reset: carry_over              # the tray is only emptied between rounds
+
+arms:
+  - {id: baseline, label: "current policy", policy: {path: outputs/baseline/pretrained_model}}
+  - {id: candidate, label: "fine-tuned", policy: {path: outputs/candidate/pretrained_model}}
+
+conditions:
+  factors:
+    slot: {range: [1, 12]}       # one round = one pass over every slot
+  replicates: 1
+
+design:
+  type: crossover_rounds
+  rounds: 16                     # 8 cycles; each cycle runs both arms, in random order
+  order: fixed                   # fill the slots in the same order every round
+  blinding: operator
+  seed: 20261003
+
+analysis:
+  primary:
+    comparison: {treatment: candidate, control: baseline}
+    alternative: two-sided
+    alpha: 0.05
+  secondary: [stage_reached]
