@@ -41,6 +41,7 @@ class TrialContext:
     factors: dict[str, Any]
     instruction: str | None = None
     timeout_s: float | None = None
+    trial_id: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -49,6 +50,8 @@ class RunArtifacts:
 
     Runners that cannot judge the outcome leave ``stage_index`` as None; the operator then
     labels it. ``invalid_reason`` marks a trial that must be voided and rescheduled.
+    ``metrics`` holds runner measurements (exit code, request latency); ``log`` is the path
+    of the trial's log file, if the runner wrote one.
     """
 
     duration_s: float
@@ -57,6 +60,8 @@ class RunArtifacts:
     failure_tags: tuple[str, ...] = ()
     media: tuple[str, ...] = ()
     invalid_reason: str | None = None
+    metrics: dict[str, float] = field(default_factory=dict)
+    log: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -65,6 +70,10 @@ class RunnerStatus:
 
     state: Literal["idle", "loading", "ready", "running", "closed"]
     message: str = ""
+
+
+class RunnerError(RuntimeError):
+    """A runner could not do what was asked (for example, its command does not exist)."""
 
 
 @runtime_checkable

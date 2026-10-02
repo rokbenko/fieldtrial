@@ -22,6 +22,8 @@ def normalized_design(spec: StudySpec) -> dict[str, Any]:
     for 0.1 keeps its hash.
     """
     data: dict[str, Any] = spec.model_dump(mode="json", exclude=_COSMETIC)
+    if data.get("runners") is None:
+        data.pop("runners", None)
     if data["design"].get("rounds") is None:
         data["design"].pop("rounds", None)
     analysis = data["analysis"]
