@@ -60,11 +60,11 @@ def import_trials(
     rows = read_import_csv(csv_path, mapping)
     with open_study(folder) as ctx:
         arm_ids = {a.id for a in ctx.spec.arms}
-        free: dict[tuple[str, str], list[str]] = defaultdict(list)
+        free: dict[tuple[str, str], list[tuple[int, str]]] = defaultdict(list)
         for slot in pending_slots(ctx):
-            free[(slot.condition, slot.arm)].append(slot.slot_id)
+            free[(slot.condition, slot.arm)].append((slot.seq, slot.slot_id))
         problems = []
-        placements: list[tuple[ImportRow, str, int]] = []
+        placements: list[tuple[ImportRow, tuple[int, str], int]] = []
         for row in rows:
             if row.arm not in arm_ids:
                 problems.append(f"line {row.line}: unknown arm {row.arm!r}")
@@ -84,11 +84,13 @@ def import_trials(
             placements.append((row, queue.pop(0), stage))
         if problems:
             raise ServiceError("cannot import:\n" + "\n".join(problems))
+        # Rows carry no timestamps, so record them in schedule order, back to back, ending now.
+        placements.sort(key=lambda p: p[1][0])
 
         sessions: dict[tuple[str, str, str], str] = {}
-        clock = utcnow()
+        clock = utcnow() - timedelta(seconds=sum(max(r.duration_s, 1.0) for r, _, _ in placements))
         completed = invalid = 0
-        for row, slot_id, stage in placements:
+        for row, (_seq, slot_id), stage in placements:
             key = (row.session, row.operator, row.rig)
             if key not in sessions:
                 sessions[key] = start_session(

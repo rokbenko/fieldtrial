@@ -1,0 +1,30 @@
+# Golden fixture: q50 74/80 vs baseline 91/120 (docs/PLAN.md section 15).
+# Baseline ran all 120 slots (fails on every 4th slot except 120); q50 ran only
+# slots 1-80 (fails on 1, 2, 3, 8, 12, 16), so 40 blocks are incomplete.
+fieldtrial: 1
+name: golden
+title: "Golden fixture: RTC queue threshold"
+rubric:
+  stages:
+    - {id: lift, label: "Lifted"}
+    - {id: handover, label: "Handed over"}
+    - {id: inserted, label: "Inserted"}
+    - {id: clean, label: "Clean insertion"}
+  success: clean
+  failure_tags: [dropped, missed_grasp]
+limits:
+  timeout_s: 45
+arms:
+  - {id: baseline, label: "queue 30"}
+  - {id: q50, label: "queue 50"}
+conditions:
+  factors:
+    slot: {range: [1, 120]}
+design:
+  type: randomized_block
+  blinding: none
+  seed: 20261001
+analysis:
+  primary:
+    comparison: {treatment: q50, control: baseline}
+  secondary: [stage_reached, time_to_success]

@@ -1,0 +1,1197 @@
+{
+  "$defs": {
+    "ArmSummary": {
+      "additionalProperties": false,
+      "description": "Per-arm counts. ``rate`` and ``ci`` are ``None`` when the arm has no completed trial.",
+      "properties": {
+        "arm": {
+          "title": "Arm",
+          "type": "string"
+        },
+        "label": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Label"
+        },
+        "blind_code": {
+          "title": "Blind Code",
+          "type": "string"
+        },
+        "successes": {
+          "title": "Successes",
+          "type": "integer"
+        },
+        "completed": {
+          "title": "Completed",
+          "type": "integer"
+        },
+        "invalid": {
+          "title": "Invalid",
+          "type": "integer"
+        },
+        "rate": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Rate"
+        },
+        "ci": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CI"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": [
+        "arm",
+        "label",
+        "blind_code",
+        "successes",
+        "completed",
+        "invalid",
+        "rate",
+        "ci"
+      ],
+      "title": "ArmSummary",
+      "type": "object"
+    },
+    "CI": {
+      "additionalProperties": false,
+      "description": "A confidence interval.",
+      "properties": {
+        "low": {
+          "title": "Low",
+          "type": "number"
+        },
+        "high": {
+          "title": "High",
+          "type": "number"
+        },
+        "level": {
+          "title": "Level",
+          "type": "number"
+        },
+        "method": {
+          "title": "Method",
+          "type": "string"
+        }
+      },
+      "required": [
+        "low",
+        "high",
+        "level",
+        "method"
+      ],
+      "title": "CI",
+      "type": "object"
+    },
+    "ConditionCell": {
+      "additionalProperties": false,
+      "description": "Outcomes of one arm in one condition.",
+      "properties": {
+        "arm": {
+          "title": "Arm",
+          "type": "string"
+        },
+        "successes": {
+          "title": "Successes",
+          "type": "integer"
+        },
+        "completed": {
+          "title": "Completed",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "arm",
+        "successes",
+        "completed"
+      ],
+      "title": "ConditionCell",
+      "type": "object"
+    },
+    "ConditionRow": {
+      "additionalProperties": false,
+      "description": "Outcomes per arm for one condition.",
+      "properties": {
+        "condition": {
+          "title": "Condition",
+          "type": "string"
+        },
+        "cells": {
+          "items": {
+            "$ref": "#/$defs/ConditionCell"
+          },
+          "title": "Cells",
+          "type": "array"
+        }
+      },
+      "required": [
+        "condition",
+        "cells"
+      ],
+      "title": "ConditionRow",
+      "type": "object"
+    },
+    "Deviation": {
+      "additionalProperties": false,
+      "description": "Something that departs from the locked plan.",
+      "properties": {
+        "kind": {
+          "enum": [
+            "amendment",
+            "early_unblinding",
+            "incomplete",
+            "out_of_order",
+            "excluded_blocks"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "message": {
+          "title": "Message",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "message"
+      ],
+      "title": "Deviation",
+      "type": "object"
+    },
+    "DriftCheck": {
+      "additionalProperties": false,
+      "description": "Homogeneity of one arm's success rate across sessions or operators.",
+      "properties": {
+        "arm": {
+          "title": "Arm",
+          "type": "string"
+        },
+        "grouping": {
+          "enum": [
+            "session",
+            "operator"
+          ],
+          "title": "Grouping",
+          "type": "string"
+        },
+        "groups": {
+          "title": "Groups",
+          "type": "integer"
+        },
+        "method": {
+          "title": "Method",
+          "type": "string"
+        },
+        "pvalue": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Pvalue"
+        },
+        "flagged": {
+          "title": "Flagged",
+          "type": "boolean"
+        },
+        "small_expected": {
+          "title": "Small Expected",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "arm",
+        "grouping",
+        "groups",
+        "method",
+        "pvalue",
+        "flagged",
+        "small_expected"
+      ],
+      "title": "DriftCheck",
+      "type": "object"
+    },
+    "FunnelStep": {
+      "additionalProperties": false,
+      "description": "Of the trials that reached the previous stage, how many reached this one.",
+      "properties": {
+        "stage": {
+          "title": "Stage",
+          "type": "string"
+        },
+        "entered": {
+          "title": "Entered",
+          "type": "integer"
+        },
+        "reached": {
+          "title": "Reached",
+          "type": "integer"
+        },
+        "conversion": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Conversion"
+        },
+        "ci": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CI"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "cumulative": {
+          "title": "Cumulative",
+          "type": "number"
+        }
+      },
+      "required": [
+        "stage",
+        "entered",
+        "reached",
+        "conversion",
+        "ci",
+        "cumulative"
+      ],
+      "title": "FunnelStep",
+      "type": "object"
+    },
+    "IndependentComparison": {
+      "additionalProperties": false,
+      "description": "Arms treated as independent samples (always reported, as a sensitivity analysis).",
+      "properties": {
+        "treatment": {
+          "title": "Treatment",
+          "type": "string"
+        },
+        "control": {
+          "title": "Control",
+          "type": "string"
+        },
+        "k1": {
+          "title": "K1",
+          "type": "integer"
+        },
+        "n1": {
+          "title": "N1",
+          "type": "integer"
+        },
+        "k2": {
+          "title": "K2",
+          "type": "integer"
+        },
+        "n2": {
+          "title": "N2",
+          "type": "integer"
+        },
+        "difference": {
+          "title": "Difference",
+          "type": "number"
+        },
+        "ci": {
+          "$ref": "#/$defs/CI"
+        },
+        "boschloo_p": {
+          "title": "Boschloo P",
+          "type": "number"
+        },
+        "fisher_p": {
+          "title": "Fisher P",
+          "type": "number"
+        },
+        "alternative": {
+          "title": "Alternative",
+          "type": "string"
+        }
+      },
+      "required": [
+        "treatment",
+        "control",
+        "k1",
+        "n1",
+        "k2",
+        "n2",
+        "difference",
+        "ci",
+        "boschloo_p",
+        "fisher_p",
+        "alternative"
+      ],
+      "title": "IndependentComparison",
+      "type": "object"
+    },
+    "InvalidCheck": {
+      "additionalProperties": false,
+      "description": "Whether invalid trials are spread evenly across arms.",
+      "properties": {
+        "per_arm": {
+          "additionalProperties": {
+            "type": "integer"
+          },
+          "title": "Per Arm",
+          "type": "object"
+        },
+        "attempts": {
+          "additionalProperties": {
+            "type": "integer"
+          },
+          "title": "Attempts",
+          "type": "object"
+        },
+        "method": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Method"
+        },
+        "pvalue": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Pvalue"
+        },
+        "flagged": {
+          "title": "Flagged",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "per_arm",
+        "attempts",
+        "method",
+        "pvalue",
+        "flagged"
+      ],
+      "title": "InvalidCheck",
+      "type": "object"
+    },
+    "Pairwise": {
+      "additionalProperties": false,
+      "description": "One arm compared with another inside the primary analysis.",
+      "properties": {
+        "treatment": {
+          "title": "Treatment",
+          "type": "string"
+        },
+        "control": {
+          "title": "Control",
+          "type": "string"
+        },
+        "n_pairs": {
+          "title": "N Pairs",
+          "type": "integer"
+        },
+        "b": {
+          "title": "B",
+          "type": "integer"
+        },
+        "c": {
+          "title": "C",
+          "type": "integer"
+        },
+        "difference": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Difference"
+        },
+        "ci": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CI"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "pvalue": {
+          "title": "Pvalue",
+          "type": "number"
+        },
+        "adjusted_pvalue": {
+          "title": "Adjusted Pvalue",
+          "type": "number"
+        },
+        "rejected": {
+          "title": "Rejected",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "treatment",
+        "control",
+        "n_pairs",
+        "b",
+        "c",
+        "difference",
+        "ci",
+        "pvalue",
+        "adjusted_pvalue",
+        "rejected"
+      ],
+      "title": "Pairwise",
+      "type": "object"
+    },
+    "PrimaryResult": {
+      "additionalProperties": false,
+      "description": "The pre-registered primary analysis, chosen from the locked design.",
+      "properties": {
+        "method": {
+          "enum": [
+            "mcnemar_tango",
+            "cochran_q",
+            "cmh",
+            "threshold",
+            "descriptive"
+          ],
+          "title": "Method",
+          "type": "string"
+        },
+        "test": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Test"
+        },
+        "description": {
+          "title": "Description",
+          "type": "string"
+        },
+        "treatment": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Treatment"
+        },
+        "control": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Control"
+        },
+        "n_used": {
+          "title": "N Used",
+          "type": "integer"
+        },
+        "blocks_excluded": {
+          "title": "Blocks Excluded",
+          "type": "integer"
+        },
+        "estimate": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Estimate"
+        },
+        "estimate_kind": {
+          "enum": [
+            "difference",
+            "odds_ratio",
+            "rate"
+          ],
+          "title": "Estimate Kind",
+          "type": "string"
+        },
+        "ci": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CI"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "statistic": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Statistic"
+        },
+        "pvalue": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Pvalue"
+        },
+        "alternative": {
+          "title": "Alternative",
+          "type": "string"
+        },
+        "alpha": {
+          "title": "Alpha",
+          "type": "number"
+        },
+        "rejected": {
+          "title": "Rejected",
+          "type": "boolean"
+        },
+        "pairwise": {
+          "items": {
+            "$ref": "#/$defs/Pairwise"
+          },
+          "title": "Pairwise",
+          "type": "array"
+        },
+        "mde_pp": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Mde Pp"
+        }
+      },
+      "required": [
+        "method",
+        "test",
+        "description",
+        "treatment",
+        "control",
+        "n_used",
+        "blocks_excluded",
+        "estimate",
+        "estimate_kind",
+        "ci",
+        "statistic",
+        "pvalue",
+        "alternative",
+        "alpha",
+        "rejected"
+      ],
+      "title": "PrimaryResult",
+      "type": "object"
+    },
+    "Provenance": {
+      "additionalProperties": false,
+      "description": "Where the numbers came from.",
+      "properties": {
+        "generated_at": {
+          "format": "date-time",
+          "title": "Generated At",
+          "type": "string"
+        },
+        "fieldtrial_version": {
+          "title": "Fieldtrial Version",
+          "type": "string"
+        },
+        "locked_with_version": {
+          "title": "Locked With Version",
+          "type": "string"
+        },
+        "python": {
+          "title": "Python",
+          "type": "string"
+        },
+        "numpy": {
+          "title": "Numpy",
+          "type": "string"
+        },
+        "scipy": {
+          "title": "Scipy",
+          "type": "string"
+        },
+        "design_hash": {
+          "title": "Design Hash",
+          "type": "string"
+        },
+        "seed": {
+          "title": "Seed",
+          "type": "integer"
+        },
+        "policy_fingerprints": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "title": "Policy Fingerprints",
+          "type": "object"
+        },
+        "sessions": {
+          "title": "Sessions",
+          "type": "integer"
+        },
+        "operators": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Operators",
+          "type": "array"
+        },
+        "rigs": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Rigs",
+          "type": "array"
+        }
+      },
+      "required": [
+        "generated_at",
+        "fieldtrial_version",
+        "locked_with_version",
+        "python",
+        "numpy",
+        "scipy",
+        "design_hash",
+        "seed",
+        "policy_fingerprints",
+        "sessions",
+        "operators",
+        "rigs"
+      ],
+      "title": "Provenance",
+      "type": "object"
+    },
+    "SessionRow": {
+      "additionalProperties": false,
+      "description": "Outcomes per arm in one session.",
+      "properties": {
+        "session_id": {
+          "title": "Session Id",
+          "type": "string"
+        },
+        "operator": {
+          "title": "Operator",
+          "type": "string"
+        },
+        "rig": {
+          "title": "Rig",
+          "type": "string"
+        },
+        "started_at": {
+          "format": "date-time",
+          "title": "Started At",
+          "type": "string"
+        },
+        "cells": {
+          "items": {
+            "$ref": "#/$defs/ConditionCell"
+          },
+          "title": "Cells",
+          "type": "array"
+        }
+      },
+      "required": [
+        "session_id",
+        "operator",
+        "rig",
+        "started_at",
+        "cells"
+      ],
+      "title": "SessionRow",
+      "type": "object"
+    },
+    "StageComparison": {
+      "additionalProperties": false,
+      "description": "Brunner\u2013Munzel test on the stage index (secondary).",
+      "properties": {
+        "treatment": {
+          "title": "Treatment",
+          "type": "string"
+        },
+        "control": {
+          "title": "Control",
+          "type": "string"
+        },
+        "statistic": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Statistic"
+        },
+        "pvalue": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Pvalue"
+        },
+        "preregistered": {
+          "title": "Preregistered",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "treatment",
+        "control",
+        "statistic",
+        "pvalue",
+        "preregistered"
+      ],
+      "title": "StageComparison",
+      "type": "object"
+    },
+    "StageShare": {
+      "additionalProperties": false,
+      "description": "Share of trials whose furthest stage was ``stage`` (``None`` = no stage reached).",
+      "properties": {
+        "stage": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Stage"
+        },
+        "count": {
+          "title": "Count",
+          "type": "integer"
+        },
+        "share": {
+          "title": "Share",
+          "type": "number"
+        }
+      },
+      "required": [
+        "stage",
+        "count",
+        "share"
+      ],
+      "title": "StageShare",
+      "type": "object"
+    },
+    "StageSummary": {
+      "additionalProperties": false,
+      "description": "Furthest stage reached, per arm.",
+      "properties": {
+        "arm": {
+          "title": "Arm",
+          "type": "string"
+        },
+        "n": {
+          "title": "N",
+          "type": "integer"
+        },
+        "distribution": {
+          "items": {
+            "$ref": "#/$defs/StageShare"
+          },
+          "title": "Distribution",
+          "type": "array"
+        },
+        "funnel": {
+          "items": {
+            "$ref": "#/$defs/FunnelStep"
+          },
+          "title": "Funnel",
+          "type": "array"
+        }
+      },
+      "required": [
+        "arm",
+        "n",
+        "distribution",
+        "funnel"
+      ],
+      "title": "StageSummary",
+      "type": "object"
+    },
+    "StudyInfo": {
+      "additionalProperties": false,
+      "description": "The locked design, as analyzed.",
+      "properties": {
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "title": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Title"
+        },
+        "design_hash": {
+          "title": "Design Hash",
+          "type": "string"
+        },
+        "design_type": {
+          "title": "Design Type",
+          "type": "string"
+        },
+        "status": {
+          "title": "Status",
+          "type": "string"
+        },
+        "seed": {
+          "title": "Seed",
+          "type": "integer"
+        },
+        "blinding": {
+          "title": "Blinding",
+          "type": "string"
+        },
+        "arms": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Arms",
+          "type": "array"
+        },
+        "treatment": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Treatment"
+        },
+        "control": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Control"
+        },
+        "threshold": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Threshold"
+        },
+        "alternative": {
+          "title": "Alternative",
+          "type": "string"
+        },
+        "alpha": {
+          "title": "Alpha",
+          "type": "number"
+        },
+        "multiplicity": {
+          "title": "Multiplicity",
+          "type": "string"
+        },
+        "n_conditions": {
+          "title": "N Conditions",
+          "type": "integer"
+        },
+        "replicates": {
+          "title": "Replicates",
+          "type": "integer"
+        },
+        "planned_trials": {
+          "title": "Planned Trials",
+          "type": "integer"
+        },
+        "pending_trials": {
+          "title": "Pending Trials",
+          "type": "integer"
+        },
+        "stages": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Stages",
+          "type": "array"
+        },
+        "success_stage": {
+          "title": "Success Stage",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "title",
+        "design_hash",
+        "design_type",
+        "status",
+        "seed",
+        "blinding",
+        "arms",
+        "treatment",
+        "control",
+        "threshold",
+        "alternative",
+        "alpha",
+        "multiplicity",
+        "n_conditions",
+        "replicates",
+        "planned_trials",
+        "pending_trials",
+        "stages",
+        "success_stage"
+      ],
+      "title": "StudyInfo",
+      "type": "object"
+    },
+    "TimingSummary": {
+      "additionalProperties": false,
+      "description": "Time to success, per arm.",
+      "properties": {
+        "arm": {
+          "title": "Arm",
+          "type": "string"
+        },
+        "n_successes": {
+          "title": "N Successes",
+          "type": "integer"
+        },
+        "median_s": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Median S"
+        },
+        "ci": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CI"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "curve_times": {
+          "items": {
+            "type": "number"
+          },
+          "title": "Curve Times",
+          "type": "array"
+        },
+        "curve_fraction": {
+          "items": {
+            "type": "number"
+          },
+          "title": "Curve Fraction",
+          "type": "array"
+        },
+        "preregistered": {
+          "title": "Preregistered",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "arm",
+        "n_successes",
+        "median_s",
+        "ci",
+        "curve_times",
+        "curve_fraction",
+        "preregistered"
+      ],
+      "title": "TimingSummary",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "A complete analysis of one study.",
+  "properties": {
+    "schema_version": {
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "study": {
+      "$ref": "#/$defs/StudyInfo"
+    },
+    "arms": {
+      "items": {
+        "$ref": "#/$defs/ArmSummary"
+      },
+      "title": "Arms",
+      "type": "array"
+    },
+    "primary": {
+      "$ref": "#/$defs/PrimaryResult"
+    },
+    "sensitivity": {
+      "items": {
+        "$ref": "#/$defs/IndependentComparison"
+      },
+      "title": "Sensitivity",
+      "type": "array"
+    },
+    "stages": {
+      "items": {
+        "$ref": "#/$defs/StageSummary"
+      },
+      "title": "Stages",
+      "type": "array"
+    },
+    "stage_comparisons": {
+      "items": {
+        "$ref": "#/$defs/StageComparison"
+      },
+      "title": "Stage Comparisons",
+      "type": "array"
+    },
+    "timing": {
+      "items": {
+        "$ref": "#/$defs/TimingSummary"
+      },
+      "title": "Timing",
+      "type": "array"
+    },
+    "conditions": {
+      "items": {
+        "$ref": "#/$defs/ConditionRow"
+      },
+      "title": "Conditions",
+      "type": "array"
+    },
+    "sessions": {
+      "items": {
+        "$ref": "#/$defs/SessionRow"
+      },
+      "title": "Sessions",
+      "type": "array"
+    },
+    "drift": {
+      "items": {
+        "$ref": "#/$defs/DriftCheck"
+      },
+      "title": "Drift",
+      "type": "array"
+    },
+    "invalid": {
+      "$ref": "#/$defs/InvalidCheck"
+    },
+    "deviations": {
+      "items": {
+        "$ref": "#/$defs/Deviation"
+      },
+      "title": "Deviations",
+      "type": "array"
+    },
+    "provenance": {
+      "$ref": "#/$defs/Provenance"
+    },
+    "summary": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Summary",
+      "type": "array"
+    }
+  },
+  "required": [
+    "study",
+    "arms",
+    "primary",
+    "sensitivity",
+    "stages",
+    "stage_comparisons",
+    "timing",
+    "conditions",
+    "sessions",
+    "drift",
+    "invalid",
+    "deviations",
+    "provenance",
+    "summary"
+  ],
+  "title": "Results",
+  "type": "object"
+}

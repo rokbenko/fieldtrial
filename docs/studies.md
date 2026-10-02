@@ -1,0 +1,115 @@
+# Running a study
+
+A study is a folder. `study.yaml` holds the design you edit; locking it creates
+`fieldtrial.db`, which from then on holds the frozen design, the randomized schedule, every
+trial and an append-only event log.
+
+```text
+my-study/
+├── study.yaml        # the design (editable; changes after locking need `amend`)
+├── fieldtrial.db     # created by `lock`: design, schedule, trials, events
+├── media/            # clips and photos (used from v0.1.0)
+└── reports/          # report.md and results.json
+```
+
+## 1. Design
+
+```console
+$ fieldtrial init my-study --template basic
+$ fieldtrial validate my-study
+$ fieldtrial plan my-study --baseline 0.76
+```
+
+Templates: `basic` (two arms, 40 starting positions), `checkpoint-ladder` (four checkpoints)
+and `serving-sweep` (three serving settings across objects and positions). `validate`
+reports every problem with its line in `study.yaml`. `plan` previews the schedule and the
+minimum detectable effect for the planned number of trials.
+
+The `plan` MDE uses the independent-samples formula. Paired designs usually detect
+somewhat smaller differences, so the number is conservative.
+
+## 2. Lock
+
+```console
+$ fieldtrial lock my-study
+Locked: design 2079dce2818b, 80 trials scheduled
+```
+
+Locking stores the design YAML, its hash and the randomized schedule. Each block is one
+condition × replicate; every arm runs once per block, in a Williams-balanced random order.
+The same seed gives the same schedule on every platform and numpy version.
+
+From now on the design comes from the database, not from `study.yaml`. To change it, edit
+`study.yaml` and run:
+
+```console
+$ fieldtrial amend my-study --reason "two more start positions"
+```
+
+Completed trials are kept. Pending trials the new design no longer contains are removed,
+and new ones are appended. The seed cannot be amended. Every report lists amendments as
+deviations, with the reason and the old and new design hash.
+
+## 3. Run trials
+
+The operator console arrives in v0.1.0. Until then, fill a study by simulation or by
+importing a CSV.
+
+**Simulate** (sim runner and auto-operator, for trying things out):
+
+```console
+$ fieldtrial simulate my-study --rates baseline=0.76,q50=0.90 --seed 1
+Simulated 80 completed and 0 invalid trials in 2 sessions
+```
+
+`--invalid-rate 0.05` voids some trials as simulated robot faults, and `--max-trials 20`
+stops early.
+
+**Import** trials you recorded elsewhere:
+
+```console
+$ fieldtrial import my-study results.csv --map arm=policy,success=ok
+```
+
+Required columns are `condition` (for example `slot=3`), `arm`, and either `success`
+(yes/no, true/false, 1/0) or `stage` (a stage id, an index, or empty for no stage). Optional
+columns are `duration_s`, `termination`, `failure_tags` (separated by `;`), `operator`,
+`rig`, `session`, `status` (`invalid` imports a voided trial), `invalid_reason` and `notes`.
+`--map field=column` renames columns.
+
+Each row fills the next pending slot with the same condition and arm. Every row is checked
+before anything is written: if one row cannot be placed, nothing is imported and every
+problem is listed.
+
+**Invalid trials** (a robot fault, a setup error) are never deleted. The slot is voided and
+a replacement is scheduled at the end of its block, so the design stays balanced. Reports
+count invalid trials per arm and flag an imbalance.
+
+## 4. Blinding
+
+With `blinding: operator`, the operator sees only blind codes, such as `N4`, and
+`fieldtrial status` shows progress without per-arm results. `analyze` and `report` refuse to
+run until you unblind:
+
+```console
+$ fieldtrial unblind my-study
+```
+
+Unblinding is logged. If trials were still pending, every report flags it.
+
+!!! warning "Manual mode only half-blinds"
+    With the `manual` runner, the operator loads the checkpoint, so they can know which
+    arm is running. Real blinding needs a runner that switches arms itself (planned for
+    v0.2).
+
+## 5. Analyze
+
+```console
+$ fieldtrial analyze my-study           # summary in the terminal
+$ fieldtrial analyze my-study --json    # the full Results model
+$ fieldtrial report my-study            # reports/report.md
+$ fieldtrial report my-study --format json
+$ fieldtrial export my-study --format csv
+```
+
+See [Analysis and reports](analysis.md) for what the analysis contains.

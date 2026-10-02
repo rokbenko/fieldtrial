@@ -268,11 +268,13 @@ source_modules = [
     "fieldtrial.cli",
     "fieldtrial.design",
     "fieldtrial.io",
+    "fieldtrial.report",
     "fieldtrial.runners",
     "fieldtrial.stats",
     "fieldtrial.templates",
 ]
 forbidden_modules = ["fieldtrial.store", "sqlalchemy", "alembic"]
+allow_indirect_imports = true  # the CLI reaches the database through services, never directly
 
 [[tool.importlinter.contracts]]
 name = "analysis, io, report and runners do not call services"
@@ -280,6 +282,7 @@ type = "forbidden"
 source_modules = [
     "fieldtrial.analysis",
     "fieldtrial.io",
+    "fieldtrial.report",
     "fieldtrial.runners",
 ]
 forbidden_modules = ["fieldtrial.cli", "fieldtrial.services"]

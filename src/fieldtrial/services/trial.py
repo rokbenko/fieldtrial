@@ -489,6 +489,7 @@ def collect_records(ctx: StudyContext) -> tuple[list[TrialRecord], StudyContextI
             }
             for e in list_events(db, ctx.study_id, "amendment")
         )
+        unblinded = list_events(db, ctx.study_id, "unblinded")
         info = StudyContextInfo(
             design_hash=study.design_hash,
             status=study.status,
@@ -498,5 +499,8 @@ def collect_records(ctx: StudyContext) -> tuple[list[TrialRecord], StudyContextI
             amendments=amendments,
             planned_slots=sum(1 for st in statuses if st != "void"),
             pending_slots=sum(1 for st in statuses if st == "pending"),
+            pending_at_unblinding=(
+                int(unblinded[0].payload.get("pending_slots", 0)) if unblinded else None
+            ),
         )
         return records, info

@@ -51,6 +51,8 @@ not_in_nav: |
 
 nav:
   - Home: index.md
+  - Running a study: studies.md
+  - Analysis and reports: analysis.md
   - Command line: cli.md
   - Statistics:
       - Overview: stats/index.md

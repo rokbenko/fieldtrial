@@ -10,8 +10,7 @@ class TrialRecord:
     """One trial attempt, as recorded.
 
     ``status`` is ``"completed"`` or ``"invalid"`` (running trials are never analyzed).
-    ``seq`` is the run-order position of the trial's slot; ``planned_seq`` is the position
-    it had when the schedule was locked or amended, so out-of-order runs can be detected.
+    ``seq`` is the run-order position of the trial's slot (rescheduling shifts later slots).
     """
 
     trial_id: str
@@ -49,4 +48,5 @@ class StudyContextInfo:
     amendments: tuple[dict[str, Any], ...] = ()
     planned_slots: int = 0
     pending_slots: int = 0
+    pending_at_unblinding: int | None = None  # from the first ``unblinded`` event
     software: dict[str, str] = field(default_factory=dict)

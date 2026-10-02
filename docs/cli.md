@@ -1,8 +1,31 @@
 # Command line
 
-The calculator commands work on plain counts; you don't need a study. Every command
-accepts `--json` for machine-readable output. Exit codes are 0 on success, 1 on unexpected
-errors, and 2 on invalid input.
+Every command accepts `--json` for machine-readable output. Exit codes are 0 on success, 1
+when the request cannot be carried out (for example analyzing a blinded study), and 2 on
+invalid input.
+
+## Studies
+
+See [Running a study](studies.md) for the full workflow.
+
+| Command | What it does |
+|---|---|
+| `fieldtrial init DIR [--template basic\|checkpoint-ladder\|serving-sweep]` | Create a study folder with a `study.yaml` |
+| `fieldtrial validate DIR` | Check `study.yaml`; every problem with its line |
+| `fieldtrial plan DIR [--baseline 0.76]` | Schedule preview and minimum detectable effect |
+| `fieldtrial lock DIR` | Freeze the design and randomize the schedule |
+| `fieldtrial amend DIR --reason "..."` | Apply `study.yaml` edits as a logged amendment |
+| `fieldtrial simulate DIR --rates baseline=0.76,q50=0.90 [--seed 1]` | Fill the study with simulated trials |
+| `fieldtrial import DIR results.csv [--map arm=policy,success=ok]` | Import trials from a CSV (all or nothing) |
+| `fieldtrial status DIR` | Progress; no per-arm results while blinded |
+| `fieldtrial unblind DIR [--yes]` | Reveal the blind codes (logged) |
+| `fieldtrial analyze DIR` | Run the pre-registered analysis |
+| `fieldtrial report DIR [--format md\|json] [--out PATH]` | Write `reports/report.md` or `results.json` |
+| `fieldtrial export DIR [--format csv\|jsonl] [--out PATH]` | Export trials (blind codes while blinded) |
+
+## Calculators
+
+The calculator commands work on plain counts; you don't need a study.
 
 ```console
 $ uvx fieldtrial ci 36/40
