@@ -1,0 +1,102 @@
+name: Release
+
+# On a version tag: build the sdist and wheel from the tag, check them, smoke-test the wheel
+# in a clean environment, and create a GitHub release with the CHANGELOG section and the
+# files attached. Uploading to (Test)PyPI stays a manual step by the maintainer
+# (docs/PLAN.md, Appendix B), using exactly these files.
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Existing tag to build, for example v0.1.0rc1"
+        required: true
+
+permissions:
+  contents: read
+
+env:
+  UV_VERSION: "0.12.21"
+
+jobs:
+  build:
+    name: Build and check
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.tag || github.ref }}
+          fetch-depth: 0  # hatch-vcs derives the version from the tag
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: ${{ env.UV_VERSION }}
+          python-version: "3.12"
+      - name: Version from the tag
+        id: version
+        run: |
+          tag="${{ inputs.tag || github.ref_name }}"
+          echo "version=${tag#v}" >> "$GITHUB_OUTPUT"
+      - name: Release notes exist
+        run: python scripts/changelog_section.py "${{ steps.version.outputs.version }}" > release-notes.md
+      - name: Build
+        run: uv build
+      - name: Check the version and metadata
+        run: |
+          ls dist
+          test -f "dist/fieldtrial-${{ steps.version.outputs.version }}.tar.gz"
+          test -f "dist/fieldtrial-${{ steps.version.outputs.version }}-py3-none-any.whl"
+          uvx --from "twine>=6" twine check --strict dist/*
+      - name: Smoke test the wheel in a clean environment
+        run: |
+          cd "$(mktemp -d)"
+          uv venv --python 3.12 venv
+          uv pip install --python venv/bin/python "$GITHUB_WORKSPACE"/dist/*.whl
+          export PATH="$PWD/venv/bin:$PATH"
+          fieldtrial --version | grep -F "${{ steps.version.outputs.version }}"
+          fieldtrial compare 74/80 91/120 | grep -F "Boschloo p = 0.0020"
+          fieldtrial init study
+          fieldtrial lock study
+          fieldtrial simulate study --rates baseline=0.76,q50=0.90
+          fieldtrial unblind study --yes
+          fieldtrial report study
+          grep -c "<svg" study/reports/report.html
+          fieldtrial demo --dir demo --no-browser --port 8799 &
+          server=$!
+          for i in $(seq 1 60); do curl -fsS -o /dev/null http://127.0.0.1:8799/ && break; sleep 0.5; done
+          curl -fsS http://127.0.0.1:8799/studies/demo | grep -F "Start a session"
+          curl -fsS http://127.0.0.1:8799/static/vendor/htmx-2.0.11.min.js -o /dev/null
+          kill "$server"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: |
+            dist/
+            release-notes.md
+          if-no-files-found: error
+
+  github-release:
+    name: GitHub release
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+      - name: Create the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ needs.build.outputs.version }}
+        run: |
+          prerelease=""
+          case "$VERSION" in *a*|*b*|*rc*|*dev*) prerelease="--prerelease" ;; esac
+          gh release create "v$VERSION" dist/* \
+            --repo "${{ github.repository }}" \
+            --title "fieldtrial $VERSION" \
+            --notes-file release-notes.md \
+            --verify-tag $prerelease

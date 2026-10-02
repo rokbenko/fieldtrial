@@ -8,8 +8,11 @@ minor releases may contain breaking changes.
 
 ## [Unreleased]
 
-Studies: design, lock, fill and analyze end to end, and run them from a phone-friendly
-operator console or your own runtime.
+## [0.1.0rc1] - 2026-10-02
+
+Release candidate for 0.1.0. Studies: design, lock, fill and analyze end to end, run them
+from a phone-friendly operator console or your own runtime, and share a self-contained
+report.
 
 ### Added
 
@@ -73,5 +76,6 @@ First alpha: the statistics core and the calculator commands.
   reference.
 - Project skeleton: packaging, `fieldtrial --version`, CI and the documentation site.
 
-[Unreleased]: https://github.com/rokbenko/fieldtrial/compare/v0.1.0a1...HEAD
+[Unreleased]: https://github.com/rokbenko/fieldtrial/compare/v0.1.0rc1...HEAD
+[0.1.0rc1]: https://github.com/rokbenko/fieldtrial/compare/v0.1.0a1...v0.1.0rc1
 [0.1.0a1]: https://github.com/rokbenko/fieldtrial/releases/tag/v0.1.0a1
