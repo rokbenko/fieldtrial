@@ -44,13 +44,35 @@ The operator starts each rollout with LeRobot and records the outcome in the con
 The operator still knows which command they launched, so this is only half-blind. Keep
 the launch scripts named by blind code, not by arm.
 
-## Recording datasets
+## Linking trials to dataset episodes
 
-If you record rollouts as LeRobot datasets, note the trial number from the console in the
-episode's metadata or file name, so an outcome can be traced back to its episode.
-Linking trials to dataset episodes automatically is planned for v0.2.
+If each trial recorded one episode of a LeRobot v3.0 dataset, link them (needs the
+`lerobot` extra: `pip install 'fieldtrial[lerobot]'`):
+
+```console
+$ fieldtrial link-episodes my-study outputs/eval_dataset      # or a cached repo id: lab/cups-eval
+Dataset outputs/eval_dataset (v3.0)
+  trial    1 (N4, completed) -> episode 0 (412 frames)
+  trial    2 (Y4, completed) -> episode 1 (388 frames, 23 intervention frames)
+  ...
+Link 40 trials to these episodes? [y/N]:
+```
+
+LeRobot episodes carry no wall-clock time, so trials are matched to episodes in run order:
+the first unlinked trial to `--first-episode` (0 by default), and so on. If a rollout was
+restarted or an episode discarded, give the pairs yourself with `--map links.csv`, a file
+with the columns `trial,episode_index`. `trial` is the trial number shown in the console,
+or the trial id. The plan shows blind codes only, and nothing is written until you
+confirm. Each linking run is recorded in the event log.
+
+When the dataset was recorded with the DAgger rollout strategy, frames where a human took
+over are tagged `intervention=True`. fieldtrial counts them per trial, and the report's
+**Dataset episodes** table lists, per arm, the linked trials, frames, trials with
+interventions and intervention frames. The table is descriptive; no test is run on it.
+
+A repo id is looked up where LeRobot caches datasets (`$HF_LEROBOT_HOME/<repo_id>`, by
+default `~/.cache/huggingface/lerobot/<repo_id>`); fieldtrial never downloads anything.
 
 ## Coming next
 
-- **v0.2:** links between trials and LeRobot dataset episodes.
 - **v0.3:** an in-process LeRobot runner built on `lerobot.rollout`.

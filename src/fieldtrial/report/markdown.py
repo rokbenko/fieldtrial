@@ -113,6 +113,31 @@ def _design_sections(r: Results) -> list[str]:
             ),
         ]
         lines += _section("Crossover rounds", body)
+    if r.episodes:
+        body = [
+            "Trials linked to LeRobot dataset episodes. Descriptive only: no test is run on it.",
+            "",
+            *_table(
+                [
+                    "Arm",
+                    "Linked trials",
+                    "Frames",
+                    "Trials with interventions",
+                    "Intervention frames",
+                ],
+                (
+                    [
+                        e.arm,
+                        e.linked_trials,
+                        e.frames,
+                        _DASH if e.trials_with_intervention is None else e.trials_with_intervention,
+                        _DASH if e.intervention_frames is None else e.intervention_frames,
+                    ]
+                    for e in r.episodes
+                ),
+            ),
+        ]
+        lines += _section("Dataset episodes", body)
     if r.rig_checks:
         body = [
             "Photos of the rig compared with its reference photo. A flag is a reason to look "

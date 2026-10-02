@@ -129,6 +129,17 @@
 </section>
 {% endif %}
 
+{% if r.episodes %}
+<section>
+  <h2>Dataset episodes</h2>
+  <p>Trials linked to LeRobot dataset episodes. Descriptive only: no test is run on it.</p>
+  <div class="table"><table>
+    <thead><tr><th>Arm</th><th class="num">Linked trials</th><th class="num">Frames</th><th class="num">Trials with interventions</th><th class="num">Intervention frames</th></tr></thead>
+    <tbody>{% for e in r.episodes %}<tr><td>{{ e.arm }}</td><td class="num">{{ e.linked_trials }}</td><td class="num">{{ e.frames }}</td><td class="num">{{ "–" if e.trials_with_intervention is none else e.trials_with_intervention }}</td><td class="num">{{ "–" if e.intervention_frames is none else e.intervention_frames }}</td></tr>{% endfor %}</tbody>
+  </table></div>
+</section>
+{% endif %}
+
 {% if r.rig_checks %}
 <section>
   <h2>Rig checks</h2>

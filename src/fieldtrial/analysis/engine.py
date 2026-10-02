@@ -53,6 +53,7 @@ from fieldtrial.analysis.results import (
     CrossoverSummary,
     Deviation,
     DriftCheck,
+    EpisodeSummary,
     FunnelStep,
     IndependentComparison,
     InvalidCheck,
@@ -758,6 +759,26 @@ def _primary_ladder(data: _Data, summary: list[str], extras: _Extras) -> Primary
     )
 
 
+def _episodes(data: _Data) -> list[EpisodeSummary]:
+    out = []
+    for arm in data.arm_ids:
+        links = [r.episode for r in data.records if r.arm == arm and r.episode]
+        if not links:
+            continue
+        counts = [link.get("intervention_frames") for link in links]
+        known = [int(c) for c in counts if c is not None]
+        out.append(
+            EpisodeSummary(
+                arm=arm,
+                linked_trials=len(links),
+                frames=sum(int(link.get("length", 0)) for link in links),
+                trials_with_intervention=sum(1 for c in known if c > 0) if known else None,
+                intervention_frames=sum(known) if known else None,
+            )
+        )
+    return out
+
+
 def _rig_checks(info: StudyContextInfo) -> list[RigCheckRow]:
     return [
         RigCheckRow(
@@ -1197,4 +1218,5 @@ def analyze(
         sequential=extras.sequential,
         runner=_runner(data),
         rig_checks=rig_rows,
+        episodes=_episodes(data),
     )

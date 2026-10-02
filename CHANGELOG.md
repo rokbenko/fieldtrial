@@ -8,6 +8,31 @@ minor releases may contain breaking changes.
 
 ## [Unreleased]
 
+### Added
+
+- Rig drift checks. Compare a photo of the rig with a reference photo: shift by phase
+  correlation, brightness change, and structural similarity (SSIM) after alignment.
+  - Run them with `fieldtrial rig-check DIR PHOTO` (or `--camera`), or attach a photo
+    when a console session starts.
+  - A flagged check shows as a console warning and as a report deviation, and the report
+    lists every check.
+- Evaluation-camera capture (`fieldtrial[capture]`: OpenCV and PyAV). With
+  `capture.camera` in `study.yaml`, every trial is recorded from Start to Stop and the
+  clip is attached to the trial. The rig is checked from the camera at session start and
+  every `capture.drift.every_trials` trials. A camera failure never blocks a trial.
+- Links between trials and LeRobot v3.0 dataset episodes (`fieldtrial[lerobot]`:
+  pyarrow).
+  - `fieldtrial link-episodes DIR DATASET` matches trials to episodes in run order, or
+    from a `trial,episode_index` mapping file, and shows the plan by blind code before
+    writing.
+  - Episodes with DAgger `intervention` flags get intervention counts, and reports gain a
+    descriptive dataset-episodes table.
+- A `capture:` section in `study.yaml`, always left out of the design hash.
+
+### Changed
+
+- `pillow` is declared as a dependency; it was already required by matplotlib.
+
 ## [0.2.0a2] - 2026-10-02
 
 Second v0.2 pre-release: real blinding with the command runner and the openpi router.

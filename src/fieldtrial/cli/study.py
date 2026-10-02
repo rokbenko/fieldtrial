@@ -21,6 +21,7 @@ from fieldtrial.io.csv import CsvImportError, parse_mapping
 from fieldtrial.report import render_html, render_markdown
 from fieldtrial.services import ServiceError, open_study
 from fieldtrial.services.analysis import analyze_study
+from fieldtrial.services.dataset import link_episodes, plan_links
 from fieldtrial.services.interim import run_interim
 from fieldtrial.services.rig import check_rig, grab_camera_frame, set_reference
 from fieldtrial.services.runner_check import check_runners
@@ -412,6 +413,61 @@ def rig_check(
 
 
 @_errors
+def link_episodes_cmd(
+    folder: FolderArg,
+    dataset: Annotated[str, typer.Argument(help="Dataset folder, or a repo id cached by LeRobot.")],
+    first_episode: Annotated[
+        int, typer.Option("--first-episode", help="Episode of the first unlinked trial.")
+    ] = 0,
+    mapping: Annotated[
+        Path | None,
+        typer.Option("--map", help="CSV with columns trial,episode_index (explicit pairs)."),
+    ] = None,
+    relink: Annotated[bool, typer.Option("--relink", help="Ignore earlier links.")] = False,
+    yes: Annotated[bool, typer.Option("--yes", help="Link without asking.")] = False,
+    as_json: JsonOption = False,
+) -> None:
+    """Link trials to the episodes of a LeRobot v3.0 dataset (needs the lerobot extra).
+
+    Trials are matched to episodes in run order unless --map gives explicit pairs. The plan
+    is shown, by blind code, before anything is written.
+    """
+    with open_study(folder) as ctx:
+        plan = plan_links(ctx, dataset, first_episode=first_episode, mapping=mapping, relink=relink)
+        if as_json:
+            if yes and plan.rows:
+                link_episodes(ctx, plan)
+            _print_json(plan)
+            return
+        _console.print(f"Dataset {plan.root} ({plan.codebase_version})")
+        for r in plan.rows[:20]:
+            extra = (
+                ""
+                if r.intervention_frames is None
+                else f", {r.intervention_frames} intervention frames"
+            )
+            _console.print(
+                f"  trial {r.seq:>4} ({r.blind_code}, {r.status}) -> episode {r.episode_index} "
+                f"({r.length} frames{extra})"
+            )
+        if len(plan.rows) > 20:
+            _console.print(f"  ... and {len(plan.rows) - 20} more")
+        if plan.unmatched_trials or plan.unmatched_episodes:
+            _console.print(
+                f"[yellow]{plan.unmatched_trials} trials and {plan.unmatched_episodes} episodes "
+                "stay unmatched.[/yellow] Check that every trial recorded exactly one episode, "
+                "or pass --map."
+            )
+        if not plan.rows:
+            _console.print("Nothing to link.")
+            return
+        if not yes:
+            typer.confirm(f"Link {len(plan.rows)} trials to these episodes?", abort=True)
+        count = link_episodes(ctx, plan)
+    _console.print(f"Linked {count} trials.")
+
+
+@_errors
 def analyze(folder: FolderArg, as_json: JsonOption = False) -> None:
     """Run the pre-registered analysis and print the summary."""
     results = analyze_study(folder)
@@ -473,6 +529,7 @@ def register(app: typer.Typer) -> None:
             "interim": interim,
             "check-runners": check_runners_cmd,
             "rig-check": rig_check,
+            "link-episodes": link_episodes_cmd,
             "analyze": analyze,
             "report": report,
         },

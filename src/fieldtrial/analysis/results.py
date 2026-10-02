@@ -353,6 +353,19 @@ class RigCheckRow(_Model):
     reasons: list[str] = Field(default_factory=list)
 
 
+class EpisodeSummary(_Model):
+    """Linked LeRobot episodes of one arm (descriptive).
+
+    Intervention counts are None when the dataset has no ``intervention`` flags.
+    """
+
+    arm: str
+    linked_trials: int
+    frames: int
+    trials_with_intervention: int | None = None
+    intervention_frames: int | None = None
+
+
 class Provenance(_Model):
     """Where the numbers came from."""
 
@@ -393,3 +406,4 @@ class Results(_Model):
     sequential: SequentialSummary | None = None
     runner: list[RunnerSummary] = Field(default_factory=list)
     rig_checks: list[RigCheckRow] = Field(default_factory=list)
+    episodes: list[EpisodeSummary] = Field(default_factory=list)

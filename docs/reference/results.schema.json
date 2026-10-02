@@ -294,6 +294,55 @@
       "title": "DriftCheck",
       "type": "object"
     },
+    "EpisodeSummary": {
+      "additionalProperties": false,
+      "description": "Linked LeRobot episodes of one arm (descriptive).\n\nIntervention counts are None when the dataset has no ``intervention`` flags.",
+      "properties": {
+        "arm": {
+          "title": "Arm",
+          "type": "string"
+        },
+        "linked_trials": {
+          "title": "Linked Trials",
+          "type": "integer"
+        },
+        "frames": {
+          "title": "Frames",
+          "type": "integer"
+        },
+        "trials_with_intervention": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Trials With Intervention"
+        },
+        "intervention_frames": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Intervention Frames"
+        }
+      },
+      "required": [
+        "arm",
+        "linked_trials",
+        "frames"
+      ],
+      "title": "EpisodeSummary",
+      "type": "object"
+    },
     "FunnelStep": {
       "additionalProperties": false,
       "description": "Of the trials that reached the previous stage, how many reached this one.",
@@ -1764,6 +1813,13 @@
         "$ref": "#/$defs/RigCheckRow"
       },
       "title": "Rig Checks",
+      "type": "array"
+    },
+    "episodes": {
+      "items": {
+        "$ref": "#/$defs/EpisodeSummary"
+      },
+      "title": "Episodes",
       "type": "array"
     }
   },

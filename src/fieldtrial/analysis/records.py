@@ -35,6 +35,7 @@ class TrialRecord:
     notes: str | None = None
     invalid_reason: str | None = None
     runner_metrics: dict[str, float] = field(default_factory=dict)
+    episode: dict[str, Any] | None = None  # linked LeRobot episode, if any
 
 
 @dataclass(frozen=True, slots=True)
