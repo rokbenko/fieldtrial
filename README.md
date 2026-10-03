@@ -325,7 +325,7 @@ Anytime-valid checking pays for its freedom with power when the effect is small,
 
 ## Status
 
-Version 0.3 on `main` (0.2.0 on PyPI): the statistics, every design above, the console, the REST API, three runners that switch policies, an evaluation camera, LeRobot dataset links and reward models. How far each piece has actually been exercised:
+Version 0.3.0: the statistics, every design above, the console, the REST API, three runners that switch policies, an evaluation camera, LeRobot dataset links and reward models. How far each piece has actually been exercised:
 
 | Piece | Status |
 |---|---|
@@ -583,7 +583,6 @@ Defaults are 95% intervals, two-sided tests and α = 0.05. Results that are not 
 ## Roadmap
 
 - **Hardware:** a first study on a real SO-101 arm with the `lerobot` runner, recorded end to end, so the recording at the top of this page can be replaced by a real one.
-- **v0.3 release:** M8 (anytime-valid comparisons and best-arm selection), M9 (reward models, blind review, κ and PPI++) and M10 (the in-process LeRobot runner) are on `main` and go to PyPI as 0.3.0.
 - **Next:** a non-inferiority margin in the study file, an indifference zone for best-arm selection so close sweeps can end sooner, nonasymptotic proxy-assisted intervals, and preloading every arm's policy when a session opens.
 - **Upstream:** a candidate proposal for LeRobot, a strategy registry in `lerobot.rollout` and a set-up that accepts an already connected robot, so tools like fieldtrial can reuse it instead of mirroring it.
 
