@@ -459,6 +459,9 @@ class _Session:
         finally:
             engine.pause()
             out.elapsed_s = time.perf_counter() - started
+        # A failure during the last tick, just before Stop, is checked only here.
+        if out.error is None and engine.failed:
+            out.error = "the inference engine failed"
         return out
 
     def reset_pose(self, strategy: Any, context: Any) -> None:
