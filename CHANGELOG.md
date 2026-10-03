@@ -8,11 +8,12 @@ minor releases may contain breaking changes.
 
 ## [Unreleased]
 
-## [0.3.0rc1] - 2026-10-02
+## [0.3.0] - 2026-10-03
 
-Release candidate for 0.3.0: anytime-valid comparisons and best-arm selection (M8),
-reward-model scores with blind review, Cohen's κ and PPI++ estimates (M9), and the
-in-process LeRobot runner (M10).
+Third release: anytime-valid comparisons and best-arm selection for serving sweeps;
+reward-model scores as suggestions, with blind human review, Cohen's κ and PPI++
+estimates; and the in-process LeRobot runner. Studies, design hashes and results files
+from 0.1 and 0.2 keep working.
 
 ### Added
 
@@ -75,6 +76,11 @@ in-process LeRobot runner (M10).
   the new `rewards` and `lerobot-runner` extras are resolved apart from it, so
   `uv sync --extra openpi --extra capture --extra lerobot --extra docs` is the development
   setup (`--all-extras` no longer works).
+
+## [0.3.0rc1] - 2026-10-02
+
+Release candidate of 0.3.0, published to PyPI for testing. Its changes are listed under
+0.3.0; the release is identical apart from this changelog.
 
 ## [0.2.0] - 2026-10-02
 
@@ -239,7 +245,8 @@ First alpha: the statistics core and the calculator commands.
   reference.
 - Project skeleton: packaging, `fieldtrial --version`, CI and the documentation site.
 
-[Unreleased]: https://github.com/rokbenko/fieldtrial/compare/v0.3.0rc1...HEAD
+[Unreleased]: https://github.com/rokbenko/fieldtrial/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/rokbenko/fieldtrial/compare/v0.2.0...v0.3.0
 [0.3.0rc1]: https://github.com/rokbenko/fieldtrial/compare/v0.2.0...v0.3.0rc1
 [0.2.0]: https://github.com/rokbenko/fieldtrial/compare/v0.1.0...v0.2.0
 [0.2.0rc1]: https://github.com/rokbenko/fieldtrial/compare/v0.2.0a2...v0.2.0rc1

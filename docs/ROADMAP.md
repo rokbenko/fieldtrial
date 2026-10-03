@@ -66,9 +66,9 @@ These notes come from reading the LeRobot 0.6.1 source; nothing was measured on 
 
 | Milestone | Scope | Status |
 |---|---|---|
-| M8 | Anytime-valid comparisons and best-arm selection for serving sweeps; STEP evaluation | 0.3.0rc1 |
-| M9 | Reward-model pre-labels with blind human review, Cohen's κ, proxy-assisted (PPI++) intervals | 0.3.0rc1 |
-| M10 | In-process LeRobot runner | 0.3.0rc1 |
+| M8 | Anytime-valid comparisons and best-arm selection for serving sweeps; STEP evaluation | released in 0.3.0 |
+| M9 | Reward-model pre-labels with blind human review, Cohen's κ, proxy-assisted (PPI++) intervals | released in 0.3.0 |
+| M10 | In-process LeRobot runner (release 0.3.0) | released 2026-10-03 |
 
 Limits of M8, to revisit later:
 
